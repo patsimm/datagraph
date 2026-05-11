@@ -6,13 +6,14 @@ import { NodeType } from "@datagraph/core"
 export type DatagraphNodeProps = {
   nodeKey: string
   spec: NodeSpec
+  output?: boolean
 }
 
-export function DatagraphNode({ nodeKey, spec }: DatagraphNodeProps) {
+export function DatagraphNode({ nodeKey, spec, output }: DatagraphNodeProps) {
   const { addNode } = useDatagraph()
 
   useEffect(() => {
-    addNode(nodeKey, spec)
+    addNode(nodeKey, spec, output)
   }, [nodeKey, spec])
   return (
     <div>

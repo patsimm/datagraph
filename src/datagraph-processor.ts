@@ -28,12 +28,14 @@ class DatagraphProcessor extends AudioWorkletProcessor {
       try {
         switch (cmd.type) {
           case 'add_param': {
+            console.log('Adding param', cmd)
             const param = datagraph.createParam(cmd.value)
             this.params.set(cmd.key, param)
             this.nodeIds.set(cmd.key, graph.addParam(param))
             break
           }
           case 'add_node': {
+            console.log('Adding node', cmd)
             let graphNode: datagraph.GraphNode
             const spec = cmd.node
             switch (spec.kind) {
@@ -46,6 +48,7 @@ class DatagraphProcessor extends AudioWorkletProcessor {
             break
           }
           case 'connect': {
+            console.log('Connecting', cmd)
             graph.connect(
               this.nodeIds.get(cmd.from)!,
               cmd.fromPort,
