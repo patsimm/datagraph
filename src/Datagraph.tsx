@@ -1,6 +1,7 @@
 import { NodeType } from "@datagraph/core"
 import { useDatagraph } from "./datagraph.context"
-import { DatagraphNode, DatagraphParamNode, getDatagraphNodeElement, getDatagraphNodeKeyFromElement, getDatagraphNodePortElement, getDatagraphNodePortFromElement } from "./DatagraphNode"
+import { DatagraphNode, getDatagraphNodeElement, getDatagraphNodeKeyFromElement, getDatagraphNodePortElement, getDatagraphNodePortFromElement } from "./DatagraphNode"
+import { DatagraphParamNode } from "./DatagraphParamNode"
 import "./Datagraph.css"
 import { useCallback, useEffect, useRef } from "react"
 import { DatagraphEdge } from "./DatagraphEdge"
@@ -17,7 +18,7 @@ function useNodeDragging() {
   const draggingStateRef = useRef<DraggingState | null>(null)
 
   const handlePointerDown = useCallback((event: PointerEvent) => {
-    console.log("pointer down", event.currentTarget)
+    console.log("pointer down", event.target)
     if (event.target instanceof HTMLElement) {
       const nodeKey = getDatagraphNodeKeyFromElement(event.target)
       if (!nodeKey) return
@@ -152,30 +153,41 @@ function useEdgeDragging() {
 
 
 export function Datagraph() {
-  const { ready } = useDatagraph()
+  const { ready, setParam } = useDatagraph()
   useNodeDragging()
   const svg = useEdgeDragging()
+
+  useEffect(() => {
+    if (!ready) return;
+    setTimeout(() => {
+      setParam("adsr_gate", 1)
+    }, 100)
+    setTimeout(() => {
+      setParam("adsr_gate", 0)
+    }, 300)
+
+  }, [ready, setParam])
 
   return <div className="datagraph">
     {svg}
     {ready &&
       <>
-        <DatagraphParamNode paramKey='frequency' value={1.0} position={{ x: 100, y: 100 }} />
-        {/* <DatagraphParamNode paramKey='adsr_gate' value={0.0} /> */}
-        <DatagraphParamNode paramKey='gain' value={0.5} position={{ x: 250, y: 100 }} />
-        <DatagraphNode nodeKey='oscillator' spec={{ kind: NodeType.Oscillator, sampleRate: 44100 }} position={{ x: 100, y: 200 }} />
-        {/* <DatagraphNode nodeKey='adsr' spec={{ kind: NodeType.ADSR, sampleRate: 44100, attack: 0.1, decay: 0.1, sustain: 0.5, release: 0.2 }} /> */}
-        {/* <DatagraphNode nodeKey='adsr_gain' spec={{ kind: NodeType.Gain }} /> */}
-        {/* <DatagraphNode nodeKey='delay' spec={{ kind: NodeType.Delay }} /> */}
-        <DatagraphNode output nodeKey='output' spec={{ kind: NodeType.Gain }} position={{ x: 200, y: 300 }} />
+        <DatagraphParamNode paramKey='frequency' value={1.0} position={{ x: 350, y: 100 }} />
+        <DatagraphParamNode paramKey='adsr_gate' value={0.0} position={{ x: 600, y: 100 }} />
+        <DatagraphParamNode paramKey='gain' value={0.5} position={{ x: 100, y: 100 }} />
+        <DatagraphNode nodeKey='oscillator' spec={{ kind: NodeType.Oscillator, sampleRate: 44100 }} position={{ x: 350, y: 200 }} />
+        <DatagraphNode nodeKey='adsr' spec={{ kind: NodeType.ADSR, sampleRate: 44100, attack: 0.1, decay: 0.1, sustain: 0.5, release: 0.2 }} position={{ x: 600, y: 200 }} />
+        <DatagraphNode nodeKey='adsr_gain' spec={{ kind: NodeType.Gain }} position={{ x: 600, y: 300 }} />
+        <DatagraphNode nodeKey='delay' spec={{ kind: NodeType.Delay }} position={{ x: 600, y: 400 }} />
+        <DatagraphNode output nodeKey='output' spec={{ kind: NodeType.Gain }} position={{ x: 200, y: 500 }} />
         <DatagraphEdge from='frequency' fromPort={0} to='oscillator' toPort={0} />
-        {/* <DatagraphEdge from='adsr_gate' fromPort={0} to='adsr' toPort={0} /> */}
-        {/* <DatagraphEdge from='oscillator' fromPort={0} to='adsr_gain' toPort={0} /> */}
-        {/* <DatagraphEdge from='adsr' fromPort={0} to='adsr_gain' toPort={1} /> */}
-        {/* <DatagraphEdge from='adsr_gain' fromPort={0} to='delay' toPort={0} /> */}
+        <DatagraphEdge from='adsr_gate' fromPort={0} to='adsr' toPort={0} />
+        <DatagraphEdge from='oscillator' fromPort={0} to='adsr_gain' toPort={0} />
+        <DatagraphEdge from='adsr' fromPort={0} to='adsr_gain' toPort={1} />
+        <DatagraphEdge from='adsr_gain' fromPort={0} to='delay' toPort={0} />
         <DatagraphEdge from='gain' fromPort={0} to='output' toPort={1} />
-        {/* <DatagraphEdge from='delay' fromPort={0} to='output' toPort={0} /> */}
-        <DatagraphEdge from='oscillator' fromPort={0} to='output' toPort={0} />
+        <DatagraphEdge from='delay' fromPort={0} to='output' toPort={0} />
+        {/* <DatagraphEdge from='oscillator' fromPort={0} to='output' toPort={0} /> */}
       </>
     }
   </div>

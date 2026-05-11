@@ -2,17 +2,12 @@ import { useEffect } from "react"
 import { useDatagraph } from "./datagraph.context"
 import { NodeSpec } from "./datagraph-commands"
 import { NodeType } from "@datagraph/core"
+import { DatagraphNodeBase } from "./DatagraphNodeBase"
 
 export type DatagraphNodeProps = {
   nodeKey: string
   spec: NodeSpec
   output?: boolean
-  position?: { x: number, y: number }
-}
-
-export type DatagraphParamNodeProps = {
-  paramKey: string
-  value: number
   position?: { x: number, y: number }
 }
 
@@ -22,6 +17,10 @@ function getInputPortsForNodeSpec(spec: NodeSpec) {
       return 1;
     case NodeType.Gain:
       return 2;
+    case NodeType.ADSR:
+      return 1;
+    case NodeType.Delay:
+      return 1;
   }
 }
 
@@ -30,6 +29,10 @@ function getOutputPortsForNodeSpec(spec: NodeSpec) {
     case NodeType.Oscillator:
       return 1;
     case NodeType.Gain:
+      return 1;
+    case NodeType.ADSR:
+      return 1;
+    case NodeType.Delay:
       return 1;
   }
 }
@@ -40,41 +43,19 @@ export function DatagraphNode({ nodeKey, spec, output, position }: DatagraphNode
   useEffect(() => {
     addNode(nodeKey, spec, output)
   }, [nodeKey, spec])
-  return (
-    <div className="datagraph-node" data-datagraph-node={nodeKey} style={{ left: position?.x, top: position?.y }}>
-      <div className="datagraph-node__ports datagraph-node__ports--input">
-        {
-          [...new Array(getInputPortsForNodeSpec(spec))].map((_, i) =>
-            <div key={i} data-datagraph-port={portKey({ node: nodeKey, port: i, portType: "in" })} className="datagraph-node__port"></div>)
-        }
-      </div>
 
+  const inputCount = getInputPortsForNodeSpec(spec) ?? 0
+  const outputCount = getOutputPortsForNodeSpec(spec) ?? 0
+
+  return (
+    <DatagraphNodeBase
+      nodeKey={nodeKey}
+      inputPorts={[...new Array(inputCount)].map((_, i) => ({ node: nodeKey, port: i, portType: "in" as const }))}
+      outputPorts={[...new Array(outputCount)].map((_, i) => ({ node: nodeKey, port: i, portType: "out" as const }))}
+      position={position}
+    >
       {NodeType[spec.kind]} ({nodeKey})
-      <div className="datagraph-node__ports datagraph-node__ports--output">
-        {
-          [...new Array(getOutputPortsForNodeSpec(spec))].map((_, i) =>
-            <div key={i} data-datagraph-port={portKey({ node: nodeKey, port: i, portType: "out" })} className="datagraph-node__port"></div>)
-        }
-      </div>
-    </div>
-  )
-}
-
-export function DatagraphParamNode({ paramKey, value, position }: DatagraphParamNodeProps) {
-  const { addParam } = useDatagraph()
-
-  useEffect(() => {
-    addParam(paramKey, value)
-  }, [paramKey, value])
-
-  return (
-    <div className="datagraph-node" data-datagraph-node={paramKey} style={{ left: position?.x, top: position?.y }}>
-      <div className="datagraph-node__ports datagraph-node__ports--input"></div>
-      {paramKey}
-      <div className="datagraph-node__ports datagraph-node__ports--output">
-        <div data-datagraph-port={portKey({ node: paramKey, port: 0, portType: "out" })} className="datagraph-node__port"></div>
-      </div>
-    </div>
+    </DatagraphNodeBase>
   )
 }
 
@@ -128,5 +109,3 @@ export function getDatagraphNodePortInfoFromElement(el: HTMLElement) {
   if (!port) return null;
   return parsePortKey(port)
 }
-
-

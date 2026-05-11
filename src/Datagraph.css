@@ -43,6 +43,10 @@
   cursor: pointer;
 }
 
+.datagraph-node__label {
+  pointer-events: none;
+}
+
 .datagraph-edge {
   position: absolute;
   background: transparent;
