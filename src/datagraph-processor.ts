@@ -2,19 +2,8 @@
 import { initSync } from "@datagraph/core"
 import * as datagraph from "@datagraph/core"
 import { parseError } from "./DatagraphError";
+import { Command } from "./datagraph-commands";
 
-type NodeSpec =
-  | { kind: 'oscillator'; sampleRate: number }
-  | { kind: 'adsr'; sampleRate: number; attack: number; decay: number; sustain: number; release: number }
-  | { kind: 'gain' }
-  | { kind: 'delay' }
-
-type Command =
-  | { type: 'add_param'; key: string; value: number }
-  | { type: 'add_node'; key: string; node: NodeSpec }
-  | { type: 'connect'; from: string; fromPort: number; to: string; toPort: number }
-  | { type: 'set_output'; key: string }
-  | { type: 'set_param'; key: string; value: number }
 
 class DatagraphProcessor extends AudioWorkletProcessor {
   graph: datagraph.Graph | null = null
@@ -48,10 +37,10 @@ class DatagraphProcessor extends AudioWorkletProcessor {
             let graphNode: datagraph.GraphNode
             const spec = cmd.node
             switch (spec.kind) {
-              case 'oscillator': graphNode = datagraph.createOscillator(spec.sampleRate); break
-              case 'adsr': graphNode = datagraph.createADSR(spec.sampleRate, spec.attack, spec.decay, spec.sustain, spec.release); break
-              case 'gain': graphNode = datagraph.createGain(); break
-              case 'delay': graphNode = datagraph.createDelay(); break
+              case datagraph.NodeType.Oscillator: graphNode = datagraph.createOscillator(spec.sampleRate); break
+              case datagraph.NodeType.ADSR: graphNode = datagraph.createADSR(spec.sampleRate, spec.attack, spec.decay, spec.sustain, spec.release); break
+              case datagraph.NodeType.Gain: graphNode = datagraph.createGain(); break
+              case datagraph.NodeType.Delay: graphNode = datagraph.createDelay(); break
             }
             this.nodeIds.set(cmd.key, graph.add(graphNode))
             break
@@ -77,7 +66,7 @@ class DatagraphProcessor extends AudioWorkletProcessor {
       } catch (err) {
         if (err instanceof Array) {
           const error = parseError(err)
-          console.log(`Error processing command ${cmd.type}`, cmd, error)
+          console.error(`Error processing command ${cmd.type}`, cmd, error)
         }
       }
     }

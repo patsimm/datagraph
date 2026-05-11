@@ -12,9 +12,14 @@
   },
   "dependencies": {
     "@datagraph/core": "file:../datagraph-core/pkg",
-    "@types/audioworklet": "^0.0.100"
+    "react": "^19.2.6",
+    "react-dom": "^19.2.6"
   },
   "devDependencies": {
+    "@types/audioworklet": "^0.0.100",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.1",
     "vite": "^8.0.10"
   }
 }

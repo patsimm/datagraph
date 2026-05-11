@@ -1,17 +1,18 @@
 import * as datagraph from "@datagraph/core";
 
-export function parseError(error: number[]) {
+export function parseError(error: unknown[]) {
+  const errorType = error[0] as datagraph.DatagraphError
   switch (error[0]) {
     case datagraph.DatagraphError.GraphConnectionErrorNodeNotFound:
       return {
-        type: datagraph.DatagraphError[error[0]],
+        type: errorType,
         nodeId: error[1],
       }
     case datagraph.DatagraphError.GraphConnectionErrorPortNotFound:
       return {
-        type: datagraph.DatagraphError[error[0]],
+        type: errorType,
         nodeId: error[1],
-        nodetype: datagraph.NodeType[error[2]],
+        nodetype: error[2] as datagraph.NodeType,
         port: error[3],
       }
   }
