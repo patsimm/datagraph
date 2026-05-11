@@ -31,20 +31,6 @@ export function DatagraphProvider({ children }: { children: React.ReactNode }) {
     workletNode.port.onmessage = (e) => {
       if (e.data?.type !== 'ready') return
 
-      // Params
-      workletNode.port.postMessage({ type: 'add_param', key: 'frequency', value: 1.0 })
-      workletNode.port.postMessage({ type: 'add_param', key: 'adsr_gate', value: 0.0 })
-      workletNode.port.postMessage({ type: 'add_param', key: 'gain', value: 0.5 })
-
-      setTimeout(() => {
-        workletNode.port.postMessage({ type: 'set_param', key: 'frequency', value: 1.0 })
-        workletNode.port.postMessage({ type: 'set_param', key: 'adsr_gate', value: 1.0 })
-      }, 1000)
-
-      setTimeout(() => {
-        workletNode.port.postMessage({ type: 'set_param', key: 'adsr_gate', value: 0.0 })
-      }, 1000 + (10000 / 44100) * 1000)
-
       setNode(workletNode)
     }
 
@@ -81,6 +67,10 @@ export const useDatagraph = () => {
     }
   }
 
+  const setParam = (key: string, value: number) => {
+    getNode().port.postMessage({ type: 'set_param', key, value })
+  }
+
   const addConnection = (from: string, fromPort: number, to: string, toPort: number) => {
     getNode().port.postMessage({ type: 'connect', from, fromPort, to, toPort })
   }
@@ -88,6 +78,7 @@ export const useDatagraph = () => {
   return {
     ready,
     addParam,
+    setParam,
     addNode,
     addConnection,
     start: initialize

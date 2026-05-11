@@ -7,6 +7,13 @@ export type DatagraphNodeProps = {
   nodeKey: string
   spec: NodeSpec
   output?: boolean
+  position?: { x: number, y: number }
+}
+
+export type DatagraphParamNodeProps = {
+  paramKey: string
+  value: number
+  position?: { x: number, y: number }
 }
 
 function getInputPortsForNodeSpec(spec: NodeSpec) {
@@ -14,7 +21,7 @@ function getInputPortsForNodeSpec(spec: NodeSpec) {
     case NodeType.Oscillator:
       return 1;
     case NodeType.Gain:
-      return 1;
+      return 2;
   }
 }
 
@@ -27,14 +34,14 @@ function getOutputPortsForNodeSpec(spec: NodeSpec) {
   }
 }
 
-export function DatagraphNode({ nodeKey, spec, output }: DatagraphNodeProps) {
+export function DatagraphNode({ nodeKey, spec, output, position }: DatagraphNodeProps) {
   const { addNode } = useDatagraph()
 
   useEffect(() => {
     addNode(nodeKey, spec, output)
   }, [nodeKey, spec])
   return (
-    <div className="datagraph-node" data-datagraph-node={nodeKey}>
+    <div className="datagraph-node" data-datagraph-node={nodeKey} style={{ left: position?.x, top: position?.y }}>
       <div className="datagraph-node__ports datagraph-node__ports--input">
         {
           [...new Array(getInputPortsForNodeSpec(spec))].map((_, i) =>
@@ -53,6 +60,24 @@ export function DatagraphNode({ nodeKey, spec, output }: DatagraphNodeProps) {
   )
 }
 
+export function DatagraphParamNode({ paramKey, value, position }: DatagraphParamNodeProps) {
+  const { addParam } = useDatagraph()
+
+  useEffect(() => {
+    addParam(paramKey, value)
+  }, [paramKey, value])
+
+  return (
+    <div className="datagraph-node" data-datagraph-node={paramKey} style={{ left: position?.x, top: position?.y }}>
+      <div className="datagraph-node__ports datagraph-node__ports--input"></div>
+      {paramKey}
+      <div className="datagraph-node__ports datagraph-node__ports--output">
+        <div data-datagraph-port={portKey({ node: paramKey, port: 0, portType: "out" })} className="datagraph-node__port"></div>
+      </div>
+    </div>
+  )
+}
+
 export type PortInfo = {
   node: string,
   port: number,
@@ -64,8 +89,8 @@ export function portKey({ node, port, portType }: PortInfo) {
 }
 
 export function parsePortKey(portKey: string): PortInfo {
-  const node = portKey.split("[")[0]
-  const [portType, portIndex] = portKey.split("[")[1].split("]")[0].split(":")
+  const [node, port] = portKey.split("[")
+  const [portType, portIndex] = port.split("]")[0].split(":")
 
   return { node, port: parseInt(portIndex), portType: portType as "in" | "out" }
 }
