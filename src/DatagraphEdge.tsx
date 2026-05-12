@@ -1,7 +1,7 @@
 import { useDatagraph } from "./datagraph.context";
 import { getDatagraphNodeElement, getDatagraphNodePortElementForInfo } from "./DatagraphNode";
 
-import { useCallback, useEffect, useRef } from "react";
+import { memo, useCallback, useEffect, useRef } from "react";
 
 export type DatagraphEdgeProps = {
   from: string;
@@ -10,7 +10,7 @@ export type DatagraphEdgeProps = {
   toPort: number;
 };
 
-export function DatagraphEdge({ from, fromPort, to, toPort }: DatagraphEdgeProps) {
+export const DatagraphEdge = memo(function DatagraphEdge({ from, fromPort, to, toPort }: DatagraphEdgeProps) {
   const { addConnection } = useDatagraph();
   const edgeRef = useRef<SVGSVGElement>(null);
 
@@ -80,4 +80,4 @@ export function DatagraphEdge({ from, fromPort, to, toPort }: DatagraphEdgeProps
     recalculatePosition();
   }, [from, recalculatePosition, to]);
   return <svg className="datagraph-edge" ref={edgeRef}></svg>;
-}
+});

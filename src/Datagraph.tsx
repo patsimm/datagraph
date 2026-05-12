@@ -3,14 +3,16 @@ import {
   DatagraphNode,
   getDatagraphNodeElement,
   getDatagraphNodeKeyFromElement,
-  getDatagraphNodePortElement,
   getDatagraphNodePortFromElement,
+  parsePortKey,
+  PortInfo,
+  portKey,
 } from "./DatagraphNode";
 import { DatagraphParamNode } from "./DatagraphParamNode";
 import "./Datagraph.css";
 import { DatagraphEdge } from "./DatagraphEdge";
 
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { NodeType } from "@datagraph/core";
 
 type DraggingState = {
@@ -26,7 +28,6 @@ function useNodeDragging() {
 
   const handlePointerDown = useCallback(
     (event: PointerEvent) => {
-      console.log("pointer down", event.target);
       if (event.target instanceof HTMLElement) {
         const nodeKey = getDatagraphNodeKeyFromElement(event.target);
         if (!nodeKey) return;
@@ -41,7 +42,6 @@ function useNodeDragging() {
           elemOffsetX: offsetX,
           elemOffsetY: offsetY,
         };
-        console.log(draggingStateRef.current);
       }
     },
     [draggingStateRef]
@@ -88,15 +88,22 @@ function useNodeDragging() {
   }, [handlePointerDown, handlePointerMove, handlePointerUp]);
 }
 
-function useEdgeDragging() {
+type EdgeDraggingState = {
+  onDragStart: (port: PortInfo) => void;
+  onDragEnd: (port: PortInfo | null) => void;
+};
+
+function useEdgeDragging({ onDragStart, onDragEnd }: EdgeDraggingState) {
   const draggingStateRef = useRef<DraggingState | null>(null);
   const edgeRef = useRef<SVGSVGElement | null>(null);
 
-  const handlePointerDown = useCallback((event: PointerEvent) => {
-    console.log("pointer down", event.currentTarget);
-    if (event.target instanceof HTMLElement) {
+  const handlePointerDown = useCallback(
+    (event: PointerEvent) => {
+      if (!(event.target instanceof HTMLElement)) return;
       const portKey = getDatagraphNodePortFromElement(event.target);
       if (!portKey) return;
+
+      onDragStart(parsePortKey(portKey));
 
       const nodeElem = event.target as HTMLElement;
       const containerElem = document.querySelector(".datagraph") as HTMLElement;
@@ -124,24 +131,29 @@ function useEdgeDragging() {
       edgeRef.current!.style.top = `${startPosY}px`;
       edgeRef.current!.style.width = `0px`;
       edgeRef.current!.style.height = `0px`;
-    }
-  }, []);
+    },
+    [onDragStart]
+  );
 
-  const handlePointerUp = useCallback(() => {
-    draggingStateRef.current = null;
-    edgeRef.current!.style.left = `0px`;
-    edgeRef.current!.style.top = `0px`;
-    edgeRef.current!.style.width = `0px`;
-    edgeRef.current!.style.height = `0px`;
-    edgeRef.current!.innerHTML = ``;
-  }, []);
+  const handlePointerUp = useCallback(
+    (event: PointerEvent) => {
+      draggingStateRef.current = null;
+      edgeRef.current!.style.left = `0px`;
+      edgeRef.current!.style.top = `0px`;
+      edgeRef.current!.style.width = `0px`;
+      edgeRef.current!.style.height = `0px`;
+      edgeRef.current!.innerHTML = ``;
+
+      const portKey =
+        event.target instanceof HTMLElement ? getDatagraphNodePortFromElement(event.target) : null;
+      onDragEnd(portKey ? parsePortKey(portKey) : null);
+    },
+    [onDragEnd]
+  );
 
   const handlePointerMove = useCallback(
     (event: PointerEvent) => {
       if (!draggingStateRef.current) return;
-
-      const draggingNodeElem = getDatagraphNodePortElement(draggingStateRef.current.draggingKey);
-      console.log("pointer move", event.clientX, event.clientY, draggingNodeElem);
 
       const containerElem = document.querySelector(".datagraph") as HTMLElement;
 
@@ -174,13 +186,66 @@ function useEdgeDragging() {
     };
   }, [handlePointerDown, handlePointerMove, handlePointerUp]);
 
-  return <svg className="datagraph-edge" ref={edgeRef}></svg>;
+  return {
+    DraggingLine: () => <svg className="datagraph-edge" ref={edgeRef}></svg>,
+  };
 }
+
+const PARAM_NODES = [
+  { paramKey: "frequency", value: 1.0, position: { x: 350, y: 100 } },
+  { paramKey: "adsr_gate", value: 0.0, position: { x: 600, y: 100 } },
+  { paramKey: "gain", value: 0.5, position: { x: 100, y: 100 } },
+] as const;
+
+const GRAPH_NODES = [
+  {
+    nodeKey: "oscillator",
+    kind: NodeType.Oscillator,
+    sampleRate: 44100,
+    position: { x: 350, y: 200 },
+  },
+  {
+    nodeKey: "adsr",
+    kind: NodeType.ADSR,
+    sampleRate: 44100,
+    attack: 0.1,
+    decay: 0.1,
+    sustain: 0.5,
+    release: 0.2,
+    position: { x: 600, y: 200 },
+  },
+  { nodeKey: "adsr_gain", kind: NodeType.Gain, position: { x: 600, y: 300 } },
+  { nodeKey: "delay", kind: NodeType.Delay, position: { x: 600, y: 400 } },
+  { nodeKey: "output", kind: NodeType.Gain, output: true, position: { x: 200, y: 500 } },
+] as const;
 
 export function Datagraph() {
   const { ready, setParam } = useDatagraph();
+  const [edges, setEdges] = useState<{ from: PortInfo; to: PortInfo }[]>([]);
   useNodeDragging();
-  const svg = useEdgeDragging();
+  const [draggedPort, setDraggedPort] = useState<PortInfo | null>(null);
+
+  const handleEdgeDragStart = useCallback((port: PortInfo) => {
+    setDraggedPort(port);
+  }, []);
+
+  const handleEdgeDragEnd = useCallback(
+    (port: PortInfo | null) => {
+      if (draggedPort && port) {
+        console.log("connect", draggedPort, port);
+        const from = draggedPort.portType === "out" ? draggedPort : port;
+        const to = draggedPort.portType === "in" ? draggedPort : port;
+        setEdges((edges) => [...edges, { from, to }]);
+      }
+      setDraggedPort(null);
+    },
+    [draggedPort]
+  );
+
+  const { DraggingLine } = useEdgeDragging({
+    onDragStart: handleEdgeDragStart,
+    onDragEnd: handleEdgeDragEnd,
+  });
 
   useEffect(() => {
     if (!ready) return;
@@ -194,52 +259,24 @@ export function Datagraph() {
 
   return (
     <div className="datagraph">
-      {svg}
+      <DraggingLine />
       {ready && (
         <>
-          <DatagraphParamNode paramKey="frequency" value={1.0} position={{ x: 350, y: 100 }} />
-          <DatagraphParamNode paramKey="adsr_gate" value={0.0} position={{ x: 600, y: 100 }} />
-          <DatagraphParamNode paramKey="gain" value={0.5} position={{ x: 100, y: 100 }} />
-          <DatagraphNode
-            nodeKey="oscillator"
-            spec={{ kind: NodeType.Oscillator, sampleRate: 44100 }}
-            position={{ x: 350, y: 200 }}
-          />
-          <DatagraphNode
-            nodeKey="adsr"
-            spec={{
-              kind: NodeType.ADSR,
-              sampleRate: 44100,
-              attack: 0.1,
-              decay: 0.1,
-              sustain: 0.5,
-              release: 0.2,
-            }}
-            position={{ x: 600, y: 200 }}
-          />
-          <DatagraphNode
-            nodeKey="adsr_gain"
-            spec={{ kind: NodeType.Gain }}
-            position={{ x: 600, y: 300 }}
-          />
-          <DatagraphNode
-            nodeKey="delay"
-            spec={{ kind: NodeType.Delay }}
-            position={{ x: 600, y: 400 }}
-          />
-          <DatagraphNode
-            output
-            nodeKey="output"
-            spec={{ kind: NodeType.Gain }}
-            position={{ x: 200, y: 500 }}
-          />
-          <DatagraphEdge from="frequency" fromPort={0} to="oscillator" toPort={0} />
-          <DatagraphEdge from="adsr_gate" fromPort={0} to="adsr" toPort={0} />
-          <DatagraphEdge from="oscillator" fromPort={0} to="adsr_gain" toPort={0} />
-          <DatagraphEdge from="adsr" fromPort={0} to="adsr_gain" toPort={1} />
-          <DatagraphEdge from="adsr_gain" fromPort={0} to="delay" toPort={0} />
-          <DatagraphEdge from="gain" fromPort={0} to="output" toPort={1} />
-          <DatagraphEdge from="delay" fromPort={0} to="output" toPort={0} />
+          {PARAM_NODES.map((p) => (
+            <DatagraphParamNode key={p.paramKey} {...p} />
+          ))}
+          {GRAPH_NODES.map((n) => (
+            <DatagraphNode key={n.nodeKey} {...n} />
+          ))}
+          {edges.map((edge) => (
+            <DatagraphEdge
+              key={`${portKey(edge.from)}->${portKey(edge.to)}`}
+              from={edge.from.node}
+              fromPort={edge.from.port}
+              to={edge.to.node}
+              toPort={edge.to.port}
+            />
+          ))}
           {/* <DatagraphEdge from='oscillator' fromPort={0} to='output' toPort={0} /> */}
         </>
       )}

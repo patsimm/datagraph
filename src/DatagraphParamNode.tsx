@@ -1,7 +1,7 @@
 import { useDatagraph } from "./datagraph.context";
 import { DatagraphNodeBase } from "./DatagraphNodeBase";
 
-import { useEffect, useState } from "react";
+import { memo, useEffect, useState } from "react";
 
 export type DatagraphParamNodeProps = {
   paramKey: string;
@@ -12,7 +12,7 @@ export type DatagraphParamNodeProps = {
   position?: { x: number; y: number };
 };
 
-export function DatagraphParamNode({
+export const DatagraphParamNode = memo(function DatagraphParamNode({
   paramKey,
   value,
   min = 0,
@@ -25,7 +25,7 @@ export function DatagraphParamNode({
 
   useEffect(() => {
     addParam(paramKey, value);
-  }, [addParam, paramKey, value]);
+  }, [addParam, paramKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const next = parseFloat(e.target.value);
@@ -34,12 +34,7 @@ export function DatagraphParamNode({
   };
 
   return (
-    <DatagraphNodeBase
-      nodeKey={paramKey}
-      inputPorts={[]}
-      outputPorts={[{ node: paramKey, port: 0, portType: "out" }]}
-      position={position}
-    >
+    <DatagraphNodeBase nodeKey={paramKey} inputPorts={0} outputPorts={1} position={position}>
       <div className="datagraph-node__label">
         {paramKey}: {currentValue}
       </div>
@@ -53,4 +48,4 @@ export function DatagraphParamNode({
       />
     </DatagraphNodeBase>
   );
-}
+});

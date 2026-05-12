@@ -3,14 +3,13 @@ import { NodeSpec } from "./datagraph-commands";
 import { DatagraphNodeBase } from "./DatagraphNodeBase";
 
 import { NodeType } from "@datagraph/core";
-import { useEffect } from "react";
+import { memo, useEffect } from "react";
 
 export type DatagraphNodeProps = {
   nodeKey: string;
-  spec: NodeSpec;
   output?: boolean;
   position?: { x: number; y: number };
-};
+} & NodeSpec;
 
 function getInputPortsForNodeSpec(spec: NodeSpec) {
   switch (spec.kind) {
@@ -38,7 +37,12 @@ function getOutputPortsForNodeSpec(spec: NodeSpec) {
   }
 }
 
-export function DatagraphNode({ nodeKey, spec, output, position }: DatagraphNodeProps) {
+export const DatagraphNode = memo(function DatagraphNode({
+  nodeKey,
+  output,
+  position,
+  ...spec
+}: DatagraphNodeProps) {
   const { addNode } = useDatagraph();
 
   useEffect(() => {
@@ -51,22 +55,14 @@ export function DatagraphNode({ nodeKey, spec, output, position }: DatagraphNode
   return (
     <DatagraphNodeBase
       nodeKey={nodeKey}
-      inputPorts={[...new Array(inputCount)].map((_, i) => ({
-        node: nodeKey,
-        port: i,
-        portType: "in" as const,
-      }))}
-      outputPorts={[...new Array(outputCount)].map((_, i) => ({
-        node: nodeKey,
-        port: i,
-        portType: "out" as const,
-      }))}
+      inputPorts={inputCount}
+      outputPorts={outputCount}
       position={position}
     >
       {NodeType[spec.kind]} ({nodeKey})
     </DatagraphNodeBase>
   );
-}
+});
 
 export type PortInfo = {
   node: string;

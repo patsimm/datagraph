@@ -1,9 +1,9 @@
-import { portKey, PortInfo } from "./DatagraphNode";
+import { portKey } from "./DatagraphNode";
 
 export type DatagraphNodeBaseProps = {
   nodeKey: string;
-  inputPorts: PortInfo[];
-  outputPorts: PortInfo[];
+  inputPorts: number;
+  outputPorts: number;
   position?: { x: number; y: number };
   children?: React.ReactNode;
 };
@@ -22,14 +22,22 @@ export function DatagraphNodeBase({
       style={{ left: position?.x, top: position?.y }}
     >
       <div className="datagraph-node__ports datagraph-node__ports--input">
-        {inputPorts.map((info, i) => (
-          <div key={i} data-datagraph-port={portKey(info)} className="datagraph-node__port"></div>
+        {[...new Array(inputPorts)].map((_, i) => (
+          <div
+            key={i}
+            data-datagraph-port={portKey({ node: nodeKey, port: i, portType: "in" })}
+            className="datagraph-node__port"
+          ></div>
         ))}
       </div>
       {children}
       <div className="datagraph-node__ports datagraph-node__ports--output">
-        {outputPorts.map((info, i) => (
-          <div key={i} data-datagraph-port={portKey(info)} className="datagraph-node__port"></div>
+        {[...new Array(outputPorts)].map((_, i) => (
+          <div
+            key={i}
+            data-datagraph-port={portKey({ node: nodeKey, port: i, portType: "out" })}
+            className="datagraph-node__port"
+          ></div>
         ))}
       </div>
     </div>

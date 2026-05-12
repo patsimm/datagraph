@@ -57,24 +57,24 @@ export function DatagraphProvider({ children }: { children: React.ReactNode }) {
 export const useDatagraph = () => {
   const { getNode, ready, initialize } = useContext(datagraphContext);
 
-  const addParam = (key: string, value: number) => {
+  const addParam = useCallback((key: string, value: number) => {
     getNode().port.postMessage({ type: "add_param", key, value });
-  };
+  }, [getNode]);
 
-  const addNode = (key: string, nodeSpec: NodeSpec, output: boolean = false) => {
+  const addNode = useCallback((key: string, nodeSpec: NodeSpec, output: boolean = false) => {
     getNode().port.postMessage({ type: "add_node", key, node: nodeSpec });
     if (output) {
       getNode().port.postMessage({ type: "set_output", key });
     }
-  };
+  }, [getNode]);
 
-  const setParam = (key: string, value: number) => {
+  const setParam = useCallback((key: string, value: number) => {
     getNode().port.postMessage({ type: "set_param", key, value });
-  };
+  }, [getNode]);
 
-  const addConnection = (from: string, fromPort: number, to: string, toPort: number) => {
+  const addConnection = useCallback((from: string, fromPort: number, to: string, toPort: number) => {
     getNode().port.postMessage({ type: "connect", from, fromPort, to, toPort });
-  };
+  }, [getNode]);
 
   return {
     ready,
