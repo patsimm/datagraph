@@ -17,6 +17,7 @@
   display: flex;
   flex-direction: column;
   padding: 6px;
+  z-index: 2;
 }
 
 .datagraph-node__ports {
@@ -51,5 +52,16 @@
   position: absolute;
   background: transparent;
   overflow: visible;
-  z-index: -1;
+  z-index: 1;
+}
+
+.datagraph-edge__line {
+  stroke: #333;
+  stroke-width: 2px;
+}
+
+.datagraph-edge__line:hover {
+  stroke: #0cf;
+  stroke-width: 3px;
+  cursor: pointer;
 }

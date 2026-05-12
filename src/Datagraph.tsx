@@ -220,7 +220,7 @@ const GRAPH_NODES = [
 ] as const;
 
 export function Datagraph() {
-  const { ready, setParam } = useDatagraph();
+  const { ready, addConnection, removeConnection } = useDatagraph();
   const [edges, setEdges] = useState<{ from: PortInfo; to: PortInfo }[]>([]);
   useNodeDragging();
   const [draggedPort, setDraggedPort] = useState<PortInfo | null>(null);
@@ -231,31 +231,36 @@ export function Datagraph() {
 
   const handleEdgeDragEnd = useCallback(
     (port: PortInfo | null) => {
+      if (!ready) return;
       if (draggedPort && port) {
-        console.log("connect", draggedPort, port);
+        if (draggedPort.portType === port.portType) {
+          throw new Error(`Cannot connect ${draggedPort.portType} to ${port.portType}`);
+        }
         const from = draggedPort.portType === "out" ? draggedPort : port;
         const to = draggedPort.portType === "in" ? draggedPort : port;
-        setEdges((edges) => [...edges, { from, to }]);
+        addConnection(from.node, from.port, to.node, to.port).then(() => {
+          setEdges((edges) => [...edges, { from, to }]);
+        });
       }
       setDraggedPort(null);
     },
-    [draggedPort]
+    [addConnection, draggedPort, ready]
+  );
+
+  const handleEdgeClick = useCallback(
+    (edge: { from: PortInfo; to: PortInfo }) => {
+      if (!ready) return;
+      removeConnection(edge.from.node, edge.from.port, edge.to.node, edge.to.port).then(() => {
+        setEdges((edges) => edges.filter((e) => e !== edge));
+      });
+    },
+    [ready, removeConnection]
   );
 
   const { DraggingLine } = useEdgeDragging({
     onDragStart: handleEdgeDragStart,
     onDragEnd: handleEdgeDragEnd,
   });
-
-  useEffect(() => {
-    if (!ready) return;
-    setTimeout(() => {
-      setParam("adsr_gate", 1);
-    }, 100);
-    setTimeout(() => {
-      setParam("adsr_gate", 0);
-    }, 300);
-  }, [ready, setParam]);
 
   return (
     <div className="datagraph">
@@ -275,6 +280,7 @@ export function Datagraph() {
               fromPort={edge.from.port}
               to={edge.to.node}
               toPort={edge.to.port}
+              onClick={() => handleEdgeClick(edge)}
             />
           ))}
           {/* <DatagraphEdge from='oscillator' fromPort={0} to='output' toPort={0} /> */}

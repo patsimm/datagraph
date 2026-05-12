@@ -14,8 +14,10 @@ export type NodeSpec =
   | { kind: NodeType.Delay };
 
 export type Command =
+  | { type: "init"; wasmBytes: ArrayBuffer }
   | { type: "add_param"; key: string; value: number }
   | { type: "add_node"; key: string; node: NodeSpec }
-  | { type: "connect"; from: string; fromPort: number; to: string; toPort: number }
   | { type: "set_output"; key: string }
-  | { type: "set_param"; key: string; value: number };
+  | { type: "set_param"; key: string; value: number }
+  | { type: "connect"; from: string; fromPort: number; to: string; toPort: number }
+  | { type: "disconnect"; from: string; fromPort: number; to: string; toPort: number };

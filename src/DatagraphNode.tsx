@@ -1,5 +1,5 @@
 import { useDatagraph } from "./datagraph.context";
-import { NodeSpec } from "./datagraph-commands";
+import { NodeSpec } from "./audio-worklet/datagraph-audio-worklet-commands";
 import { DatagraphNodeBase } from "./DatagraphNodeBase";
 
 import { NodeType } from "@datagraph/core";
@@ -43,11 +43,12 @@ export const DatagraphNode = memo(function DatagraphNode({
   position,
   ...spec
 }: DatagraphNodeProps) {
-  const { addNode } = useDatagraph();
+  const datagraph = useDatagraph();
 
   useEffect(() => {
-    addNode(nodeKey, spec, output);
-  }, [addNode, nodeKey, output, spec]);
+    if (!datagraph.ready) return;
+    datagraph.addNode(nodeKey, spec, output);
+  }, [datagraph, nodeKey, output, spec]);
 
   const inputCount = getInputPortsForNodeSpec(spec) ?? 0;
   const outputCount = getOutputPortsForNodeSpec(spec) ?? 0;

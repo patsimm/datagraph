@@ -1,4 +1,3 @@
-import { useDatagraph } from "./datagraph.context";
 import { getDatagraphNodeElement, getDatagraphNodePortElementForInfo } from "./DatagraphNode";
 
 import { memo, useCallback, useEffect, useRef } from "react";
@@ -8,15 +7,17 @@ export type DatagraphEdgeProps = {
   fromPort: number;
   to: string;
   toPort: number;
+  onClick?: () => void;
 };
 
-export const DatagraphEdge = memo(function DatagraphEdge({ from, fromPort, to, toPort }: DatagraphEdgeProps) {
-  const { addConnection } = useDatagraph();
+export const DatagraphEdge = memo(function DatagraphEdge({
+  from,
+  fromPort,
+  to,
+  toPort,
+  onClick,
+}: DatagraphEdgeProps) {
   const edgeRef = useRef<SVGSVGElement>(null);
-
-  useEffect(() => {
-    addConnection(from, fromPort, to, toPort);
-  }, [addConnection, from, fromPort, to, toPort]);
 
   const recalculatePosition = useCallback(() => {
     const fromPortElem = getDatagraphNodePortElementForInfo({
@@ -59,7 +60,11 @@ export const DatagraphEdge = memo(function DatagraphEdge({ from, fromPort, to, t
     edgeRef.current!.style.top = `${startPosY}px`;
     edgeRef.current!.style.width = `${width}px`;
     edgeRef.current!.style.height = `${height}px`;
-    edgeRef.current!.innerHTML = `<line x1="${fromPosX - startPosX}" y1="${fromPosY - startPosY}" x2="${toPosX - startPosX}" y2="${toPosY - startPosY}" stroke="black" stroke-width="2"/>`;
+    const line = edgeRef.current!.querySelector(".datagraph-edge__line")!;
+    line.setAttribute("x1", `${fromPosX - startPosX}`);
+    line.setAttribute("y1", `${fromPosY - startPosY}`);
+    line.setAttribute("x2", `${toPosX - startPosX}`);
+    line.setAttribute("y2", `${toPosY - startPosY}`);
   }, [from, fromPort, to, toPort]);
 
   useEffect(() => {
@@ -78,6 +83,14 @@ export const DatagraphEdge = memo(function DatagraphEdge({ from, fromPort, to, t
     });
 
     recalculatePosition();
+    return () => {
+      observer.disconnect();
+    };
   }, [from, recalculatePosition, to]);
-  return <svg className="datagraph-edge" ref={edgeRef}></svg>;
+
+  return (
+    <svg className="datagraph-edge" ref={edgeRef}>
+      <line onClick={onClick} className="datagraph-edge__line" />
+    </svg>
+  );
 });

@@ -20,17 +20,19 @@ export const DatagraphParamNode = memo(function DatagraphParamNode({
   step = 0.01,
   position,
 }: DatagraphParamNodeProps) {
-  const { addParam, setParam } = useDatagraph();
+  const datagraph = useDatagraph();
   const [currentValue, setCurrentValue] = useState(value);
 
   useEffect(() => {
-    addParam(paramKey, value);
-  }, [addParam, paramKey]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (!datagraph.ready) return;
+    datagraph.addParam(paramKey, value);
+  }, [datagraph, paramKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!datagraph.ready) return;
     const next = parseFloat(e.target.value);
     setCurrentValue(next);
-    setParam(paramKey, next);
+    datagraph.setParam(paramKey, next);
   };
 
   return (

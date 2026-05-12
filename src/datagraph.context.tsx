@@ -1,13 +1,12 @@
-import processorUrl from "./datagraph-processor?url";
-import { NodeSpec } from "./datagraph-commands";
+import processorUrl from "./audio-worklet/datagraph-audio-worklet-processor?url";
+import { DatagraphAudioWorkletNode } from "./audio-worklet/datagraph-audio-worklet-node";
 
-import { createContext, useCallback, useContext, useState } from "react";
-import wasmUrl from "@datagraph/core/datagraph_bg.wasm?url";
+import { createContext, useCallback, useContext, useMemo, useState } from "react";
 
 export type DatagraphContext = {
   ready: boolean;
   initialize: () => Promise<void>;
-  getNode: () => AudioWorkletNode;
+  getNode: () => DatagraphAudioWorkletNode;
 };
 
 const datagraphContext = createContext<DatagraphContext>({
@@ -15,28 +14,26 @@ const datagraphContext = createContext<DatagraphContext>({
   initialize: () => {
     throw new Error("Datagraph node not initialized yet");
   },
-  getNode: (): AudioWorkletNode => {
+  getNode: (): DatagraphAudioWorkletNode => {
     throw new Error("Datagraph node not initialized yet");
   },
 });
 
+async function initializeDatagraphAudioWorkletNode() {
+  const audioContext = new AudioContext();
+  await audioContext.audioWorklet.addModule(processorUrl);
+  const workletNode = new DatagraphAudioWorkletNode(audioContext, "datagraph-processor");
+  workletNode.connect(audioContext.destination);
+  await workletNode.initialize();
+  return workletNode;
+}
+
 export function DatagraphProvider({ children }: { children: React.ReactNode }) {
-  const [node, setNode] = useState<AudioWorkletNode | null>(null);
+  const [node, setNode] = useState<DatagraphAudioWorkletNode | null>(null);
 
   const initialize = useCallback(async () => {
-    const audioContext = new AudioContext();
-    await audioContext.audioWorklet.addModule(processorUrl);
-    const workletNode = new AudioWorkletNode(audioContext, "datagraph-processor");
-    workletNode.connect(audioContext.destination);
-
-    workletNode.port.onmessage = (e) => {
-      if (e.data?.type !== "ready") return;
-
-      setNode(workletNode);
-    };
-
-    const wasmBytes = await fetch(wasmUrl).then((r) => r.arrayBuffer());
-    workletNode.port.postMessage(wasmBytes, [wasmBytes]);
+    const node = await initializeDatagraphAudioWorkletNode();
+    setNode(node);
   }, []);
 
   const getNode = useCallback(() => {
@@ -57,31 +54,16 @@ export function DatagraphProvider({ children }: { children: React.ReactNode }) {
 export const useDatagraph = () => {
   const { getNode, ready, initialize } = useContext(datagraphContext);
 
-  const addParam = useCallback((key: string, value: number) => {
-    getNode().port.postMessage({ type: "add_param", key, value });
-  }, [getNode]);
-
-  const addNode = useCallback((key: string, nodeSpec: NodeSpec, output: boolean = false) => {
-    getNode().port.postMessage({ type: "add_node", key, node: nodeSpec });
-    if (output) {
-      getNode().port.postMessage({ type: "set_output", key });
-    }
-  }, [getNode]);
-
-  const setParam = useCallback((key: string, value: number) => {
-    getNode().port.postMessage({ type: "set_param", key, value });
-  }, [getNode]);
-
-  const addConnection = useCallback((from: string, fromPort: number, to: string, toPort: number) => {
-    getNode().port.postMessage({ type: "connect", from, fromPort, to, toPort });
-  }, [getNode]);
-
-  return {
-    ready,
-    addParam,
-    setParam,
-    addNode,
-    addConnection,
-    start: initialize,
-  };
+  return useMemo(() => {
+    return ready
+      ? {
+          ready: true as const,
+          addParam: getNode().addParam.bind(getNode()),
+          setParam: getNode().setParam.bind(getNode()),
+          addNode: getNode().addNode.bind(getNode()),
+          addConnection: getNode().addConnection.bind(getNode()),
+          removeConnection: getNode().removeConnection.bind(getNode()),
+        }
+      : { ready: false as const, start: initialize };
+  }, [getNode, initialize, ready]);
 };

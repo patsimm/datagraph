@@ -1,19 +1,39 @@
 import * as datagraph from "@datagraph/core";
 
 export function parseError(error: unknown[]) {
-  const errorType = error[0] as datagraph.DatagraphError;
   switch (error[0]) {
-    case datagraph.DatagraphError.GraphConnectionErrorNodeNotFound:
+    case datagraph.DatagraphError.NodeNotFound:
       return {
-        type: errorType,
+        type: "NodeNotFound" as const,
         nodeId: error[1],
       };
-    case datagraph.DatagraphError.GraphConnectionErrorPortNotFound:
+    case datagraph.DatagraphError.PortNotFound:
       return {
-        type: errorType,
+        type: "PortNotFound" as const,
         nodeId: error[1],
         nodetype: error[2] as datagraph.NodeType,
         port: error[3],
       };
+    case datagraph.DatagraphError.PortAlreadyConnected:
+      return {
+        type: "PortAlreadyConnected" as const,
+        nodeId: error[1],
+        nodetype: error[2] as datagraph.NodeType,
+        port: error[3],
+      };
+    case datagraph.DatagraphError.ImpossibleConnection:
+      return {
+        type: "ImpossibleConnection" as const,
+        fromNodeId: error[1],
+        fromNodeType: error[2] as datagraph.NodeType,
+        fromPort: error[3],
+        toNodeId: error[4],
+        toNodeType: error[5] as datagraph.NodeType,
+        toPort: error[6],
+      };
   }
 }
+
+export type DatagraphError = NonNullable<ReturnType<typeof parseError>>;
+
+export type DatagraphErrorType = DatagraphError["type"];
