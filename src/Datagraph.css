@@ -22,7 +22,7 @@
 .datagraph-node__ports {
   display: flex;
   justify-content: space-around;
-  height: 0px
+  height: 0px;
 }
 
 .datagraph-node__ports--input {

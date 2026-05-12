@@ -1,12 +1,10 @@
-import { Datagraph } from './Datagraph'
-import { DatagraphProvider, useDatagraph } from './datagraph.context'
+import { Datagraph } from "./Datagraph";
+import { DatagraphProvider, useDatagraph } from "./datagraph.context";
 
 function StartButton() {
-  const { start } = useDatagraph()
-  return (
-    <button onClick={start}>Start</button>)
+  const { start } = useDatagraph();
+  return <button onClick={start}>Start</button>;
 }
-
 
 export function App() {
   return (
@@ -17,5 +15,5 @@ export function App() {
         <Datagraph />
       </div>
     </DatagraphProvider>
-  )
+  );
 }
