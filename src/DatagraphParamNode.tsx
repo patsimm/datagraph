@@ -12,6 +12,9 @@ export type DatagraphParamNodeProps = {
   position?: { x: number; y: number };
 };
 
+const PARAM_OUTPUT_PORTNAMES = ["value"];
+const PRAM_INPUT_PORTNAMES: string[] = [];
+
 export const DatagraphParamNode = memo(function DatagraphParamNode({
   paramKey,
   value,
@@ -36,7 +39,12 @@ export const DatagraphParamNode = memo(function DatagraphParamNode({
   };
 
   return (
-    <DatagraphNodeBase nodeKey={paramKey} inputPorts={0} outputPorts={1} position={position}>
+    <DatagraphNodeBase
+      nodeKey={paramKey}
+      inputPorts={PRAM_INPUT_PORTNAMES}
+      outputPorts={PARAM_OUTPUT_PORTNAMES}
+      position={position}
+    >
       <div className="datagraph-node__label">
         {paramKey}: {currentValue}
       </div>

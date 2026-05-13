@@ -1,4 +1,4 @@
-import { Command, NodeSpec } from "./datagraph-audio-worklet-commands";
+import { CommandResult, CommandType, NodeSpec } from "./datagraph-audio-worklet-commands";
 import {
   DatagraphAudioWorkletMessage,
   DatagraphAudioWorkletResponse,
@@ -7,17 +7,23 @@ import {
 import wasmUrl from "@datagraph/core/datagraph_bg.wasm?url";
 
 export class DatagraphAudioWorkletNode extends AudioWorkletNode {
-  _pending: Map<string, { resolve: (value?: unknown) => void; reject: (err: unknown) => void }> =
-    new Map();
+  _pending: Map<
+    string,
+    {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      resolve: (value: any) => void;
+      reject: (err: unknown) => void;
+    }
+  > = new Map();
 
   constructor(context: BaseAudioContext, name: string) {
     super(context, name);
     this.port.onmessage = (e: MessageEvent) => {
-      const response = e.data as DatagraphAudioWorkletResponse;
+      const response = e.data as DatagraphAudioWorkletResponse<CommandType>;
       const promise = this._pending.get(response.id);
       if (promise) {
         if (response.status === "ok") {
-          promise.resolve();
+          promise.resolve(response.result);
         } else if (response.status === "error") {
           promise.reject(response.error);
         }
@@ -26,10 +32,12 @@ export class DatagraphAudioWorkletNode extends AudioWorkletNode {
     };
   }
 
-  private sendCommand(command: Command): Promise<unknown> {
-    return new Promise((resolve, reject) => {
+  private sendCommand<T extends CommandType>(
+    command: DatagraphAudioWorkletMessage<T>["command"]
+  ): Promise<CommandResult<T>> {
+    return new Promise<CommandResult<T>>((resolve, reject) => {
       const id = crypto.randomUUID();
-      const message: DatagraphAudioWorkletMessage = {
+      const message: DatagraphAudioWorkletMessage<T> = {
         id,
         command,
       };
@@ -49,10 +57,11 @@ export class DatagraphAudioWorkletNode extends AudioWorkletNode {
   }
 
   async addNode(key: string, nodeSpec: NodeSpec, output: boolean = false) {
-    await this.sendCommand({ type: "add_node", key, node: nodeSpec });
+    const nodeId = await this.sendCommand({ type: "add_node", key, node: nodeSpec });
     if (output) {
       await this.sendCommand({ type: "set_output", key });
     }
+    return nodeId;
   }
 
   async setParam(key: string, value: number) {

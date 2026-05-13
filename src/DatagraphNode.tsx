@@ -1,41 +1,14 @@
 import { useDatagraph } from "./datagraph.context";
-import { NodeSpec } from "./audio-worklet/datagraph-audio-worklet-commands";
+import { NodeInfo, NodeSpec } from "./audio-worklet/datagraph-audio-worklet-commands";
 import { DatagraphNodeBase } from "./DatagraphNodeBase";
 
-import { NodeType } from "@datagraph/core";
-import { memo, useEffect } from "react";
+import { memo, useEffect, useRef, useState } from "react";
 
 export type DatagraphNodeProps = {
   nodeKey: string;
   output?: boolean;
   position?: { x: number; y: number };
 } & NodeSpec;
-
-function getInputPortsForNodeSpec(spec: NodeSpec) {
-  switch (spec.kind) {
-    case NodeType.Oscillator:
-      return 1;
-    case NodeType.Gain:
-      return 2;
-    case NodeType.ADSR:
-      return 1;
-    case NodeType.Delay:
-      return 1;
-  }
-}
-
-function getOutputPortsForNodeSpec(spec: NodeSpec) {
-  switch (spec.kind) {
-    case NodeType.Oscillator:
-      return 1;
-    case NodeType.Gain:
-      return 1;
-    case NodeType.ADSR:
-      return 1;
-    case NodeType.Delay:
-      return 1;
-  }
-}
 
 export const DatagraphNode = memo(function DatagraphNode({
   nodeKey,
@@ -44,24 +17,27 @@ export const DatagraphNode = memo(function DatagraphNode({
   ...spec
 }: DatagraphNodeProps) {
   const datagraph = useDatagraph();
+  const [info, setInfo] = useState<NodeInfo | null>(null);
+  const specRef = useRef(spec);
 
   useEffect(() => {
     if (!datagraph.ready) return;
-    datagraph.addNode(nodeKey, spec, output);
-  }, [datagraph, nodeKey, output, spec]);
-
-  const inputCount = getInputPortsForNodeSpec(spec) ?? 0;
-  const outputCount = getOutputPortsForNodeSpec(spec) ?? 0;
+    datagraph.addNode(nodeKey, specRef.current, output).then((nodeInfo) => {
+      setInfo(nodeInfo);
+    });
+  }, [datagraph, nodeKey, output]);
 
   return (
-    <DatagraphNodeBase
-      nodeKey={nodeKey}
-      inputPorts={inputCount}
-      outputPorts={outputCount}
-      position={position}
-    >
-      {NodeType[spec.kind]} ({nodeKey})
-    </DatagraphNodeBase>
+    info && (
+      <DatagraphNodeBase
+        nodeKey={nodeKey}
+        inputPorts={info.inputNames}
+        outputPorts={info.outputNames}
+        position={position}
+      >
+        {spec.kind} ({nodeKey})
+      </DatagraphNodeBase>
+    )
   );
 });
 

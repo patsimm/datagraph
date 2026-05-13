@@ -13,7 +13,6 @@ import "./Datagraph.css";
 import { DatagraphEdge } from "./DatagraphEdge";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { NodeType } from "@datagraph/core";
 
 type DraggingState = {
   draggingKey: string;
@@ -200,13 +199,13 @@ const PARAM_NODES = [
 const GRAPH_NODES = [
   {
     nodeKey: "oscillator",
-    kind: NodeType.Oscillator,
+    kind: "oscillator",
     sampleRate: 44100,
     position: { x: 350, y: 200 },
   },
   {
     nodeKey: "adsr",
-    kind: NodeType.ADSR,
+    kind: "adsr",
     sampleRate: 44100,
     attack: 0.1,
     decay: 0.1,
@@ -214,9 +213,10 @@ const GRAPH_NODES = [
     release: 0.2,
     position: { x: 600, y: 200 },
   },
-  { nodeKey: "adsr_gain", kind: NodeType.Gain, position: { x: 600, y: 300 } },
-  { nodeKey: "delay", kind: NodeType.Delay, position: { x: 600, y: 400 } },
-  { nodeKey: "output", kind: NodeType.Gain, output: true, position: { x: 200, y: 500 } },
+  { nodeKey: "adsr_gain", kind: "gain", position: { x: 600, y: 300 } },
+  { nodeKey: "delay", kind: "delay", position: { x: 600, y: 400 } },
+  { nodeKey: "output", kind: "gain", output: true, position: { x: 200, y: 500 } },
+  { nodeKey: "one_pole", kind: "one-pole", position: { x: 350, y: 300 } },
 ] as const;
 
 export function Datagraph() {

@@ -11,24 +11,24 @@ export function parseError(error: unknown[]) {
       return {
         type: "PortNotFound" as const,
         nodeId: error[1],
-        nodetype: error[2] as datagraph.NodeType,
+        nodetype: error[2],
         port: error[3],
       };
     case datagraph.DatagraphError.PortAlreadyConnected:
       return {
         type: "PortAlreadyConnected" as const,
         nodeId: error[1],
-        nodetype: error[2] as datagraph.NodeType,
+        nodetype: error[2],
         port: error[3],
       };
     case datagraph.DatagraphError.ImpossibleConnection:
       return {
         type: "ImpossibleConnection" as const,
         fromNodeId: error[1],
-        fromNodeType: error[2] as datagraph.NodeType,
+        fromNodeType: error[2],
         fromPort: error[3],
         toNodeId: error[4],
-        toNodeType: error[5] as datagraph.NodeType,
+        toNodeType: error[5],
         toPort: error[6],
       };
   }
