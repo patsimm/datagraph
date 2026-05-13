@@ -5,7 +5,7 @@ import { createContext, useCallback, useContext, useMemo, useState } from "react
 
 export type DatagraphContext = {
   ready: boolean;
-  initialize: () => Promise<void>;
+  initialize: () => Promise<DatagraphAudioWorkletNode>;
   getNode: () => DatagraphAudioWorkletNode;
 };
 
@@ -34,6 +34,7 @@ export function DatagraphProvider({ children }: { children: React.ReactNode }) {
   const initialize = useCallback(async () => {
     const node = await initializeDatagraphAudioWorkletNode();
     setNode(node);
+    return node;
   }, []);
 
   const getNode = useCallback(() => {

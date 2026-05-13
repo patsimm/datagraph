@@ -1,0 +1,44 @@
+.datagraph-node {
+  position: absolute;
+  background: #007bff;
+  color: #fff;
+  padding: 6px;
+  border-radius: 3px;
+  font-size: 12px;
+  cursor: default;
+  display: flex;
+  flex-direction: column;
+  z-index: 2;
+
+  & .datagraph-node__ports {
+    display: flex;
+    justify-content: space-around;
+    height: 0px;
+  }
+
+  & .datagraph-node__ports--input {
+    transform: translateY(-14px);
+
+    & .datagraph-node__port {
+      background: #fff;
+    }
+  }
+
+  & .datagraph-node__port {
+    width: 10px;
+    height: 10px;
+    background: #0af;
+    border-radius: 50%;
+    margin: 2px;
+
+    &:hover {
+      background: #0cf;
+      outline: 2px solid #0cf;
+      cursor: pointer;
+    }
+  }
+
+  & .datagraph-node__label {
+    pointer-events: none;
+  }
+}

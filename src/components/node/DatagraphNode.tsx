@@ -1,32 +1,14 @@
-import { useDatagraph } from "./datagraph.context";
-import { NodeInfo, NodeSpec } from "./audio-worklet/datagraph-audio-worklet-commands";
+import { NodeInfo } from "../../audio-worklet/datagraph-audio-worklet-commands";
 import { DatagraphNodeBase } from "./DatagraphNodeBase";
-
-import { memo, useEffect, useRef, useState } from "react";
+import "./DatagraphNode.css";
 
 export type DatagraphNodeProps = {
   nodeKey: string;
-  output?: boolean;
+  info: NodeInfo;
   position?: { x: number; y: number };
-} & NodeSpec;
+};
 
-export const DatagraphNode = memo(function DatagraphNode({
-  nodeKey,
-  output,
-  position,
-  ...spec
-}: DatagraphNodeProps) {
-  const datagraph = useDatagraph();
-  const [info, setInfo] = useState<NodeInfo | null>(null);
-  const specRef = useRef(spec);
-
-  useEffect(() => {
-    if (!datagraph.ready) return;
-    datagraph.addNode(nodeKey, specRef.current, output).then((nodeInfo) => {
-      setInfo(nodeInfo);
-    });
-  }, [datagraph, nodeKey, output]);
-
+export function DatagraphNode({ nodeKey, info, position }: DatagraphNodeProps) {
   return (
     info && (
       <DatagraphNodeBase
@@ -35,11 +17,11 @@ export const DatagraphNode = memo(function DatagraphNode({
         outputPorts={info.outputNames}
         position={position}
       >
-        {spec.kind} ({nodeKey})
+        {info.nodeType} ({nodeKey})
       </DatagraphNodeBase>
     )
   );
-});
+}
 
 export type PortInfo = {
   node: string;

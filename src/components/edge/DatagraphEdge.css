@@ -1,0 +1,23 @@
+.datagraph-edge {
+  position: absolute;
+  background: transparent;
+  overflow: visible;
+  z-index: 1;
+
+  & .datagraph-edge__line {
+    stroke: #333;
+    stroke-width: 2px;
+
+    &:not(.datagraph-edge__line--ghost):hover {
+      stroke: #f53;
+      stroke-width: 3px;
+      cursor: pointer;
+    }
+
+    &.datagraph-edge__line--ghost {
+      stroke: #aaa;
+      stroke-width: 2px;
+      stroke-dasharray: 5, 5;
+    }
+  }
+}

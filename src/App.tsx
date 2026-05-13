@@ -1,19 +1,10 @@
-import { Datagraph } from "./Datagraph";
-import { DatagraphProvider, useDatagraph } from "./datagraph.context";
-
-function StartButton() {
-  const { start } = useDatagraph();
-  return <button onClick={start}>Start</button>;
-}
+import { Datagraph } from "./components/datagraph/Datagraph";
+import { DatagraphProvider } from "./datagraph.context";
 
 export function App() {
   return (
     <DatagraphProvider>
-      <div>
-        <h1>datagraph</h1>
-        <StartButton />
-        <Datagraph />
-      </div>
+      <Datagraph />
     </DatagraphProvider>
   );
 }

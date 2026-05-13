@@ -2,7 +2,7 @@ import { Graph, Param, initSync } from "@datagraph/core";
 import * as datagraph from "@datagraph/core";
 
 export type NodeSpec =
-  | { kind: "oscillator"; sampleRate: number }
+  | { kind: "oscillator" }
   | {
       kind: "adsr";
       attack: number;
@@ -12,7 +12,10 @@ export type NodeSpec =
     }
   | { kind: "gain" }
   | { kind: "delay" }
-  | { kind: "one-pole" };
+  | { kind: "one-pole" }
+  | { kind: "passthrough" };
+
+export type NodeSpecKind = NodeSpec["kind"];
 
 export type NodeInfo = {
   inputNames: string[];
@@ -62,6 +65,9 @@ export const commandHandlers = {
         break;
       case "one-pole":
         graphNode = datagraph.createOnePoleLowPass(BigInt(50), context.sampleRate);
+        break;
+      case "passthrough":
+        graphNode = datagraph.createPassthrough();
         break;
     }
     const nodeId = context.graph!.add(graphNode);
