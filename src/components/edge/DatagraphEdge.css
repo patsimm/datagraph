@@ -5,12 +5,11 @@
   z-index: 1;
 
   & .datagraph-edge__line {
-    stroke: #333;
-    stroke-width: 2px;
+    stroke: #0af;
+    stroke-width: 5px;
 
     &:not(.datagraph-edge__line--ghost):hover {
       stroke: #f53;
-      stroke-width: 3px;
       cursor: pointer;
     }
 

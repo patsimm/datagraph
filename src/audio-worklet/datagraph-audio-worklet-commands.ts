@@ -10,7 +10,8 @@ export type NodeSpec =
       sustain: number;
       release: number;
     }
-  | { kind: "gain" }
+  | { kind: "multiply" }
+  | { kind: "add" }
   | { kind: "delay" }
   | { kind: "one-pole" }
   | { kind: "passthrough" };
@@ -57,8 +58,11 @@ export const commandHandlers = {
           node.release
         );
         break;
-      case "gain":
-        graphNode = datagraph.createGain();
+      case "multiply":
+        graphNode = datagraph.createMultiply();
+        break;
+      case "add":
+        graphNode = datagraph.createAdd();
         break;
       case "delay":
         graphNode = datagraph.createDelay();
