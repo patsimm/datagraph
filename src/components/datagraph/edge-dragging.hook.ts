@@ -119,6 +119,6 @@ export function useEdgeDragging({ onDragStart, onDragEnd }: EdgeDraggingState) {
   }, [handlePointerDown, handlePointerMove, handlePointerUp]);
 
   return {
-    lineRef: edgeRef,
+    ghostRef: edgeRef,
   };
 }

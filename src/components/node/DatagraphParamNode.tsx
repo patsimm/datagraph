@@ -4,7 +4,7 @@ import { DatagraphNodeBase } from "./DatagraphNodeBase";
 import { useState } from "react";
 
 export type DatagraphParamNodeProps = {
-  paramKey: string;
+  nodeId: string;
   value: number;
   min?: number;
   max?: number;
@@ -16,7 +16,7 @@ const PARAM_OUTPUT_PORTNAMES = ["value"];
 const PRAM_INPUT_PORTNAMES: string[] = [];
 
 export function DatagraphParamNode({
-  paramKey,
+  nodeId,
   value,
   min = 0,
   max = 1,
@@ -30,18 +30,18 @@ export function DatagraphParamNode({
     if (!datagraph.ready) return;
     const next = parseFloat(e.target.value);
     setCurrentValue(next);
-    datagraph.setParam(paramKey, next);
+    datagraph.setParam(nodeId, next);
   };
 
   return (
     <DatagraphNodeBase
-      nodeKey={paramKey}
+      nodeId={nodeId}
       inputPorts={PRAM_INPUT_PORTNAMES}
       outputPorts={PARAM_OUTPUT_PORTNAMES}
       position={position}
     >
       <div className="datagraph-node__label">
-        {paramKey}: {currentValue}
+        {nodeId}: {currentValue}
       </div>
       <input
         type="range"

@@ -1,4 +1,5 @@
 /// <reference types="@types/audioworklet" />
+import "./audioworklet-polyfills";
 import { parseError } from "../DatagraphError";
 import {
   CommandHandler,
@@ -16,7 +17,6 @@ import {
 class DatagraphProcessor extends AudioWorkletProcessor {
   _context: GraphContext = {
     graph: null,
-    nodeIds: new Map(),
     params: new Map(),
     output: null,
     sampleRate: sampleRate,

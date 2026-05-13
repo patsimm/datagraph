@@ -14,6 +14,30 @@ import { useCallback, useState } from "react";
 function useEdges() {
   const { ready, addConnection, removeConnection } = useDatagraph();
   const [edges, setEdges] = useState<{ from: PortInfo; to: PortInfo }[]>([]);
+
+  const addEdge = useCallback(
+    async (from: PortInfo, to: PortInfo) => {
+      if (!ready) return;
+      await addConnection(from.node, from.port, to.node, to.port);
+      setEdges((edges) => [...edges, { from, to }]);
+    },
+    [addConnection, ready]
+  );
+
+  const removeEdge = useCallback(
+    async (from: PortInfo, to: PortInfo) => {
+      if (!ready) return;
+      await removeConnection(from.node, from.port, to.node, to.port);
+      setEdges((edges) => edges.filter((e) => e.from !== from || e.to !== to));
+    },
+    [ready, removeConnection]
+  );
+
+  return { edges, addEdge, removeEdge };
+}
+
+function Edges() {
+  const { edges, addEdge, removeEdge } = useEdges();
   const [draggedPort, setDraggedPort] = useState<PortInfo | null>(null);
 
   const handleEdgeDragStart = useCallback((port: PortInfo) => {
@@ -21,43 +45,33 @@ function useEdges() {
   }, []);
 
   const handleEdgeDragEnd = useCallback(
-    (port: PortInfo | null) => {
-      if (!ready) return;
-      if (draggedPort && port) {
-        if (draggedPort.portType === port.portType) {
-          throw new Error(`Cannot connect ${draggedPort.portType} to ${port.portType}`);
-        }
-        const from = draggedPort.portType === "out" ? draggedPort : port;
-        const to = draggedPort.portType === "in" ? draggedPort : port;
-        addConnection(from.node, from.port, to.node, to.port).then(() => {
-          setEdges((edges) => [...edges, { from, to }]);
-        });
+    async (port: PortInfo | null) => {
+      if (!draggedPort || !port) {
+        setDraggedPort(null);
+        return;
       }
+      if (draggedPort.portType === port.portType) {
+        setDraggedPort(null);
+        throw new Error(`Cannot connect ${draggedPort.portType} to ${port.portType}`);
+      }
+      const from = draggedPort.portType === "out" ? draggedPort : port;
+      const to = draggedPort.portType === "in" ? draggedPort : port;
+      await addEdge(from, to);
       setDraggedPort(null);
     },
-    [addConnection, draggedPort, ready]
+    [addEdge, draggedPort]
   );
 
   const handleEdgeClick = useCallback(
-    (edge: { from: PortInfo; to: PortInfo }) => {
-      if (!ready) return;
-      removeConnection(edge.from.node, edge.from.port, edge.to.node, edge.to.port).then(() => {
-        setEdges((edges) => edges.filter((e) => e !== edge));
-      });
-    },
-    [ready, removeConnection]
+    (edge: { from: PortInfo; to: PortInfo }) => removeEdge(edge.from, edge.to),
+    [removeEdge]
   );
 
-  const { lineRef } = useEdgeDragging({
+  const { ghostRef } = useEdgeDragging({
     onDragStart: handleEdgeDragStart,
     onDragEnd: handleEdgeDragEnd,
   });
 
-  return { edges, handleEdgeClick, ghostRef: lineRef };
-}
-
-function Edges() {
-  const { edges, handleEdgeClick, ghostRef } = useEdges();
   return (
     <>
       <svg className="datagraph-edge" ref={ghostRef}>
@@ -84,9 +98,8 @@ function useNodes() {
   const addNode = useCallback(
     async (spec: NodeSpec, position: { x: number; y: number }) => {
       if (!ready) return;
-      const nodeKey = createNodeKey();
-      const info = await addNodeToGraph(nodeKey, spec);
-      setNodes((nodes) => [...nodes, { nodeKey, position, info }]);
+      const info = await addNodeToGraph(spec);
+      setNodes((nodes) => [...nodes, { nodeId: info.nodeId, position, info }]);
     },
     [addNodeToGraph, ready]
   );
@@ -100,15 +113,14 @@ function useNodes() {
 function useParams() {
   const { ready, addParam: addParamToGraph } = useDatagraph();
   const [params, setParams] = useState<
-    { paramKey: string; value: number; position: { x: number; y: number } }[]
+    { nodeId: string; value: number; position: { x: number; y: number } }[]
   >([]);
 
   const addParam = useCallback(
     async (value: number, position: { x: number; y: number }) => {
       if (!ready) return;
-      const paramKey = createNodeKey();
-      await addParamToGraph(paramKey, value);
-      setParams((params) => [...params, { paramKey, value: value, position }]);
+      const nodeId = await addParamToGraph(value);
+      setParams((params) => [...params, { nodeId, value: value, position }]);
     },
     [addParamToGraph, ready]
   );
@@ -123,14 +135,15 @@ export function Datagraph() {
   const { ready, start } = useDatagraph();
   const { nodes, addNode } = useNodes();
   const { params, addParam } = useParams();
+  const [outputNode, setOutputNode] = useState<string | null>(null);
   useNodeDragging();
   const [menu, setMenu] = useState<{ x: number; y: number } | null>(null);
 
-  const handleClickStart = useCallback(() => {
+  const handleClickStart = useCallback(async () => {
     if (ready) return;
-    start().then(async (audioworkletnode) => {
-      await audioworkletnode.addNode("output", { kind: "passthrough" }, true);
-    });
+    const audioworkletnode = await start();
+    const nodeInfo = await audioworkletnode.addNode({ kind: "passthrough" }, true);
+    setOutputNode(nodeInfo.nodeId);
   }, [ready, start]);
 
   const handleContextMenu = useCallback((e: React.MouseEvent) => {
@@ -181,18 +194,14 @@ export function Datagraph() {
 
       <Edges />
       {params.map((p) => (
-        <DatagraphParamNode key={p.paramKey} {...p} />
+        <DatagraphParamNode key={p.nodeId} {...p} />
       ))}
       {nodes.map((n) => (
-        <DatagraphNode key={n.nodeKey} {...n} />
+        <DatagraphNode key={n.nodeId} {...n} />
       ))}
-      <DatagraphOutputNodeNode nodeKey="output" position={{ x: 200, y: 500 }} />
+      {outputNode && <DatagraphOutputNodeNode nodeId={outputNode} position={{ x: 200, y: 500 }} />}
     </div>
   ) : (
     <button onClick={handleClickStart}>Start Datagraph</button>
   );
-}
-
-export function createNodeKey() {
-  return crypto.randomUUID().slice(0, 8);
 }

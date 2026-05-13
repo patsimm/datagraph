@@ -1,7 +1,7 @@
 import { portKey } from "./DatagraphNode";
 
 export type DatagraphNodeBaseProps = {
-  nodeKey: string;
+  nodeId: string;
   inputPorts: string[];
   outputPorts: string[];
   position?: { x: number; y: number };
@@ -9,7 +9,7 @@ export type DatagraphNodeBaseProps = {
 };
 
 export function DatagraphNodeBase({
-  nodeKey,
+  nodeId,
   inputPorts,
   outputPorts,
   position,
@@ -18,14 +18,14 @@ export function DatagraphNodeBase({
   return (
     <div
       className="datagraph-node"
-      data-datagraph-node={nodeKey}
+      data-datagraph-node={nodeId}
       style={{ left: position?.x, top: position?.y }}
     >
       <div className="datagraph-node__ports datagraph-node__ports--input">
         {inputPorts.map((name, i) => (
           <div
             key={i}
-            data-datagraph-port={portKey({ node: nodeKey, port: i, portType: "in" })}
+            data-datagraph-port={portKey({ node: nodeId, port: i, portType: "in" })}
             className="datagraph-node__port"
             title={name}
           ></div>
@@ -36,7 +36,7 @@ export function DatagraphNodeBase({
         {outputPorts.map((name, i) => (
           <div
             key={i}
-            data-datagraph-port={portKey({ node: nodeKey, port: i, portType: "out" })}
+            data-datagraph-port={portKey({ node: nodeId, port: i, portType: "out" })}
             className="datagraph-node__port"
             title={name}
           ></div>

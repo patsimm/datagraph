@@ -26,9 +26,8 @@ export type NodeInfo = {
 
 export type GraphContext = {
   graph: Graph | null;
-  nodeIds: Map<string, number>;
   params: Map<string, Param>;
-  output: number | null;
+  output: string | null;
   sampleRate: number;
 };
 
@@ -37,13 +36,13 @@ export const commandHandlers = {
     initSync({ module: wasmBytes });
     context.graph = datagraph.createGraph();
   },
-  add_param: async (context: GraphContext, { key, value }: { key: string; value: number }) => {
+  add_param: async (context: GraphContext, { value }: { value: number }) => {
     const param = datagraph.createParam(value);
-    context.params.set(key, param);
     const nodeId = context.graph!.addParam(param);
-    context.nodeIds.set(key, nodeId);
+    context.params.set(nodeId, param);
+    return nodeId;
   },
-  add_node: async (context: GraphContext, { key, node }: { key: string; node: NodeSpec }) => {
+  add_node: async (context: GraphContext, { node }: { node: NodeSpec }) => {
     let graphNode: datagraph.GraphNode;
     switch (node.kind) {
       case "oscillator":
@@ -75,39 +74,37 @@ export const commandHandlers = {
         break;
     }
     const nodeId = context.graph!.add(graphNode);
-    context.nodeIds.set(key, nodeId);
     const info = context.graph!.nodeInfo(nodeId);
     if (!info) {
-      throw new Error(`Failed to get node info for node ${key} (id: ${nodeId})`);
+      throw new Error(`Failed to get node info for node ${nodeId}`);
     }
     return {
+      nodeId,
       nodeType: info.nodeType,
       inputNames: info.inputNames,
       outputNames: info.outputNames,
     };
   },
-  set_output: async (context: GraphContext, { key }: { key: string }) => {
-    context.output = context.nodeIds.get(key)!;
+  set_output: async (context: GraphContext, { nodeId }: { nodeId: string }) => {
+    context.output = nodeId;
   },
-  set_param: async (context: GraphContext, { key, value }: { key: string; value: number }) => {
-    context.params.get(key)!.set(value);
+  set_param: async (
+    context: GraphContext,
+    { nodeId, value }: { nodeId: string; value: number }
+  ) => {
+    context.params.get(nodeId)!.set(value);
   },
   connect: async (
     context: GraphContext,
     { from, fromPort, to, toPort }: { from: string; fromPort: number; to: string; toPort: number }
   ) => {
-    context.graph!.connect(context.nodeIds.get(from)!, fromPort, context.nodeIds.get(to)!, toPort);
+    context.graph!.connect(from, fromPort, to, toPort);
   },
   disconnect: async (
     context: GraphContext,
     { from, fromPort, to, toPort }: { from: string; fromPort: number; to: string; toPort: number }
   ) => {
-    context.graph!.disconnect(
-      context.nodeIds.get(from)!,
-      fromPort,
-      context.nodeIds.get(to)!,
-      toPort
-    );
+    context.graph!.disconnect(from, fromPort, to, toPort);
   },
 } as const;
 

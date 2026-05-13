@@ -3,21 +3,21 @@ import { DatagraphNodeBase } from "./DatagraphNodeBase";
 import "./DatagraphNode.css";
 
 export type DatagraphNodeProps = {
-  nodeKey: string;
+  nodeId: string;
   info: NodeInfo;
   position?: { x: number; y: number };
 };
 
-export function DatagraphNode({ nodeKey, info, position }: DatagraphNodeProps) {
+export function DatagraphNode({ nodeId, info, position }: DatagraphNodeProps) {
   return (
     info && (
       <DatagraphNodeBase
-        nodeKey={nodeKey}
+        nodeId={nodeId}
         inputPorts={info.inputNames}
         outputPorts={info.outputNames}
         position={position}
       >
-        {info.nodeType} ({nodeKey})
+        {info.nodeType} ({nodeId})
       </DatagraphNodeBase>
     )
   );

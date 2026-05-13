@@ -52,20 +52,20 @@ export class DatagraphAudioWorkletNode extends AudioWorkletNode {
     await this.sendCommand({ type: "init", wasmBytes });
   }
 
-  async addParam(key: string, value: number) {
-    await this.sendCommand({ type: "add_param", key, value });
+  async addParam(value: number) {
+    return await this.sendCommand({ type: "add_param", value });
   }
 
-  async addNode(key: string, nodeSpec: NodeSpec, output: boolean = false) {
-    const nodeId = await this.sendCommand({ type: "add_node", key, node: nodeSpec });
+  async addNode(nodeSpec: NodeSpec, output: boolean = false) {
+    const nodeInfo = await this.sendCommand({ type: "add_node", node: nodeSpec });
     if (output) {
-      await this.sendCommand({ type: "set_output", key });
+      await this.sendCommand({ type: "set_output", nodeId: nodeInfo.nodeId });
     }
-    return nodeId;
+    return nodeInfo;
   }
 
-  async setParam(key: string, value: number) {
-    await this.sendCommand({ type: "set_param", key, value });
+  async setParam(nodeId: string, value: number) {
+    await this.sendCommand({ type: "set_param", nodeId, value });
   }
 
   async addConnection(from: string, fromPort: number, to: string, toPort: number) {
