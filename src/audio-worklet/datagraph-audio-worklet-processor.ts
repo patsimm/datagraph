@@ -16,7 +16,7 @@ import {
 } from "./datagraph-audio-worklet-message";
 import { NodeDataSubscriptionWriter } from "./node-data-subscription";
 
-import * as datagraph from "@datagraph/core";
+import * as datagraph from "@patsimm/datagraph-core";
 
 class DatagraphProcessor extends AudioWorkletProcessor {
   graph: datagraph.Graph | null = null;

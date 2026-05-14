@@ -1,4 +1,4 @@
-import * as datagraph from "@datagraph/core";
+import * as datagraph from "@patsimm/datagraph-core";
 
 export const BUFFER_SIZE = 2048; // samples per node
 export const MAX_SUBSCRIPTION_COUNT = 8; // max nodes to monitor

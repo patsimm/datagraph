@@ -1,4 +1,4 @@
-import processorUrl from "./audio-worklet/datagraph-audio-worklet-processor?url";
+import processorUrl from "./audio-worklet/datagraph-audio-worklet-processor.ts?worker&url";
 import { DatagraphAudioWorkletNode } from "./audio-worklet/datagraph-audio-worklet-node";
 
 import { createContext, useCallback, useContext, useMemo, useState } from "react";

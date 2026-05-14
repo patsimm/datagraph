@@ -1,5 +1,5 @@
-import { Graph, Param } from "@datagraph/core";
-import * as datagraph from "@datagraph/core";
+import { Graph, Param } from "@patsimm/datagraph-core";
+import * as datagraph from "@patsimm/datagraph-core";
 
 export type NodeSpec =
   | { kind: "sin" }

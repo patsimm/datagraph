@@ -3,7 +3,7 @@ import path from "path";
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 
-export default defineConfig({
+export default defineConfig(() => ({
   plugins: [react()],
   server: {
     fs: {
@@ -14,12 +14,4 @@ export default defineConfig({
       "Cross-Origin-Embedder-Policy": "require-corp",
     },
   },
-  build: {
-    rollupOptions: {
-      input: {
-        main: "index.html",
-        "datagraph-processor": "src/audio-worklet/datagraph-audio-worklet-processor.ts",
-      },
-    },
-  },
-});
+}));

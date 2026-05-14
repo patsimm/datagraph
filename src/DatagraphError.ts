@@ -1,4 +1,4 @@
-import * as datagraph from "@datagraph/core";
+import * as datagraph from "@patsimm/datagraph-core";
 
 export function parseError(error: unknown[]) {
   switch (error[0]) {
