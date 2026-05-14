@@ -1,0 +1,9 @@
+.datagraph-node[data-datagraph-kind="param"] {
+  & .datagraph-node__value {
+    position: absolute;
+    right: 0;
+    top: 0;
+    padding: var(--datagraph-node-padding);
+    color: color-mix(in srgb, var(--datagraph-node-color-bg) 30%, var(--color-gray-dark));
+  }
+}

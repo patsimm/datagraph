@@ -5,7 +5,7 @@ import { createContext, useCallback, useContext, useMemo, useState } from "react
 
 export type DatagraphContext = {
   ready: boolean;
-  initialize: () => Promise<DatagraphAudioWorkletNode>;
+  initialize: () => Promise<{ workletNode: DatagraphAudioWorkletNode; outputNodeId: string }>;
   getNode: () => DatagraphAudioWorkletNode;
 };
 
@@ -24,17 +24,17 @@ async function initializeDatagraphAudioWorkletNode() {
   await audioContext.audioWorklet.addModule(processorUrl);
   const workletNode = new DatagraphAudioWorkletNode(audioContext, "datagraph-processor");
   workletNode.connect(audioContext.destination);
-  await workletNode.initialize();
-  return workletNode;
+  const { outputNodeId } = await workletNode.initialize();
+  return { workletNode, outputNodeId };
 }
 
 export function DatagraphProvider({ children }: { children: React.ReactNode }) {
   const [node, setNode] = useState<DatagraphAudioWorkletNode | null>(null);
 
   const initialize = useCallback(async () => {
-    const node = await initializeDatagraphAudioWorkletNode();
-    setNode(node);
-    return node;
+    const { workletNode, outputNodeId } = await initializeDatagraphAudioWorkletNode();
+    setNode(workletNode);
+    return { workletNode, outputNodeId };
   }, []);
 
   const getNode = useCallback(() => {
@@ -65,6 +65,8 @@ export const useDatagraph = () => {
           removeNode: getNode().removeNode.bind(getNode()),
           addConnection: getNode().addConnection.bind(getNode()),
           removeConnection: getNode().removeConnection.bind(getNode()),
+          subscribeNode: getNode().addNodeSubscription.bind(getNode()),
+          unsubscribeNode: getNode().removeNodeSubscription.bind(getNode()),
         }
       : { ready: false as const, start: initialize };
   }, [getNode, initialize, ready]);

@@ -1,48 +1,89 @@
 .datagraph-node {
+  --datagraph-node-color-bg: var(--color-primary);
+  --datagraph-node-padding: 0.325rem;
+
   position: absolute;
-  background: #007bff;
-  color: #fff;
-  padding: 6px;
+  background: var(--datagraph-node-color-bg);
+  color: var(--color-text-light);
   border-radius: 3px;
   font-size: 12px;
-  cursor: default;
-  display: flex;
-  flex-direction: column;
+  cursor: grab;
   z-index: 2;
 
-  &.datagraph-node--selected {
-    background: #0af;
-  }
+  & .datagraph-node__wrapper {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
 
-  & .datagraph-node__ports {
-    display: flex;
-    justify-content: space-around;
-    height: 0px;
-  }
+    & .datagraph-node__ports {
+      position: absolute;
+      width: 100%;
+      display: flex;
+      justify-content: space-around;
+      height: 0px;
 
-  & .datagraph-node__ports--input {
-    transform: translateY(-14px);
+      &.datagraph-node__ports--input {
+        top: 0;
+
+        & .datagraph-node__port {
+          transform: translateY(-50%);
+          background: var(--color-background);
+        }
+      }
+
+      &.datagraph-node__ports--output {
+        bottom: 0;
+
+        & .datagraph-node__port {
+          transform: translateY(-50%);
+          background: color-mix(
+            in srgb,
+            var(--datagraph-node-color-bg) 80%,
+            var(--color-gray-dark)
+          );
+        }
+      }
+    }
 
     & .datagraph-node__port {
-      background: #fff;
+      width: 10px;
+      height: 10px;
+      background:;
+      border-radius: 50%;
+      pointer-events: auto;
+
+      &:hover {
+        background: color-mix(in srgb, var(--datagraph-node-color-bg) 80%, var(--color-gray-light));
+        outline: 2px solid
+          color-mix(in srgb, var(--datagraph-node-color-bg) 80%, var(--color-gray-light));
+        cursor: pointer;
+      }
+    }
+
+    & .datagraph-node__content {
+      display: flex;
+      flex-direction: column;
+      padding: var(--datagraph-node-padding);
+      gap: var(--datagraph-node-padding);
+
+      & .datagraph-node__head {
+        display: flex;
+        flex-direction: row;
+        gap: var(--datagraph-node-padding);
+      }
+
+      & .datagraph-node__body {
+        display: flex;
+
+        & input {
+          pointer-events: auto;
+        }
+      }
     }
   }
 
-  & .datagraph-node__port {
-    width: 10px;
-    height: 10px;
-    background: #0af;
-    border-radius: 50%;
-    margin: 2px;
-
-    &:hover {
-      background: #0cf;
-      outline: 2px solid #0cf;
-      cursor: pointer;
-    }
-  }
-
-  & .datagraph-node__label {
-    pointer-events: none;
+  &.datagraph-node--selected {
+    outline: 2px solid color-mix(in srgb, var(--color-highlight) 50%, var(--color-gray-light));
   }
 }

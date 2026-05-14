@@ -1,4 +1,4 @@
-import { Graph, Param, initSync } from "@datagraph/core";
+import { Graph, Param } from "@datagraph/core";
 import * as datagraph from "@datagraph/core";
 
 export type NodeSpec =
@@ -27,20 +27,16 @@ export type NodeInfo = {
 };
 
 export type GraphContext = {
-  graph: Graph | null;
+  graph: Graph;
   params: Map<string, Param>;
-  output: string | null;
   sampleRate: number;
+  subscriptions: string[];
 };
 
 export const commandHandlers = {
-  init: async (context: GraphContext, { wasmBytes }: { wasmBytes: ArrayBuffer }) => {
-    initSync({ module: wasmBytes });
-    context.graph = datagraph.createGraph();
-  },
   add_param: async (context: GraphContext, { value }: { value: number }) => {
     const param = datagraph.createParam(value);
-    const nodeId = context.graph!.addParam(param);
+    const nodeId = context.graph.addParam(param);
     context.params.set(nodeId, param);
     return nodeId;
   },
@@ -81,8 +77,8 @@ export const commandHandlers = {
         graphNode = datagraph.createPassthrough();
         break;
     }
-    const nodeId = context.graph!.add(graphNode);
-    const info = context.graph!.nodeInfo(nodeId);
+    const nodeId = context.graph.add(graphNode);
+    const info = context.graph.nodeInfo(nodeId);
     if (!info) {
       throw new Error(`Failed to get node info for node ${nodeId}`);
     }
@@ -94,15 +90,12 @@ export const commandHandlers = {
     };
   },
   remove_node: async (context: GraphContext, { nodeId }: { nodeId: string }) => {
-    context.graph!.remove(nodeId);
+    context.graph.remove(nodeId);
     if (context.params.has(nodeId)) {
       const param = context.params.get(nodeId)!;
       context.params.delete(nodeId);
       param.free();
     }
-  },
-  set_output: async (context: GraphContext, { nodeId }: { nodeId: string }) => {
-    context.output = nodeId;
   },
   set_param: async (
     context: GraphContext,
@@ -114,38 +107,42 @@ export const commandHandlers = {
     context: GraphContext,
     { from, fromPort, to, toPort }: { from: string; fromPort: number; to: string; toPort: number }
   ) => {
-    context.graph!.connect(from, fromPort, to, toPort);
+    context.graph.connect(from, fromPort, to, toPort);
   },
   disconnect: async (
     context: GraphContext,
     { from, fromPort, to, toPort }: { from: string; fromPort: number; to: string; toPort: number }
   ) => {
-    context.graph!.disconnect(from, fromPort, to, toPort);
+    context.graph.disconnect(from, fromPort, to, toPort);
+  },
+  subscribe_data: async (context: GraphContext, { nodeId }: { nodeId: string }) => {
+    console.log(`Subscribing to data for node ${nodeId}`);
+    context.subscriptions.push(nodeId);
+    return context.subscriptions.length - 1;
   },
 } as const;
 
-type CommandHandlers = typeof commandHandlers;
+export type CommandHandlers = typeof commandHandlers;
 
-export type CommandType = keyof CommandHandlers;
+export type CommandType = keyof CommandHandlers | "init";
 
-export type CommandPayload<T extends CommandType> = CommandHandlers[T] extends (
-  context: GraphContext,
-  payload: infer P
-) => Promise<unknown>
-  ? P
-  : never;
+export type CommandPayload<T extends CommandType> = T extends keyof CommandHandlers
+  ? CommandHandlers[T] extends (context: GraphContext, payload: infer P) => Promise<unknown>
+    ? P
+    : never
+  : T extends "init"
+    ? { wasmBytes: ArrayBuffer; nodeDataSharedArrayBuffer: SharedArrayBuffer }
+    : never;
 
-export type CommandResult<T extends CommandType> = CommandHandlers[T] extends (
-  ...args: never[]
-) => Promise<infer R>
-  ? R
-  : never;
+export type CommandResult<T extends CommandType> = T extends keyof CommandHandlers
+  ? CommandHandlers[T] extends (...args: never[]) => Promise<infer R>
+    ? R
+    : never
+  : T extends "init"
+    ? { outputNodeId: string }
+    : never;
 
-export type Command = {
-  [T in CommandType]: { type: T; payload: CommandPayload<T>; result: CommandResult<T> };
-}[CommandType];
-
-export type CommandHandler<T extends CommandType> = (
+export type CommandHandler<T extends keyof CommandHandlers> = (
   context: GraphContext,
   payload: CommandPayload<T>
 ) => Promise<CommandResult<T>>;

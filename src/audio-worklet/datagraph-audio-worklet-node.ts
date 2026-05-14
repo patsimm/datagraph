@@ -1,8 +1,14 @@
-import { CommandResult, CommandType, NodeSpec } from "./datagraph-audio-worklet-commands";
+import {
+  CommandPayload,
+  CommandResult,
+  CommandType,
+  NodeSpec,
+} from "./datagraph-audio-worklet-commands";
 import {
   DatagraphAudioWorkletMessage,
   DatagraphAudioWorkletResponse,
 } from "./datagraph-audio-worklet-message";
+import { createNodeDataBuffer, readNodeData } from "./node-data-subscription";
 
 import wasmUrl from "@datagraph/core/datagraph_bg.wasm?url";
 
@@ -15,9 +21,15 @@ export class DatagraphAudioWorkletNode extends AudioWorkletNode {
       reject: (err: unknown) => void;
     }
   > = new Map();
+  nodeDataBuffer: SharedArrayBuffer;
+  subscriptionRafs: Map<string, number> = new Map();
+  subscriptionIndex: Map<string, number> = new Map();
 
   constructor(context: BaseAudioContext, name: string) {
     super(context, name);
+
+    this.nodeDataBuffer = createNodeDataBuffer();
+
     this.port.onmessage = (e: MessageEvent) => {
       const response = e.data as DatagraphAudioWorkletResponse<CommandType>;
       const promise = this._pending.get(response.id);
@@ -33,15 +45,16 @@ export class DatagraphAudioWorkletNode extends AudioWorkletNode {
   }
 
   private sendCommand<T extends CommandType>(
-    command: DatagraphAudioWorkletMessage<T>["command"]
+    type: T,
+    payload: CommandPayload<T>
   ): Promise<CommandResult<T>> {
     return new Promise<CommandResult<T>>((resolve, reject) => {
       const id = crypto.randomUUID();
       const message: DatagraphAudioWorkletMessage<T> = {
         id,
-        command,
+        command: { type, payload },
       };
-      console.log("Sending command", command);
+      console.log("Sending message", message);
       this._pending.set(id, { resolve, reject });
       this.port.postMessage(message);
     });
@@ -49,34 +62,62 @@ export class DatagraphAudioWorkletNode extends AudioWorkletNode {
 
   async initialize() {
     const wasmBytes = await fetch(wasmUrl).then((r) => r.arrayBuffer());
-    await this.sendCommand({ type: "init", wasmBytes });
+    return await this.sendCommand("init", {
+      wasmBytes,
+      nodeDataSharedArrayBuffer: this.nodeDataBuffer,
+    });
   }
 
   async addParam(value: number) {
-    return await this.sendCommand({ type: "add_param", value });
+    return await this.sendCommand("add_param", { value });
   }
 
-  async addNode(nodeSpec: NodeSpec, output: boolean = false) {
-    const nodeInfo = await this.sendCommand({ type: "add_node", node: nodeSpec });
-    if (output) {
-      await this.sendCommand({ type: "set_output", nodeId: nodeInfo.nodeId });
-    }
-    return nodeInfo;
+  async addNode(nodeSpec: NodeSpec) {
+    return await this.sendCommand("add_node", { node: nodeSpec });
   }
 
   async removeNode(nodeId: string) {
-    await this.sendCommand({ type: "remove_node", nodeId });
+    await this.sendCommand("remove_node", { nodeId });
   }
 
   async setParam(nodeId: string, value: number) {
-    await this.sendCommand({ type: "set_param", nodeId, value });
+    await this.sendCommand("set_param", { nodeId, value });
   }
 
   async addConnection(from: string, fromPort: number, to: string, toPort: number) {
-    await this.sendCommand({ type: "connect", from, fromPort, to, toPort });
+    await this.sendCommand("connect", { from, fromPort, to, toPort });
   }
 
   async removeConnection(from: string, fromPort: number, to: string, toPort: number) {
-    await this.sendCommand({ type: "disconnect", from, fromPort, to, toPort });
+    await this.sendCommand("disconnect", { from, fromPort, to, toPort });
+  }
+
+  addNodeSubscription(nodeId: string, callback: (data: Float32Array) => void) {
+    this.sendCommand("subscribe_data", { nodeId }).then((subscriptionId) => {
+      this.subscriptionIndex.set(nodeId, subscriptionId);
+    });
+
+    const poll = () => {
+      if (this.subscriptionIndex.has(nodeId)) {
+        const subscriptionId = this.subscriptionIndex.get(nodeId)!;
+        const data = readNodeData(this.nodeDataBuffer, subscriptionId);
+        if (data) callback(data);
+      }
+      const rafId = requestAnimationFrame(poll);
+      this.subscriptionRafs.set(nodeId, rafId);
+    };
+    const rafId = requestAnimationFrame(poll);
+    this.subscriptionRafs.set(nodeId, rafId);
+  }
+
+  async removeNodeSubscription(nodeId: string) {
+    const rafId = this.subscriptionRafs.get(nodeId);
+    // TODO: Really remove the subscription from the processor side as well, therefore the id handling needs to be improved
+    cancelAnimationFrame(rafId!);
+    this.subscriptionRafs.delete(nodeId);
+  }
+
+  readNodeData(subscription_index: number) {
+    return readNodeData(this.nodeDataBuffer, subscription_index);
   }
 }

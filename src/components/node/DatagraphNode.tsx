@@ -3,6 +3,7 @@ import "./DatagraphNode.css";
 
 export type DatagraphNodeProps = {
   nodeId: string;
+  kind: string;
   inputPorts: string[];
   outputPorts: string[];
   selected?: boolean;
@@ -12,6 +13,7 @@ export type DatagraphNodeProps = {
 
 export function DatagraphNode({
   nodeId,
+  kind,
   inputPorts,
   outputPorts,
   position,
@@ -21,31 +23,42 @@ export function DatagraphNode({
 }: React.PropsWithChildren<DatagraphNodeProps>) {
   return (
     <div
-      className={classNames("datagraph-node", { "datagraph-node--selected": selected })}
+      className={classNames("datagraph-node", {
+        "datagraph-node--selected": selected,
+      })}
       data-datagraph-node={nodeId}
+      data-datagraph-kind={kind}
       style={{ left: position?.x, top: position?.y }}
       onClick={(ev) => onClick?.(nodeId, ev)}
     >
-      <div className="datagraph-node__ports datagraph-node__ports--input">
-        {inputPorts.map((name, i) => (
-          <div
-            key={i}
-            data-datagraph-port={portKey({ node: nodeId, port: i, portType: "in" })}
-            className="datagraph-node__port"
-            title={name}
-          ></div>
-        ))}
-      </div>
-      {children}
-      <div className="datagraph-node__ports datagraph-node__ports--output">
-        {outputPorts.map((name, i) => (
-          <div
-            key={i}
-            data-datagraph-port={portKey({ node: nodeId, port: i, portType: "out" })}
-            className="datagraph-node__port"
-            title={name}
-          ></div>
-        ))}
+      <div className="datagraph-node__wrapper">
+        <div className="datagraph-node__ports datagraph-node__ports--input">
+          {inputPorts.map((name, i) => (
+            <div
+              key={i}
+              data-datagraph-port={portKey({ node: nodeId, port: i, portType: "in" })}
+              className="datagraph-node__port"
+              title={name}
+            ></div>
+          ))}
+        </div>
+        <div className="datagraph-node__ports datagraph-node__ports--output">
+          {outputPorts.map((name, i) => (
+            <div
+              key={i}
+              data-datagraph-port={portKey({ node: nodeId, port: i, portType: "out" })}
+              className="datagraph-node__port"
+              title={name}
+            ></div>
+          ))}
+        </div>
+        <div className="datagraph-node__content">
+          <div className="datagraph-node__head">
+            <div className="datagraph-node__icon">🔘</div>
+            <div className="datagraph-node__label">{kind}</div>
+          </div>
+          {children && <div className="datagraph-node__body">{children}</div>}
+        </div>
       </div>
     </div>
   );

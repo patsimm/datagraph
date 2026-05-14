@@ -9,6 +9,10 @@ export default defineConfig({
     fs: {
       allow: [path.resolve(__dirname, "..")],
     },
+    headers: {
+      "Cross-Origin-Opener-Policy": "same-origin",
+      "Cross-Origin-Embedder-Policy": "require-corp",
+    },
   },
   build: {
     rollupOptions: {

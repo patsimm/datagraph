@@ -3,7 +3,7 @@ import { DatagraphError } from "../DatagraphError";
 
 export type DatagraphAudioWorkletMessage<T extends CommandType> = {
   id: string;
-  command: { type: T } & CommandPayload<T>;
+  command: { type: T; payload: CommandPayload<T> };
 };
 
 export type DatagraphAudioWorkletResponse<T extends CommandType> =

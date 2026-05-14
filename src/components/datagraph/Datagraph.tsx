@@ -4,10 +4,14 @@ import { useNodeDragging } from "./node-dragging.hook";
 import { useEdgeDragging } from "./edge-dragging.hook";
 import { DatagraphEdge } from "../edge/DatagraphEdge";
 import { PortInfo, DatagraphNode, portKey, DatagraphNodeProps } from "../node/DatagraphNode";
-import { DatagraphParamNode } from "../node/DatagraphParamNode";
+import { DatagraphParamNode, DatagraphParamNodeProps } from "../node/DatagraphParamNode";
 import { ContextMenu } from "../contextmenu/ContextMenu";
 import { NodeSpec, NodeSpecKind } from "../../audio-worklet/datagraph-audio-worklet-commands";
 import { DatagraphOutputNodeNode } from "../node/DatagraphOutputNode";
+import {
+  DatagraphVisualizerNode,
+  DatagraphVisualizerNodeProps,
+} from "../node/DatagraphVisualizerNode";
 
 import React, { useCallback, useEffect, useState } from "react";
 
@@ -47,6 +51,7 @@ function useNodes() {
       setNodes((nodes) => [
         ...nodes,
         {
+          label: spec.kind,
           nodeId: info.nodeId,
           position,
           inputPorts: info.inputNames,
@@ -76,15 +81,13 @@ function useNodes() {
 
 function useParams() {
   const { ready, addParam: addParamToGraph, removeNode: removeNodeFromGraph } = useDatagraph();
-  const [params, setParams] = useState<
-    { nodeId: string; value: number; position: { x: number; y: number } }[]
-  >([]);
+  const [params, setParams] = useState<Omit<DatagraphParamNodeProps, "onClick" | "selected">[]>([]);
 
   const addParam = useCallback(
     async (value: number, position: { x: number; y: number }) => {
       if (!ready) return;
       const nodeId = await addParamToGraph(value);
-      setParams((params) => [...params, { nodeId, value: value, position }]);
+      setParams((params) => [...params, { nodeId, kind: "param", value: value, position }]);
     },
     [addParamToGraph, ready]
   );
@@ -105,10 +108,42 @@ function useParams() {
   };
 }
 
+function useVisualizers() {
+  const { ready, addNode, removeNode } = useDatagraph();
+  const [visualizers, setVisualizers] = useState<
+    Omit<DatagraphVisualizerNodeProps, "onClick" | "selected">[]
+  >([]);
+
+  const addVisualizer = useCallback(
+    async (position: { x: number; y: number }) => {
+      if (!ready) return;
+      const { nodeId } = await addNode({ kind: "passthrough" });
+      setVisualizers((visualizers) => [...visualizers, { nodeId, kind: "visualizer", position }]);
+    },
+    [addNode, ready]
+  );
+
+  const removeVisizalizer = useCallback(
+    async (nodeId: string) => {
+      if (!ready) return;
+      await removeNode(nodeId);
+      setVisualizers((visualizers) => visualizers.filter((v) => v.nodeId !== nodeId));
+    },
+    [ready, removeNode]
+  );
+
+  return {
+    visualizers,
+    addVisualizer,
+    removeVisizalizer,
+  };
+}
+
 export function Datagraph() {
   const { ready, start } = useDatagraph();
   const { nodes, addNode, removeNode } = useNodes();
   const { params, addParam, removeParam } = useParams();
+  const { visualizers, addVisualizer, removeVisizalizer } = useVisualizers();
   const [outputNode, setOutputNode] = useState<string | null>(null);
   useNodeDragging();
   const [menu, setMenu] = useState<{ x: number; y: number } | null>(null);
@@ -150,9 +185,8 @@ export function Datagraph() {
 
   const handleClickStart = useCallback(async () => {
     if (ready) return;
-    const audioworkletnode = await start();
-    const nodeInfo = await audioworkletnode.addNode({ kind: "passthrough" }, true);
-    setOutputNode(nodeInfo.nodeId);
+    const { outputNodeId } = await start();
+    setOutputNode(outputNodeId);
   }, [ready, start]);
 
   const handleContextMenu = useCallback((e: React.MouseEvent) => {
@@ -191,6 +225,12 @@ export function Datagraph() {
     }
   }, []);
 
+  const handleClickAddVisualizer = useCallback(async () => {
+    if (!menu || !ready) return;
+    await addVisualizer({ x: menu!.x, y: menu!.y });
+    setMenu(null);
+  }, [addVisualizer, menu, ready]);
+
   const handleKeyDown = useCallback(
     async (ev: KeyboardEvent) => {
       if (!selectedNodes.size) return;
@@ -210,10 +250,23 @@ export function Datagraph() {
           if (params.some((p) => p.nodeId === nodeId)) {
             await removeParam(nodeId);
           }
+          if (visualizers.some((v) => v.nodeId === nodeId)) {
+            await removeVisizalizer(nodeId);
+          }
         }
       }
     },
-    [edges, nodes, params, removeEdge, removeNode, removeParam, selectedNodes]
+    [
+      edges,
+      nodes,
+      params,
+      removeEdge,
+      removeNode,
+      removeParam,
+      removeVisizalizer,
+      selectedNodes,
+      visualizers,
+    ]
   );
 
   useEffect(() => {
@@ -244,6 +297,7 @@ export function Datagraph() {
           </button>
           <button onClick={() => handleClickAdd({ kind: "passthrough" })}>passthrough</button>
           <button onClick={handleClickAddParam}>param</button>
+          <button onClick={handleClickAddVisualizer}>visualizer</button>
         </ContextMenu>
       )}
 
@@ -269,15 +323,21 @@ export function Datagraph() {
           {...p}
         />
       ))}
+      {visualizers.map((v) => (
+        <DatagraphVisualizerNode
+          onClick={handleNodeClick}
+          key={v.nodeId}
+          selected={selectedNodes.has(v.nodeId)}
+          {...v}
+        />
+      ))}
       {nodes.map((n) => (
         <DatagraphNode
           onClick={handleNodeClick}
           key={n.nodeId}
           selected={selectedNodes.has(n.nodeId)}
           {...n}
-        >
-          {n.kind}
-        </DatagraphNode>
+        />
       ))}
       {outputNode && <DatagraphOutputNodeNode nodeId={outputNode} position={{ x: 200, y: 500 }} />}
     </div>

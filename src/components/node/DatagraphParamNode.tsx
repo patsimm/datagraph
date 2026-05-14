@@ -1,3 +1,4 @@
+import "./DatagraphParamNode.css";
 import { useDatagraph } from "../../datagraph.context";
 import { DatagraphNode, DatagraphNodeProps } from "./DatagraphNode";
 
@@ -38,9 +39,7 @@ export function DatagraphParamNode({
       outputPorts={PARAM_OUTPUT_PORTNAMES}
       {...nodeProps}
     >
-      <div className="datagraph-node__label">
-        {nodeId}: {currentValue}
-      </div>
+      <div className="datagraph-node__value">{currentValue}</div>
       <input
         type="range"
         min={min}
