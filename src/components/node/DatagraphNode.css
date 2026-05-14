@@ -10,6 +10,10 @@
   flex-direction: column;
   z-index: 2;
 
+  &.datagraph-node--selected {
+    background: #0af;
+  }
+
   & .datagraph-node__ports {
     display: flex;
     justify-content: space-around;

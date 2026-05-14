@@ -1,25 +1,53 @@
-import { NodeInfo } from "../../audio-worklet/datagraph-audio-worklet-commands";
-import { DatagraphNodeBase } from "./DatagraphNodeBase";
+import classNames from "classnames";
 import "./DatagraphNode.css";
 
 export type DatagraphNodeProps = {
   nodeId: string;
-  info: NodeInfo;
+  inputPorts: string[];
+  outputPorts: string[];
+  selected?: boolean;
   position?: { x: number; y: number };
+  onClick?: (nodeId: string, event: React.MouseEvent<HTMLDivElement>) => void;
 };
 
-export function DatagraphNode({ nodeId, info, position }: DatagraphNodeProps) {
+export function DatagraphNode({
+  nodeId,
+  inputPorts,
+  outputPorts,
+  position,
+  children,
+  selected,
+  onClick,
+}: React.PropsWithChildren<DatagraphNodeProps>) {
   return (
-    info && (
-      <DatagraphNodeBase
-        nodeId={nodeId}
-        inputPorts={info.inputNames}
-        outputPorts={info.outputNames}
-        position={position}
-      >
-        {info.nodeType} ({nodeId})
-      </DatagraphNodeBase>
-    )
+    <div
+      className={classNames("datagraph-node", { "datagraph-node--selected": selected })}
+      data-datagraph-node={nodeId}
+      style={{ left: position?.x, top: position?.y }}
+      onClick={(ev) => onClick?.(nodeId, ev)}
+    >
+      <div className="datagraph-node__ports datagraph-node__ports--input">
+        {inputPorts.map((name, i) => (
+          <div
+            key={i}
+            data-datagraph-port={portKey({ node: nodeId, port: i, portType: "in" })}
+            className="datagraph-node__port"
+            title={name}
+          ></div>
+        ))}
+      </div>
+      {children}
+      <div className="datagraph-node__ports datagraph-node__ports--output">
+        {outputPorts.map((name, i) => (
+          <div
+            key={i}
+            data-datagraph-port={portKey({ node: nodeId, port: i, portType: "out" })}
+            className="datagraph-node__port"
+            title={name}
+          ></div>
+        ))}
+      </div>
+    </div>
   );
 }
 

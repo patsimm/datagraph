@@ -1,15 +1,13 @@
 import { useDatagraph } from "../../datagraph.context";
-import { DatagraphNodeBase } from "./DatagraphNodeBase";
+import { DatagraphNode, DatagraphNodeProps } from "./DatagraphNode";
 
 import { useState } from "react";
 
-export type DatagraphParamNodeProps = {
-  nodeId: string;
+export type DatagraphParamNodeProps = Omit<DatagraphNodeProps, "inputPorts" | "outputPorts"> & {
   value: number;
   min?: number;
   max?: number;
   step?: number;
-  position?: { x: number; y: number };
 };
 
 const PARAM_OUTPUT_PORTNAMES = ["value"];
@@ -21,7 +19,7 @@ export function DatagraphParamNode({
   min = 0,
   max = 1,
   step = 0.01,
-  position,
+  ...nodeProps
 }: DatagraphParamNodeProps) {
   const datagraph = useDatagraph();
   const [currentValue, setCurrentValue] = useState(value);
@@ -34,11 +32,11 @@ export function DatagraphParamNode({
   };
 
   return (
-    <DatagraphNodeBase
+    <DatagraphNode
       nodeId={nodeId}
       inputPorts={PRAM_INPUT_PORTNAMES}
       outputPorts={PARAM_OUTPUT_PORTNAMES}
-      position={position}
+      {...nodeProps}
     >
       <div className="datagraph-node__label">
         {nodeId}: {currentValue}
@@ -51,6 +49,6 @@ export function DatagraphParamNode({
         value={currentValue}
         onChange={handleChange}
       />
-    </DatagraphNodeBase>
+    </DatagraphNode>
   );
 }

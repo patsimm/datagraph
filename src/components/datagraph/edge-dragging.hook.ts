@@ -21,6 +21,7 @@ export function useEdgeDragging({ onDragStart, onDragEnd }: EdgeDraggingState) {
 
   const handlePointerDown = useCallback(
     (event: PointerEvent) => {
+      if (!edgeRef.current) return;
       if (!(event.target instanceof HTMLElement)) return;
       const portKey = getDatagraphNodePortFromElement(event.target);
       if (!portKey) return;
@@ -49,12 +50,12 @@ export function useEdgeDragging({ onDragStart, onDragEnd }: EdgeDraggingState) {
         elemOffsetX: offsetX,
         elemOffsetY: offsetY,
       };
-      edgeRef.current!.style.left = `${startPosX}px`;
-      edgeRef.current!.style.top = `${startPosY}px`;
-      edgeRef.current!.style.width = `0px`;
-      edgeRef.current!.style.height = `0px`;
-      edgeRef.current!.style.display = "block";
-      const line = edgeRef.current!.querySelector(".datagraph-edge__line")!;
+      edgeRef.current.style.left = `${startPosX}px`;
+      edgeRef.current.style.top = `${startPosY}px`;
+      edgeRef.current.style.width = `0px`;
+      edgeRef.current.style.height = `0px`;
+      edgeRef.current.style.display = "block";
+      const line = edgeRef.current.querySelector(".datagraph-edge__line")!;
       line.setAttribute("x1", "0");
       line.setAttribute("y1", "0");
       line.setAttribute("x2", "0");
@@ -65,12 +66,13 @@ export function useEdgeDragging({ onDragStart, onDragEnd }: EdgeDraggingState) {
 
   const handlePointerUp = useCallback(
     (event: PointerEvent) => {
+      if (!edgeRef.current) return;
       draggingStateRef.current = null;
-      edgeRef.current!.style.left = `0px`;
-      edgeRef.current!.style.top = `0px`;
-      edgeRef.current!.style.width = `0px`;
-      edgeRef.current!.style.height = `0px`;
-      edgeRef.current!.style.display = "none";
+      edgeRef.current.style.left = `0px`;
+      edgeRef.current.style.top = `0px`;
+      edgeRef.current.style.width = `0px`;
+      edgeRef.current.style.height = `0px`;
+      edgeRef.current.style.display = "none";
 
       const portKey =
         event.target instanceof HTMLElement ? getDatagraphNodePortFromElement(event.target) : null;
@@ -81,6 +83,7 @@ export function useEdgeDragging({ onDragStart, onDragEnd }: EdgeDraggingState) {
 
   const handlePointerMove = useCallback(
     (event: PointerEvent) => {
+      if (!edgeRef.current) return;
       if (!draggingStateRef.current) return;
 
       const containerElem = document.querySelector(".datagraph") as HTMLElement;
@@ -93,10 +96,10 @@ export function useEdgeDragging({ onDragStart, onDragEnd }: EdgeDraggingState) {
       const startPosY = draggingStateRef.current.dragStartY;
 
       // Update element position
-      edgeRef.current!.style.left = `${Math.min(startPosX, x)}px`;
-      edgeRef.current!.style.top = `${Math.min(startPosY, y)}px`;
-      edgeRef.current!.style.width = `${Math.abs(x - draggingStateRef.current.dragStartX)}px`;
-      edgeRef.current!.style.height = `${Math.abs(y - draggingStateRef.current.dragStartY)}px`;
+      edgeRef.current.style.left = `${Math.min(startPosX, x)}px`;
+      edgeRef.current.style.top = `${Math.min(startPosY, y)}px`;
+      edgeRef.current.style.width = `${Math.abs(x - draggingStateRef.current.dragStartX)}px`;
+      edgeRef.current.style.height = `${Math.abs(y - draggingStateRef.current.dragStartY)}px`;
       const line = edgeRef.current!.querySelector(".datagraph-edge__line")!;
       line.setAttribute("x1", `${startPosX - Math.min(startPosX, x)}`);
       line.setAttribute("y1", `${startPosY - Math.min(startPosY, y)}`);

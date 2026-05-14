@@ -85,6 +85,14 @@ export const commandHandlers = {
       outputNames: info.outputNames,
     };
   },
+  remove_node: async (context: GraphContext, { nodeId }: { nodeId: string }) => {
+    context.graph!.remove(nodeId);
+    if (context.params.has(nodeId)) {
+      const param = context.params.get(nodeId)!;
+      context.params.delete(nodeId);
+      param.free();
+    }
+  },
   set_output: async (context: GraphContext, { nodeId }: { nodeId: string }) => {
     context.output = nodeId;
   },

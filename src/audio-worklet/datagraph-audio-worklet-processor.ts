@@ -19,7 +19,7 @@ class DatagraphProcessor extends AudioWorkletProcessor {
     graph: null,
     params: new Map(),
     output: null,
-    sampleRate: sampleRate,
+    sampleRate,
   };
   sample_num = 0;
 

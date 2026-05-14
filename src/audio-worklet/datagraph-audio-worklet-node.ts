@@ -64,6 +64,10 @@ export class DatagraphAudioWorkletNode extends AudioWorkletNode {
     return nodeInfo;
   }
 
+  async removeNode(nodeId: string) {
+    await this.sendCommand({ type: "remove_node", nodeId });
+  }
+
   async setParam(nodeId: string, value: number) {
     await this.sendCommand({ type: "set_param", nodeId, value });
   }

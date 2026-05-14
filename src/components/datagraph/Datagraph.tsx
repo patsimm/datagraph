@@ -6,10 +6,10 @@ import { DatagraphEdge } from "../edge/DatagraphEdge";
 import { PortInfo, DatagraphNode, portKey, DatagraphNodeProps } from "../node/DatagraphNode";
 import { DatagraphParamNode } from "../node/DatagraphParamNode";
 import { ContextMenu } from "../contextmenu/ContextMenu";
-import { NodeSpec } from "../../audio-worklet/datagraph-audio-worklet-commands";
+import { NodeSpec, NodeSpecKind } from "../../audio-worklet/datagraph-audio-worklet-commands";
 import { DatagraphOutputNodeNode } from "../node/DatagraphOutputNode";
 
-import { useCallback, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 
 function useEdges() {
   const { ready, addConnection, removeConnection } = useDatagraph();
@@ -36,7 +36,83 @@ function useEdges() {
   return { edges, addEdge, removeEdge };
 }
 
-function Edges() {
+function useNodes() {
+  const { ready, addNode: addNodeToGraph, removeNode: removeNodeFromGraph } = useDatagraph();
+  const [nodes, setNodes] = useState<(DatagraphNodeProps & { kind: NodeSpecKind })[]>([]);
+
+  const addNode = useCallback(
+    async (spec: NodeSpec, position: { x: number; y: number }) => {
+      if (!ready) return;
+      const info = await addNodeToGraph(spec);
+      setNodes((nodes) => [
+        ...nodes,
+        {
+          nodeId: info.nodeId,
+          position,
+          inputPorts: info.inputNames,
+          outputPorts: info.outputNames,
+          kind: spec.kind,
+        },
+      ]);
+    },
+    [addNodeToGraph, ready]
+  );
+
+  const removeNode = useCallback(
+    async (nodeId: string) => {
+      if (!ready) return;
+      await removeNodeFromGraph(nodeId);
+      setNodes((nodes) => nodes.filter((n) => n.nodeId !== nodeId));
+    },
+    [ready, removeNodeFromGraph]
+  );
+
+  return {
+    addNode,
+    removeNode,
+    nodes,
+  };
+}
+
+function useParams() {
+  const { ready, addParam: addParamToGraph, removeNode: removeNodeFromGraph } = useDatagraph();
+  const [params, setParams] = useState<
+    { nodeId: string; value: number; position: { x: number; y: number } }[]
+  >([]);
+
+  const addParam = useCallback(
+    async (value: number, position: { x: number; y: number }) => {
+      if (!ready) return;
+      const nodeId = await addParamToGraph(value);
+      setParams((params) => [...params, { nodeId, value: value, position }]);
+    },
+    [addParamToGraph, ready]
+  );
+
+  const removeParam = useCallback(
+    async (nodeId: string) => {
+      if (!ready) return;
+      await removeNodeFromGraph(nodeId);
+      setParams((params) => params.filter((p) => p.nodeId !== nodeId));
+    },
+    [ready, removeNodeFromGraph]
+  );
+
+  return {
+    params,
+    addParam,
+    removeParam,
+  };
+}
+
+export function Datagraph() {
+  const { ready, start } = useDatagraph();
+  const { nodes, addNode, removeNode } = useNodes();
+  const { params, addParam, removeParam } = useParams();
+  const [outputNode, setOutputNode] = useState<string | null>(null);
+  useNodeDragging();
+  const [menu, setMenu] = useState<{ x: number; y: number } | null>(null);
+  const [selectedNodes, setSelectedNodes] = useState<Set<string>>(new Set());
   const { edges, addEdge, removeEdge } = useEdges();
   const [draggedPort, setDraggedPort] = useState<PortInfo | null>(null);
 
@@ -72,73 +148,6 @@ function Edges() {
     onDragEnd: handleEdgeDragEnd,
   });
 
-  return (
-    <>
-      <svg className="datagraph-edge" ref={ghostRef}>
-        <line className="datagraph-edge__line datagraph-edge__line--ghost" />
-      </svg>
-      {edges.map((edge) => (
-        <DatagraphEdge
-          key={`${portKey(edge.from)}->${portKey(edge.to)}`}
-          from={edge.from.node}
-          fromPort={edge.from.port}
-          to={edge.to.node}
-          toPort={edge.to.port}
-          onClick={() => handleEdgeClick(edge)}
-        />
-      ))}
-    </>
-  );
-}
-
-function useNodes() {
-  const { ready, addNode: addNodeToGraph } = useDatagraph();
-  const [nodes, setNodes] = useState<DatagraphNodeProps[]>([]);
-
-  const addNode = useCallback(
-    async (spec: NodeSpec, position: { x: number; y: number }) => {
-      if (!ready) return;
-      const info = await addNodeToGraph(spec);
-      setNodes((nodes) => [...nodes, { nodeId: info.nodeId, position, info }]);
-    },
-    [addNodeToGraph, ready]
-  );
-
-  return {
-    addNode,
-    nodes,
-  };
-}
-
-function useParams() {
-  const { ready, addParam: addParamToGraph } = useDatagraph();
-  const [params, setParams] = useState<
-    { nodeId: string; value: number; position: { x: number; y: number } }[]
-  >([]);
-
-  const addParam = useCallback(
-    async (value: number, position: { x: number; y: number }) => {
-      if (!ready) return;
-      const nodeId = await addParamToGraph(value);
-      setParams((params) => [...params, { nodeId, value: value, position }]);
-    },
-    [addParamToGraph, ready]
-  );
-
-  return {
-    params,
-    addParam,
-  };
-}
-
-export function Datagraph() {
-  const { ready, start } = useDatagraph();
-  const { nodes, addNode } = useNodes();
-  const { params, addParam } = useParams();
-  const [outputNode, setOutputNode] = useState<string | null>(null);
-  useNodeDragging();
-  const [menu, setMenu] = useState<{ x: number; y: number } | null>(null);
-
   const handleClickStart = useCallback(async () => {
     if (ready) return;
     const audioworkletnode = await start();
@@ -170,6 +179,50 @@ export function Datagraph() {
     setMenu(null);
   }, [addParam, menu, ready]);
 
+  const handleNodeClick = useCallback((nodeId: string, ev: React.MouseEvent) => {
+    if (ev.shiftKey) {
+      setSelectedNodes((selectedNodes) =>
+        selectedNodes.has(nodeId)
+          ? new Set([...selectedNodes].filter((n) => n !== nodeId))
+          : new Set([...selectedNodes, nodeId])
+      );
+    } else {
+      setSelectedNodes(new Set([nodeId]));
+    }
+  }, []);
+
+  const handleKeyDown = useCallback(
+    async (ev: KeyboardEvent) => {
+      if (!selectedNodes.size) return;
+      if (ev.key === "Backspace" || ev.key === "Delete") {
+        const edgesToRemove = edges.filter(
+          (edge) =>
+            (edge.from.node && selectedNodes.has(edge.from.node)) ||
+            (edge.to.node && selectedNodes.has(edge.to.node))
+        );
+        for (const edge of edgesToRemove) {
+          await removeEdge(edge.from, edge.to);
+        }
+        for (const nodeId of selectedNodes) {
+          if (nodes.some((n) => n.nodeId === nodeId)) {
+            await removeNode(nodeId);
+          }
+          if (params.some((p) => p.nodeId === nodeId)) {
+            await removeParam(nodeId);
+          }
+        }
+      }
+    },
+    [edges, nodes, params, removeEdge, removeNode, removeParam, selectedNodes]
+  );
+
+  useEffect(() => {
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [handleKeyDown]);
+
   return ready ? (
     <div onContextMenu={handleContextMenu} className="datagraph">
       {menu && (
@@ -192,12 +245,37 @@ export function Datagraph() {
         </ContextMenu>
       )}
 
-      <Edges />
+      <svg className="datagraph-edge" ref={ghostRef}>
+        <line className="datagraph-edge__line datagraph-edge__line--ghost" />
+      </svg>
+      {edges.map((edge) => (
+        <DatagraphEdge
+          key={`${portKey(edge.from)}->${portKey(edge.to)}`}
+          from={edge.from.node}
+          fromPort={edge.from.port}
+          to={edge.to.node}
+          toPort={edge.to.port}
+          onClick={() => handleEdgeClick(edge)}
+        />
+      ))}
+
       {params.map((p) => (
-        <DatagraphParamNode key={p.nodeId} {...p} />
+        <DatagraphParamNode
+          onClick={handleNodeClick}
+          key={p.nodeId}
+          selected={selectedNodes.has(p.nodeId)}
+          {...p}
+        />
       ))}
       {nodes.map((n) => (
-        <DatagraphNode key={n.nodeId} {...n} />
+        <DatagraphNode
+          onClick={handleNodeClick}
+          key={n.nodeId}
+          selected={selectedNodes.has(n.nodeId)}
+          {...n}
+        >
+          {n.kind}
+        </DatagraphNode>
       ))}
       {outputNode && <DatagraphOutputNodeNode nodeId={outputNode} position={{ x: 200, y: 500 }} />}
     </div>

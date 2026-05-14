@@ -1,19 +1,18 @@
-import { DatagraphNodeBase } from "./DatagraphNodeBase";
+import { DatagraphNode, DatagraphNodeProps } from "./DatagraphNode";
 
-export type DatagraphOutputNodeProps = { nodeId: string; position?: { x: number; y: number } };
+export type DatagraphOutputNodeProps = Omit<DatagraphNodeProps, "inputPorts" | "outputPorts">;
 
 const PARAM_OUTPUT_PORTNAMES: string[] = [];
 const PRAM_INPUT_PORTNAMES: string[] = ["input"];
 
-export function DatagraphOutputNodeNode({ nodeId, position }: DatagraphOutputNodeProps) {
+export function DatagraphOutputNodeNode(props: DatagraphOutputNodeProps) {
   return (
-    <DatagraphNodeBase
-      nodeId={nodeId}
+    <DatagraphNode
       inputPorts={PRAM_INPUT_PORTNAMES}
       outputPorts={PARAM_OUTPUT_PORTNAMES}
-      position={position}
+      {...props}
     >
       output
-    </DatagraphNodeBase>
+    </DatagraphNode>
   );
 }

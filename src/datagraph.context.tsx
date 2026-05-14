@@ -62,6 +62,7 @@ export const useDatagraph = () => {
           addParam: getNode().addParam.bind(getNode()),
           setParam: getNode().setParam.bind(getNode()),
           addNode: getNode().addNode.bind(getNode()),
+          removeNode: getNode().removeNode.bind(getNode()),
           addConnection: getNode().addConnection.bind(getNode()),
           removeConnection: getNode().removeConnection.bind(getNode()),
         }
