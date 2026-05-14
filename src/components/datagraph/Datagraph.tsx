@@ -3,156 +3,27 @@ import "./Datagraph.css";
 import { useNodeDragging } from "./node-dragging.hook";
 import { useEdgeDragging } from "./edge-dragging.hook";
 import { Edge } from "../edge/Edge";
-import { PortInfo, Node, portKey, NodeProps } from "../node/Node";
-import { ParamNode, ParamNodeProps } from "../node/ParamNode";
+import { PortInfo, portKey } from "../node/Node";
 import { ContextMenu } from "../contextmenu/ContextMenu";
 import { NodeSpec } from "../../audio-worklet/datagraph-audio-worklet-commands";
 import { OutputNode } from "../node/OutputNode";
-import { VisualizerNode, VisualizerNodeProps } from "../node/VisualizerNode";
+import { ContextView } from "./ContextView";
+import { useSelection } from "../../selection.context";
+import { useNodes } from "../../nodes.context";
+import { Nodes } from "./Nodes";
+import { useEdges } from "../../edges.context";
 
 import React, { useCallback, useEffect, useState } from "react";
 
-type DistributiveOmit<T, K extends PropertyKey> = T extends unknown ? Omit<T, K> : never;
-
-function useEdges() {
-  const { ready, addConnection, removeConnection } = useDatagraph();
-  const [edges, setEdges] = useState<{ from: PortInfo; to: PortInfo }[]>([]);
-
-  const addEdge = useCallback(
-    async (from: PortInfo, to: PortInfo) => {
-      if (!ready) return;
-      await addConnection(from.node, from.port, to.node, to.port);
-      setEdges((edges) => [...edges, { from, to }]);
-    },
-    [addConnection, ready]
-  );
-
-  const removeEdge = useCallback(
-    async (from: PortInfo, to: PortInfo) => {
-      if (!ready) return;
-      await removeConnection(from.node, from.port, to.node, to.port);
-      setEdges((edges) => edges.filter((e) => e.from !== from || e.to !== to));
-    },
-    [ready, removeConnection]
-  );
-
-  return { edges, addEdge, removeEdge };
-}
-
-function useNodes() {
-  const { ready, addNode: addNodeToGraph, removeNode: removeNodeFromGraph } = useDatagraph();
-  const [nodes, setNodes] = useState<NodeProps[]>([]);
-
-  const addNode = useCallback(
-    async (spec: NodeSpec, position: { x: number; y: number }) => {
-      if (!ready) return;
-      const info = await addNodeToGraph(spec);
-      setNodes((nodes) => [
-        ...nodes,
-        {
-          label: spec.kind,
-          nodeId: info.nodeId,
-          inputPorts: info.inputNames,
-          outputPorts: info.outputNames,
-          kind: spec.kind,
-          ...position,
-        },
-      ]);
-    },
-    [addNodeToGraph, ready]
-  );
-
-  const removeNode = useCallback(
-    async (nodeId: string) => {
-      if (!ready) return;
-      await removeNodeFromGraph(nodeId);
-      setNodes((nodes) => nodes.filter((n) => n.nodeId !== nodeId));
-    },
-    [ready, removeNodeFromGraph]
-  );
-
-  return {
-    addNode,
-    removeNode,
-    nodes,
-  };
-}
-
-function useParams() {
-  const { ready, addParam: addParamToGraph, removeNode: removeNodeFromGraph } = useDatagraph();
-  type ParamState = DistributiveOmit<ParamNodeProps, "onClick" | "selected">;
-  const [params, setParams] = useState<ParamState[]>([]);
-
-  const addParam = useCallback(
-    async (props: DistributiveOmit<ParamState, "nodeId">) => {
-      if (!ready) return;
-      const nodeId = await addParamToGraph(props.defaultValue);
-      setParams((params) => [...params, { nodeId, ...props } as ParamState]);
-    },
-    [addParamToGraph, ready]
-  );
-
-  const removeParam = useCallback(
-    async (nodeId: string) => {
-      if (!ready) return;
-      await removeNodeFromGraph(nodeId);
-      setParams((params) => params.filter((p) => p.nodeId !== nodeId));
-    },
-    [ready, removeNodeFromGraph]
-  );
-
-  return {
-    params,
-    addParam,
-    removeParam,
-  };
-}
-
-function useVisualizers() {
-  const { ready, addNode, removeNode } = useDatagraph();
-  const [visualizers, setVisualizers] = useState<
-    Omit<VisualizerNodeProps, "onClick" | "selected">[]
-  >([]);
-
-  const addVisualizer = useCallback(
-    async (position: { x: number; y: number }) => {
-      if (!ready) return;
-      const { nodeId } = await addNode({ kind: "passthrough" });
-      setVisualizers((visualizers) => [
-        ...visualizers,
-        { nodeId, kind: "oscilloscope", ...position },
-      ]);
-    },
-    [addNode, ready]
-  );
-
-  const removeVisizalizer = useCallback(
-    async (nodeId: string) => {
-      if (!ready) return;
-      await removeNode(nodeId);
-      setVisualizers((visualizers) => visualizers.filter((v) => v.nodeId !== nodeId));
-    },
-    [ready, removeNode]
-  );
-
-  return {
-    visualizers,
-    addVisualizer,
-    removeVisizalizer,
-  };
-}
-
 export function Datagraph() {
   const { ready, start } = useDatagraph();
-  const { nodes, addNode, removeNode } = useNodes();
-  const { params, addParam, removeParam } = useParams();
-  const { visualizers, addVisualizer, removeVisizalizer } = useVisualizers();
+  const { addNode, addParam, addVisualizer, removeNode } = useNodes();
   const [outputNode, setOutputNode] = useState<string | null>(null);
   useNodeDragging();
   const [menu, setMenu] = useState<{ x: number; y: number } | null>(null);
-  const [selectedNodes, setSelectedNodes] = useState<Set<string>>(new Set());
-  const { edges, addEdge, removeEdge } = useEdges();
+  const { edges, addEdge, removeEdge, removeEdgesForNodes } = useEdges();
   const [draggedPort, setDraggedPort] = useState<PortInfo | null>(null);
+  const { selectedNodeId, setSelectedNodeId } = useSelection();
 
   const handleEdgeDragStart = useCallback((port: PortInfo) => {
     setDraggedPort(port);
@@ -223,17 +94,12 @@ export function Datagraph() {
     [addParam, menu, ready]
   );
 
-  const handleNodeClick = useCallback((nodeId: string, ev: React.MouseEvent) => {
-    if (ev.shiftKey) {
-      setSelectedNodes((selectedNodes) =>
-        selectedNodes.has(nodeId)
-          ? new Set([...selectedNodes].filter((n) => n !== nodeId))
-          : new Set([...selectedNodes, nodeId])
-      );
-    } else {
-      setSelectedNodes(new Set([nodeId]));
-    }
-  }, []);
+  const handleNodeClick = useCallback(
+    (nodeId: string) => {
+      setSelectedNodeId(nodeId);
+    },
+    [setSelectedNodeId]
+  );
 
   const handleClickAddVisualizer = useCallback(async () => {
     if (!menu || !ready) return;
@@ -243,40 +109,14 @@ export function Datagraph() {
 
   const handleKeyDown = useCallback(
     async (ev: KeyboardEvent) => {
-      if (!selectedNodes.size) return;
+      if (!selectedNodeId) return;
       if (ev.key === "Backspace" || ev.key === "Delete") {
-        const edgesToRemove = edges.filter(
-          (edge) =>
-            (edge.from.node && selectedNodes.has(edge.from.node)) ||
-            (edge.to.node && selectedNodes.has(edge.to.node))
-        );
-        for (const edge of edgesToRemove) {
-          await removeEdge(edge.from, edge.to);
-        }
-        for (const nodeId of selectedNodes) {
-          if (nodes.some((n) => n.nodeId === nodeId)) {
-            await removeNode(nodeId);
-          }
-          if (params.some((p) => p.nodeId === nodeId)) {
-            await removeParam(nodeId);
-          }
-          if (visualizers.some((v) => v.nodeId === nodeId)) {
-            await removeVisizalizer(nodeId);
-          }
-        }
+        removeEdgesForNodes(selectedNodeId);
+        removeNode(selectedNodeId);
+        setSelectedNodeId(null);
       }
     },
-    [
-      edges,
-      nodes,
-      params,
-      removeEdge,
-      removeNode,
-      removeParam,
-      removeVisizalizer,
-      selectedNodes,
-      visualizers,
-    ]
+    [removeEdgesForNodes, removeNode, selectedNodeId, setSelectedNodeId]
   );
 
   useEffect(() => {
@@ -288,6 +128,7 @@ export function Datagraph() {
 
   return (
     <div onContextMenu={handleContextMenu} className="datagraph">
+      <ContextView />
       {!ready && (
         <button className="datagraph__start-button" onClick={handleClickStart}>
           Start Datagraph
@@ -353,33 +194,7 @@ export function Datagraph() {
           onClick={() => handleEdgeClick(edge)}
         />
       ))}
-
-      {params.map((p) => {
-        return (
-          <ParamNode
-            key={p.nodeId}
-            onClick={handleNodeClick}
-            selected={selectedNodes.has(p.nodeId)}
-            {...p}
-          />
-        );
-      })}
-      {visualizers.map((v) => (
-        <VisualizerNode
-          onClick={handleNodeClick}
-          key={v.nodeId}
-          selected={selectedNodes.has(v.nodeId)}
-          {...v}
-        />
-      ))}
-      {nodes.map((n) => (
-        <Node
-          onClick={handleNodeClick}
-          key={n.nodeId}
-          selected={selectedNodes.has(n.nodeId)}
-          {...n}
-        />
-      ))}
+      <Nodes onNodeClick={handleNodeClick} />
       {outputNode && <OutputNode nodeId={outputNode} x={200} y={500} />}
     </div>
   );

@@ -1,0 +1,30 @@
+.contextview {
+  --contextview-color-bg: var(--color-primary);
+  --contextview-color-fg: var(--color-text-light);
+
+  position: absolute;
+  right: 0;
+  width: 360px;
+  padding: 0.5rem;
+  height: 100%;
+  background-color: var(--contextview-color-bg);
+  color: var(--contextview-color-fg);
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+
+  & .contextview__title {
+    & .contextview__classpath {
+      color: color-mix(in srgb, var(--contextview-color-fg) 70%, var(--contextview-color-bg));
+    }
+
+    & .contextview__classname {
+      font-weight: bold;
+    }
+
+    & .contextview__nodeid {
+      color: color-mix(in srgb, var(--contextview-color-bg) 40%, var(--color-text-dark));
+      font-size: 0.8rem;
+    }
+  }
+}

@@ -93,6 +93,10 @@ export class DatagraphAudioWorkletNode extends AudioWorkletNode {
     await this.sendCommand("disconnect", { from, fromPort, to, toPort });
   }
 
+  async nodeInfo(nodeId: string) {
+    return await this.sendCommand("node_info", { nodeId });
+  }
+
   addNodeSubscription(nodeId: string, callback: (data: Float32Array) => void) {
     this.sendCommand("subscribe_data", { nodeId }).then((subscriptionIndex) => {
       if (subscriptionIndex === undefined) {

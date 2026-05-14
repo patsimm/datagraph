@@ -4,7 +4,7 @@ import "./Node.css";
 export type NodeProps = {
   nodeId: string;
   kind: string;
-  label?: string;
+  label?: React.ReactNode;
   inputPorts: string[];
   outputPorts: string[];
   selected?: boolean;

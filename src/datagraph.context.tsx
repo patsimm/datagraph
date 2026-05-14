@@ -67,6 +67,7 @@ export const useDatagraph = () => {
           removeConnection: getNode().removeConnection.bind(getNode()),
           subscribeNode: getNode().addNodeSubscription.bind(getNode()),
           unsubscribeNode: getNode().removeNodeSubscription.bind(getNode()),
+          nodeInfo: getNode().nodeInfo.bind(getNode()),
         }
       : { ready: false as const, start: initialize };
   }, [getNode, initialize, ready]);

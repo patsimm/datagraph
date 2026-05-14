@@ -1,15 +1,11 @@
-.datagraph-node[data-datagraph-kind^="param"] {
+.node[data-kind^="param"] {
   min-width: 8rem;
 
-  & .datagraph-node__value {
-    position: absolute;
-    right: 0;
-    top: 0;
-    padding: var(--datagraph-node-padding);
+  & .node__value {
     color: color-mix(in srgb, var(--datagraph-node-color-bg) 30%, var(--color-gray-dark));
   }
 
-  & .datagraph-node__body {
+  & .node__body {
     display: flex;
     justify-content: center;
     align-items: stretch;
@@ -28,7 +24,7 @@
         );
       }
 
-      &.datagraph-node__input--active {
+      &.node__input--active {
         --datagraph-input-accent-color: color-mix(
           in srgb,
           var(--color-accent) 90%,

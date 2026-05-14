@@ -27,10 +27,14 @@ export function ParamNode({ nodeId, defaultValue, ...nodeProps }: ParamNodeProps
       nodeId={nodeId}
       inputPorts={PRAM_INPUT_PORTNAMES}
       outputPorts={PARAM_OUTPUT_PORTNAMES}
-      label={nodeProps.label || nodeProps.kind.split(":")[1]}
+      label={
+        <>
+          {nodeProps.label || nodeProps.kind.split(":")[1]}{" "}
+          <span className="node__value">: {currentValue}</span>
+        </>
+      }
       {...nodeProps}
     >
-      <div className="datagraph-node__value">{currentValue}</div>
       {renderParamBody({ ...nodeProps, currentValue, handleChange })}
     </Node>
   );
@@ -57,7 +61,7 @@ function SliderParamBody({
 }: SliderParamBodyProps & BaseParamBodyProps) {
   return (
     <input
-      className="datagraph-node__input-slider"
+      className="node__input-slider"
       type="range"
       min={min}
       max={max}
@@ -82,8 +86,8 @@ function ButtonParamBody({
 }: ButtonParamBodyProps & BaseParamBodyProps) {
   return (
     <input
-      className={classNames("datagraph-node__input-button", {
-        "datagraph-node__input--active": currentValue === onValue,
+      className={classNames("node__input-button", {
+        "node__input--active": currentValue === onValue,
       })}
       type="button"
       onMouseDown={() => handleChange(onValue)}

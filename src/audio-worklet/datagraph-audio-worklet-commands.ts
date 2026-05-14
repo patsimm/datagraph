@@ -117,12 +117,19 @@ export const commandHandlers = {
     context.graph.disconnect(from, fromPort, to, toPort);
   },
   subscribe_data: async (context: GraphContext, { nodeId }: { nodeId: string }) => {
-    console.log(`Subscribing to data for node ${nodeId}`);
     return context.subscribe(nodeId);
   },
   unsubscribe_data: async (context: GraphContext, { nodeId }: { nodeId: string }) => {
-    console.log(`Unsubscribing from data for node ${nodeId}`);
     return context.unsubscribe(nodeId);
+  },
+  node_info: async (context: GraphContext, { nodeId }: { nodeId: string }) => {
+    const info = context.graph.nodeInfo(nodeId);
+    return {
+      nodeId,
+      nodeType: info.nodeType,
+      inputNames: info.inputNames,
+      outputNames: info.outputNames,
+    };
   },
 } as const;
 
