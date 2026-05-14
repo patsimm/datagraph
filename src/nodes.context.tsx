@@ -141,7 +141,7 @@ const nodesContext = createContext<{
   visualizers: Omit<VisualizerNodeProps, "onClick" | "selected">[];
   addNode: (spec: NodeSpec, position: { x: number; y: number }) => Promise<void>;
   addParam: (props: DistributiveOmit<ParamState, "nodeId">) => Promise<void>;
-  updateParamSettings: (nodeId: string, settings: ParamState) => Promise<void>;
+  updateParamSettings: (nodeId: string, settings: ParamState) => void;
   addVisualizer: (position: { x: number; y: number }) => Promise<void>;
   removeNode: (nodeId: string) => Promise<void>;
 }>({
