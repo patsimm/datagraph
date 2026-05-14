@@ -84,6 +84,7 @@
   }
 
   &.datagraph-node--selected {
-    outline: 2px solid color-mix(in srgb, var(--color-highlight) 50%, var(--color-gray-light));
+    outline: 2px solid color-mix(in srgb, var(--color-accent) 70%, var(--color-gray-light));
+    outline-offset: 1px;
   }
 }

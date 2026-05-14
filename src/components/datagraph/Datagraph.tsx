@@ -15,6 +15,8 @@ import {
 
 import React, { useCallback, useEffect, useState } from "react";
 
+type DistributiveOmit<T, K extends PropertyKey> = T extends unknown ? Omit<T, K> : never;
+
 function useEdges() {
   const { ready, addConnection, removeConnection } = useDatagraph();
   const [edges, setEdges] = useState<{ from: PortInfo; to: PortInfo }[]>([]);
@@ -81,13 +83,14 @@ function useNodes() {
 
 function useParams() {
   const { ready, addParam: addParamToGraph, removeNode: removeNodeFromGraph } = useDatagraph();
-  const [params, setParams] = useState<Omit<DatagraphParamNodeProps, "onClick" | "selected">[]>([]);
+  type ParamState = DistributiveOmit<DatagraphParamNodeProps, "onClick" | "selected">;
+  const [params, setParams] = useState<ParamState[]>([]);
 
   const addParam = useCallback(
-    async (value: number, position: { x: number; y: number }) => {
+    async (props: DistributiveOmit<ParamState, "nodeId">) => {
       if (!ready) return;
-      const nodeId = await addParamToGraph(value);
-      setParams((params) => [...params, { nodeId, kind: "param", value: value, position }]);
+      const nodeId = await addParamToGraph(props.defaultValue);
+      setParams((params) => [...params, { nodeId, ...props } as ParamState]);
     },
     [addParamToGraph, ready]
   );
@@ -118,7 +121,7 @@ function useVisualizers() {
     async (position: { x: number; y: number }) => {
       if (!ready) return;
       const { nodeId } = await addNode({ kind: "passthrough" });
-      setVisualizers((visualizers) => [...visualizers, { nodeId, kind: "visualizer", position }]);
+      setVisualizers((visualizers) => [...visualizers, { nodeId, kind: "oscilloscope", position }]);
     },
     [addNode, ready]
   );
@@ -189,10 +192,14 @@ export function Datagraph() {
     setOutputNode(outputNodeId);
   }, [ready, start]);
 
-  const handleContextMenu = useCallback((e: React.MouseEvent) => {
-    e.preventDefault();
-    setMenu({ x: e.clientX, y: e.clientY });
-  }, []);
+  const handleContextMenu = useCallback(
+    (e: React.MouseEvent) => {
+      e.preventDefault();
+      if (!ready) return;
+      setMenu({ x: e.clientX, y: e.clientY });
+    },
+    [ready]
+  );
 
   const handleCloseContextMenu = useCallback(() => {
     setMenu(null);
@@ -207,11 +214,14 @@ export function Datagraph() {
     [addNode, menu]
   );
 
-  const handleClickAddParam = useCallback(async () => {
-    if (!menu || !ready) return;
-    await addParam(0, { x: menu!.x, y: menu!.y });
-    setMenu(null);
-  }, [addParam, menu, ready]);
+  const handleClickAddParam = useCallback(
+    async (props: Parameters<typeof addParam>[0]) => {
+      if (!menu || !ready) return;
+      await addParam(props);
+      setMenu(null);
+    },
+    [addParam, menu, ready]
+  );
 
   const handleNodeClick = useCallback((nodeId: string, ev: React.MouseEvent) => {
     if (ev.shiftKey) {
@@ -276,8 +286,13 @@ export function Datagraph() {
     };
   }, [handleKeyDown]);
 
-  return ready ? (
+  return (
     <div onContextMenu={handleContextMenu} className="datagraph">
+      {!ready && (
+        <button className="datagraph__start-button" onClick={handleClickStart}>
+          Start Datagraph
+        </button>
+      )}
       {menu && (
         <ContextMenu x={menu.x} y={menu.y} onClose={handleCloseContextMenu}>
           <div className="contextmenu__title">add Node</div>
@@ -296,8 +311,32 @@ export function Datagraph() {
             adsr
           </button>
           <button onClick={() => handleClickAdd({ kind: "passthrough" })}>passthrough</button>
-          <button onClick={handleClickAddParam}>param</button>
-          <button onClick={handleClickAddVisualizer}>visualizer</button>
+          <button
+            onClick={() =>
+              handleClickAddParam({
+                kind: "param:slider",
+                min: 0,
+                max: 1,
+                defaultValue: 0,
+                step: 0.01,
+              })
+            }
+          >
+            slider
+          </button>
+          <button
+            onClick={() =>
+              handleClickAddParam({
+                kind: "param:button",
+                onValue: 1,
+                offValue: 0,
+                defaultValue: 0,
+              })
+            }
+          >
+            button
+          </button>
+          <button onClick={handleClickAddVisualizer}>oscilloscope</button>
         </ContextMenu>
       )}
 
@@ -315,14 +354,16 @@ export function Datagraph() {
         />
       ))}
 
-      {params.map((p) => (
-        <DatagraphParamNode
-          onClick={handleNodeClick}
-          key={p.nodeId}
-          selected={selectedNodes.has(p.nodeId)}
-          {...p}
-        />
-      ))}
+      {params.map((p) => {
+        return (
+          <DatagraphParamNode
+            key={p.nodeId}
+            onClick={handleNodeClick}
+            selected={selectedNodes.has(p.nodeId)}
+            {...p}
+          />
+        );
+      })}
       {visualizers.map((v) => (
         <DatagraphVisualizerNode
           onClick={handleNodeClick}
@@ -341,7 +382,5 @@ export function Datagraph() {
       ))}
       {outputNode && <DatagraphOutputNodeNode nodeId={outputNode} position={{ x: 200, y: 500 }} />}
     </div>
-  ) : (
-    <button onClick={handleClickStart}>Start Datagraph</button>
   );
 }

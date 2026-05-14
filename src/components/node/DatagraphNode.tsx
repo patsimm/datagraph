@@ -4,6 +4,7 @@ import "./DatagraphNode.css";
 export type DatagraphNodeProps = {
   nodeId: string;
   kind: string;
+  label?: string;
   inputPorts: string[];
   outputPorts: string[];
   selected?: boolean;
@@ -14,6 +15,7 @@ export type DatagraphNodeProps = {
 export function DatagraphNode({
   nodeId,
   kind,
+  label,
   inputPorts,
   outputPorts,
   position,
@@ -55,7 +57,7 @@ export function DatagraphNode({
         <div className="datagraph-node__content">
           <div className="datagraph-node__head">
             <div className="datagraph-node__icon">🔘</div>
-            <div className="datagraph-node__label">{kind}</div>
+            <div className="datagraph-node__label">{label || kind}</div>
           </div>
           {children && <div className="datagraph-node__body">{children}</div>}
         </div>

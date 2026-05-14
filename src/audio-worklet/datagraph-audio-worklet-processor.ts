@@ -14,17 +14,14 @@ import {
   DatagraphAudioWorkletMessage,
   DatagraphAudioWorkletResponse,
 } from "./datagraph-audio-worklet-message";
-import { writeNodeData, BUFFER_SIZE } from "./node-data-subscription";
+import { NodeDataSubscriptionWriter } from "./node-data-subscription";
 
 import * as datagraph from "@datagraph/core";
 
 class DatagraphProcessor extends AudioWorkletProcessor {
   graph: datagraph.Graph | null = null;
   outputNodeId: string | null = null;
-  nodeSubscriptions: string[] = [];
-  nodeDataSAB: SharedArrayBuffer | null = null;
-  nodeDataAccumulators: Float32Array[] = [];
-  nodeDataAccumulatorIndex = 0;
+  subscriptionWriter: NodeDataSubscriptionWriter | null = null;
   params: Map<string, datagraph.Param> = new Map();
   sample_num = 0;
 
@@ -61,14 +58,15 @@ class DatagraphProcessor extends AudioWorkletProcessor {
     if (type === "init") {
       return (await this.init(payload as CommandPayload<"init">)) as CommandResult<T>;
     }
-    if (!this.graph) {
+    if (!this.graph || !this.subscriptionWriter) {
       throw new Error(`Cannot execute command ${type} before initialization`);
     }
     const context: GraphContext = {
       graph: this.graph,
       params: this.params,
       sampleRate,
-      subscriptions: this.nodeSubscriptions,
+      subscribe: (nodeId: string) => this.subscriptionWriter!.subscribe(nodeId),
+      unsubscribe: (nodeId: string) => this.subscriptionWriter!.unsubscribe(nodeId),
     };
     const commandHandler = commandHandlers[type as keyof typeof commandHandlers] as CommandHandler<
       keyof typeof commandHandlers
@@ -86,17 +84,12 @@ class DatagraphProcessor extends AudioWorkletProcessor {
     datagraph.initSync({ module: wasmBytes });
     this.graph = datagraph.createGraph();
     this.outputNodeId = this.graph.add(datagraph.createPassthrough());
-    this.nodeDataSAB = nodeDataSharedArrayBuffer;
+    this.subscriptionWriter = new NodeDataSubscriptionWriter(nodeDataSharedArrayBuffer);
     return { outputNodeId: this.outputNodeId };
   }
 
   process(_inputs: Float32Array[][], outputs: Float32Array[][]): boolean {
     if (!this.graph || !this.outputNodeId) return true;
-
-    if (this.nodeDataAccumulators.length !== this.nodeSubscriptions.length) {
-      this.nodeDataAccumulators = this.nodeSubscriptions.map(() => new Float32Array(BUFFER_SIZE));
-      this.nodeDataAccumulatorIndex = 0;
-    }
 
     const out = outputs[0];
     for (let c = 0; c < out.length; c++) {
@@ -106,19 +99,8 @@ class DatagraphProcessor extends AudioWorkletProcessor {
         this.graph.tick(this.sample_num);
         channel[i] = this.graph.output(this.outputNodeId)[0];
 
-        if (c === 0 && this.nodeDataSAB) {
-          for (let s = 0; s < this.nodeSubscriptions.length; s++) {
-            this.nodeDataAccumulators[s][this.nodeDataAccumulatorIndex] = this.graph.output(
-              this.nodeSubscriptions[s]
-            )[0];
-          }
-          this.nodeDataAccumulatorIndex++;
-          if (this.nodeDataAccumulatorIndex >= BUFFER_SIZE) {
-            for (let s = 0; s < this.nodeSubscriptions.length; s++) {
-              writeNodeData(this.nodeDataSAB, s, this.nodeDataAccumulators[s]);
-            }
-            this.nodeDataAccumulatorIndex = 0;
-          }
+        if (c === 0 && this.subscriptionWriter) {
+          this.subscriptionWriter.writeFromGraph(this.graph);
         }
       }
     }

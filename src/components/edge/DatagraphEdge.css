@@ -9,7 +9,7 @@
     stroke-width: 5px;
 
     &:not(.datagraph-edge__line--ghost):hover {
-      stroke: var(--color-highlight);
+      stroke: var(--color-accent);
       cursor: pointer;
     }
 

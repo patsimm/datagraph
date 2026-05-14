@@ -30,7 +30,8 @@ export type GraphContext = {
   graph: Graph;
   params: Map<string, Param>;
   sampleRate: number;
-  subscriptions: string[];
+  subscribe: (nodeId: string) => number | undefined;
+  unsubscribe: (nodeId: string) => boolean;
 };
 
 export const commandHandlers = {
@@ -117,8 +118,11 @@ export const commandHandlers = {
   },
   subscribe_data: async (context: GraphContext, { nodeId }: { nodeId: string }) => {
     console.log(`Subscribing to data for node ${nodeId}`);
-    context.subscriptions.push(nodeId);
-    return context.subscriptions.length - 1;
+    return context.subscribe(nodeId);
+  },
+  unsubscribe_data: async (context: GraphContext, { nodeId }: { nodeId: string }) => {
+    console.log(`Unsubscribing from data for node ${nodeId}`);
+    return context.unsubscribe(nodeId);
   },
 } as const;
 

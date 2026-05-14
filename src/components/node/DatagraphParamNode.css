@@ -1,9 +1,53 @@
-.datagraph-node[data-datagraph-kind="param"] {
+.datagraph-node[data-datagraph-kind^="param"] {
+  min-width: 8rem;
+
   & .datagraph-node__value {
     position: absolute;
     right: 0;
     top: 0;
     padding: var(--datagraph-node-padding);
     color: color-mix(in srgb, var(--datagraph-node-color-bg) 30%, var(--color-gray-dark));
+  }
+
+  & .datagraph-node__body {
+    display: flex;
+    justify-content: center;
+    align-items: stretch;
+    height: 2rem;
+    padding: 0.25rem;
+
+    & input {
+      --datagraph-input-accent-color: var(--color-accent);
+      color: var(--color-text-light);
+
+      &:hover {
+        --datagraph-input-accent-color: color-mix(
+          in srgb,
+          var(--color-accent) 90%,
+          var(--color-gray-light)
+        );
+      }
+
+      &.datagraph-node__input--active {
+        --datagraph-input-accent-color: color-mix(
+          in srgb,
+          var(--color-accent) 90%,
+          var(--color-gray-dark)
+        );
+      }
+    }
+
+    & input[type="button"] {
+      background: var(--datagraph-input-accent-color);
+      border-radius: 4px;
+      border: 1px solid
+        color-mix(in srgb, var(--datagraph-input-accent-color) 70%, var(--color-gray-light));
+      width: 100%;
+    }
+
+    & input[type="range"] {
+      background: var(--color-background);
+      accent-color: var(--datagraph-input-accent-color);
+    }
   }
 }

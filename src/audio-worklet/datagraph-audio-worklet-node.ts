@@ -8,7 +8,7 @@ import {
   DatagraphAudioWorkletMessage,
   DatagraphAudioWorkletResponse,
 } from "./datagraph-audio-worklet-message";
-import { createNodeDataBuffer, readNodeData } from "./node-data-subscription";
+import { createNodeDataBuffer, NodeDataSubscriptionReader } from "./node-data-subscription";
 
 import wasmUrl from "@datagraph/core/datagraph_bg.wasm?url";
 
@@ -21,14 +21,12 @@ export class DatagraphAudioWorkletNode extends AudioWorkletNode {
       reject: (err: unknown) => void;
     }
   > = new Map();
-  nodeDataBuffer: SharedArrayBuffer;
-  subscriptionRafs: Map<string, number> = new Map();
-  subscriptionIndex: Map<string, number> = new Map();
+  nodeSubscriptionReader: NodeDataSubscriptionReader;
 
   constructor(context: BaseAudioContext, name: string) {
     super(context, name);
 
-    this.nodeDataBuffer = createNodeDataBuffer();
+    this.nodeSubscriptionReader = new NodeDataSubscriptionReader(createNodeDataBuffer());
 
     this.port.onmessage = (e: MessageEvent) => {
       const response = e.data as DatagraphAudioWorkletResponse<CommandType>;
@@ -64,7 +62,7 @@ export class DatagraphAudioWorkletNode extends AudioWorkletNode {
     const wasmBytes = await fetch(wasmUrl).then((r) => r.arrayBuffer());
     return await this.sendCommand("init", {
       wasmBytes,
-      nodeDataSharedArrayBuffer: this.nodeDataBuffer,
+      nodeDataSharedArrayBuffer: this.nodeSubscriptionReader.nodeDataBuffer,
     });
   }
 
@@ -77,6 +75,9 @@ export class DatagraphAudioWorkletNode extends AudioWorkletNode {
   }
 
   async removeNode(nodeId: string) {
+    if (this.nodeSubscriptionReader.removeSubscription(nodeId)) {
+      await this.sendCommand("unsubscribe_data", { nodeId });
+    }
     await this.sendCommand("remove_node", { nodeId });
   }
 
@@ -93,31 +94,17 @@ export class DatagraphAudioWorkletNode extends AudioWorkletNode {
   }
 
   addNodeSubscription(nodeId: string, callback: (data: Float32Array) => void) {
-    this.sendCommand("subscribe_data", { nodeId }).then((subscriptionId) => {
-      this.subscriptionIndex.set(nodeId, subscriptionId);
-    });
-
-    const poll = () => {
-      if (this.subscriptionIndex.has(nodeId)) {
-        const subscriptionId = this.subscriptionIndex.get(nodeId)!;
-        const data = readNodeData(this.nodeDataBuffer, subscriptionId);
-        if (data) callback(data);
+    this.sendCommand("subscribe_data", { nodeId }).then((subscriptionIndex) => {
+      if (subscriptionIndex === undefined) {
+        console.warn(`Failed to subscribe to node data for node ${nodeId}`);
+        return;
       }
-      const rafId = requestAnimationFrame(poll);
-      this.subscriptionRafs.set(nodeId, rafId);
-    };
-    const rafId = requestAnimationFrame(poll);
-    this.subscriptionRafs.set(nodeId, rafId);
+      this.nodeSubscriptionReader.addSubscription(nodeId, subscriptionIndex, callback);
+    });
   }
 
   async removeNodeSubscription(nodeId: string) {
-    const rafId = this.subscriptionRafs.get(nodeId);
-    // TODO: Really remove the subscription from the processor side as well, therefore the id handling needs to be improved
-    cancelAnimationFrame(rafId!);
-    this.subscriptionRafs.delete(nodeId);
-  }
-
-  readNodeData(subscription_index: number) {
-    return readNodeData(this.nodeDataBuffer, subscription_index);
+    this.nodeSubscriptionReader.removeSubscription(nodeId);
+    return await this.sendCommand("unsubscribe_data", { nodeId });
   }
 }
