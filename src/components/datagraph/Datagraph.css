@@ -20,5 +20,6 @@
 
     &:hover {
       background: var(--color-accent);
+    }
   }
 }
