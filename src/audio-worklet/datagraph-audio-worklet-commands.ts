@@ -2,7 +2,9 @@ import { Graph, Param, initSync } from "@datagraph/core";
 import * as datagraph from "@datagraph/core";
 
 export type NodeSpec =
-  | { kind: "oscillator" }
+  | { kind: "sin" }
+  | { kind: "saw" }
+  | { kind: "square" }
   | {
       kind: "adsr";
       attack: number;
@@ -45,8 +47,14 @@ export const commandHandlers = {
   add_node: async (context: GraphContext, { node }: { node: NodeSpec }) => {
     let graphNode: datagraph.GraphNode;
     switch (node.kind) {
-      case "oscillator":
-        graphNode = datagraph.createOscillator(context.sampleRate);
+      case "sin":
+        graphNode = datagraph.createSin(context.sampleRate);
+        break;
+      case "saw":
+        graphNode = datagraph.createSaw(context.sampleRate);
+        break;
+      case "square":
+        graphNode = datagraph.createSquare(context.sampleRate);
         break;
       case "adsr":
         graphNode = datagraph.createADSR(

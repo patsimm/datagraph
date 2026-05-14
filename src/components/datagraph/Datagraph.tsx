@@ -228,7 +228,9 @@ export function Datagraph() {
       {menu && (
         <ContextMenu x={menu.x} y={menu.y} onClose={handleCloseContextMenu}>
           <div className="contextmenu__title">add Node</div>
-          <button onClick={() => handleClickAdd({ kind: "oscillator" })}>oscillator</button>
+          <button onClick={() => handleClickAdd({ kind: "sin" })}>sin</button>
+          <button onClick={() => handleClickAdd({ kind: "saw" })}>saw</button>
+          <button onClick={() => handleClickAdd({ kind: "square" })}>square</button>
           <button onClick={() => handleClickAdd({ kind: "multiply" })}>multiply</button>
           <button onClick={() => handleClickAdd({ kind: "add" })}>add</button>
           <button onClick={() => handleClickAdd({ kind: "delay" })}>delay</button>
