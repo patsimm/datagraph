@@ -1,10 +1,26 @@
+import fs from "fs";
 import path from "path";
 
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 
+function coiServiceWorkerPlugin() {
+  return {
+    name: "coi-service-worker",
+    buildStart() {
+      const src = path.resolve(
+        __dirname,
+        "node_modules/coi-serviceworker/coi-serviceworker.min.js"
+      );
+      const dest = path.resolve(__dirname, "public/coi-serviceworker.js");
+      fs.mkdirSync(path.resolve(__dirname, "public"), { recursive: true });
+      fs.copyFileSync(src, dest);
+    },
+  };
+}
+
 export default defineConfig(() => ({
-  plugins: [react()],
+  plugins: [react(), coiServiceWorkerPlugin()],
   server: {
     fs: {
       allow: [path.resolve(__dirname, "..")],
