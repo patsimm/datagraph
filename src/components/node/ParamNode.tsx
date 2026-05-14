@@ -1,25 +1,18 @@
-import "./DatagraphParamNode.css";
+import "./ParamNode.css";
 import { useDatagraph } from "../../datagraph.context";
-import { DatagraphNode, DatagraphNodeProps } from "./DatagraphNode";
+import { Node, NodeProps } from "./Node";
 
 import { useState } from "react";
 import classNames from "classnames";
 
-export type DatagraphParamNodeProps = Omit<
-  DatagraphNodeProps,
-  "inputPorts" | "outputPorts" | "kind"
-> & {
+export type ParamNodeProps = Omit<NodeProps, "inputPorts" | "outputPorts" | "kind"> & {
   defaultValue: number;
 } & AnyParamBodyProps;
 
 const PARAM_OUTPUT_PORTNAMES = ["value"];
 const PRAM_INPUT_PORTNAMES: string[] = [];
 
-export function DatagraphParamNode({
-  nodeId,
-  defaultValue,
-  ...nodeProps
-}: DatagraphParamNodeProps) {
+export function ParamNode({ nodeId, defaultValue, ...nodeProps }: ParamNodeProps) {
   const datagraph = useDatagraph();
   const [currentValue, setCurrentValue] = useState(defaultValue);
 
@@ -30,7 +23,7 @@ export function DatagraphParamNode({
   };
 
   return (
-    <DatagraphNode
+    <Node
       nodeId={nodeId}
       inputPorts={PRAM_INPUT_PORTNAMES}
       outputPorts={PARAM_OUTPUT_PORTNAMES}
@@ -39,7 +32,7 @@ export function DatagraphParamNode({
     >
       <div className="datagraph-node__value">{currentValue}</div>
       {renderParamBody({ ...nodeProps, currentValue, handleChange })}
-    </DatagraphNode>
+    </Node>
   );
 }
 

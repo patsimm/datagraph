@@ -1,19 +1,19 @@
-.datagraph-edge {
+.edge {
   position: absolute;
   background: transparent;
   overflow: visible;
   z-index: 1;
 
-  & .datagraph-edge__line {
+  & .edge__line {
     stroke: color-mix(in srgb, var(--color-primary) 60%, var(--color-gray-light));
     stroke-width: 5px;
 
-    &:not(.datagraph-edge__line--ghost):hover {
+    &:not(.edge__line--ghost):hover {
       stroke: var(--color-accent);
       cursor: pointer;
     }
 
-    &.datagraph-edge__line--ghost {
+    &.edge__line--ghost {
       stroke: color-mix(in srgb, var(--color-gray-light) 60%, var(--color-gray-dark));
       stroke-width: 2px;
       stroke-dasharray: 5, 5;

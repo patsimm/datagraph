@@ -1,4 +1,4 @@
-import { PortInfo, getDatagraphNodePortFromElement, parsePortKey } from "../node/DatagraphNode";
+import { PortInfo, getDatagraphNodePortFromElement, parsePortKey } from "../node/Node";
 
 import { useRef, useCallback, useEffect } from "react";
 
@@ -55,7 +55,7 @@ export function useEdgeDragging({ onDragStart, onDragEnd }: EdgeDraggingState) {
       edgeRef.current.style.width = `0px`;
       edgeRef.current.style.height = `0px`;
       edgeRef.current.style.display = "block";
-      const line = edgeRef.current.querySelector(".datagraph-edge__line")!;
+      const line = edgeRef.current.querySelector(".edge__line")!;
       line.setAttribute("x1", "0");
       line.setAttribute("y1", "0");
       line.setAttribute("x2", "0");
@@ -100,7 +100,7 @@ export function useEdgeDragging({ onDragStart, onDragEnd }: EdgeDraggingState) {
       edgeRef.current.style.top = `${Math.min(startPosY, y)}px`;
       edgeRef.current.style.width = `${Math.abs(x - draggingStateRef.current.dragStartX)}px`;
       edgeRef.current.style.height = `${Math.abs(y - draggingStateRef.current.dragStartY)}px`;
-      const line = edgeRef.current!.querySelector(".datagraph-edge__line")!;
+      const line = edgeRef.current!.querySelector(".edge__line")!;
       line.setAttribute("x1", `${startPosX - Math.min(startPosX, x)}`);
       line.setAttribute("y1", `${startPosY - Math.min(startPosY, y)}`);
       line.setAttribute("x2", `${x - Math.min(startPosX, x)}`);

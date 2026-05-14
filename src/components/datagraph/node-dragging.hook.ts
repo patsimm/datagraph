@@ -1,4 +1,4 @@
-import { getDatagraphNodeKeyFromElement, getDatagraphNodeElement } from "../node/DatagraphNode";
+import { getDatagraphNodeKeyFromElement, getDatagraphNodeElement } from "../node/Node";
 
 import { useRef, useCallback, useEffect } from "react";
 

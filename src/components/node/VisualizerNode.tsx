@@ -1,12 +1,9 @@
 import { useDatagraph } from "../../datagraph.context";
-import { DatagraphNode, DatagraphNodeProps } from "./DatagraphNode";
+import { Node, NodeProps } from "./Node";
 
 import { useCallback, useEffect, useRef } from "react";
 
-export type DatagraphVisualizerNodeProps = Omit<
-  DatagraphNodeProps,
-  "inputPorts" | "outputPorts"
-> & {};
+export type VisualizerNodeProps = Omit<NodeProps, "inputPorts" | "outputPorts"> & {};
 
 const PARAM_OUTPUT_PORTNAMES = ["input"];
 const PRAM_INPUT_PORTNAMES = ["output"];
@@ -15,11 +12,11 @@ function map(value: number, inMin: number, inMax: number, outMin: number, outMax
   return ((value - inMin) * (outMax - outMin)) / (inMax - inMin) + outMin;
 }
 
-export function DatagraphVisualizerNode({
+export function VisualizerNode({
   nodeId,
 
   ...nodeProps
-}: DatagraphVisualizerNodeProps) {
+}: VisualizerNodeProps) {
   const { ready, subscribeNode, unsubscribeNode } = useDatagraph();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const maxValue = useRef(0);
@@ -82,13 +79,13 @@ export function DatagraphVisualizerNode({
   }, [handleData, nodeId, ready, subscribeNode, unsubscribeNode]);
 
   return (
-    <DatagraphNode
+    <Node
       nodeId={nodeId}
       inputPorts={PRAM_INPUT_PORTNAMES}
       outputPorts={PARAM_OUTPUT_PORTNAMES}
       {...nodeProps}
     >
       <canvas className="datagraph-node__vis-canvas" ref={canvasRef} />
-    </DatagraphNode>
+    </Node>
   );
 }

@@ -1,9 +1,9 @@
-import "./DatagraphEdge.css";
-import { getDatagraphNodePortElementForInfo, getDatagraphNodeElement } from "../node/DatagraphNode";
+import "./Edge.css";
+import { getDatagraphNodePortElementForInfo, getDatagraphNodeElement } from "../node/Node";
 
 import { useCallback, useEffect, useRef } from "react";
 
-export type DatagraphEdgeProps = {
+export type EdgeProps = {
   from: string;
   fromPort: number;
   to: string;
@@ -11,7 +11,7 @@ export type DatagraphEdgeProps = {
   onClick?: () => void;
 };
 
-export function DatagraphEdge({ from, fromPort, to, toPort, onClick }: DatagraphEdgeProps) {
+export function Edge({ from, fromPort, to, toPort, onClick }: EdgeProps) {
   const edgeRef = useRef<SVGSVGElement>(null);
 
   const recalculatePosition = useCallback(() => {
@@ -55,7 +55,7 @@ export function DatagraphEdge({ from, fromPort, to, toPort, onClick }: Datagraph
     edgeRef.current!.style.top = `${startPosY}px`;
     edgeRef.current!.style.width = `${width}px`;
     edgeRef.current!.style.height = `${height}px`;
-    const line = edgeRef.current!.querySelector(".datagraph-edge__line")!;
+    const line = edgeRef.current!.querySelector(".edge__line")!;
     line.setAttribute("x1", `${fromPosX - startPosX}`);
     line.setAttribute("y1", `${fromPosY - startPosY}`);
     line.setAttribute("x2", `${toPosX - startPosX}`);
@@ -84,8 +84,8 @@ export function DatagraphEdge({ from, fromPort, to, toPort, onClick }: Datagraph
   }, [from, recalculatePosition, to]);
 
   return (
-    <svg className="datagraph-edge" ref={edgeRef}>
-      <line onClick={onClick} className="datagraph-edge__line" />
+    <svg className="edge" ref={edgeRef}>
+      <line onClick={onClick} className="edge__line" />
     </svg>
   );
 }

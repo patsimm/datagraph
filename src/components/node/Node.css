@@ -1,4 +1,4 @@
-.datagraph-node {
+.node {
   --datagraph-node-color-bg: var(--color-primary);
   --datagraph-node-padding: 0.325rem;
 
@@ -10,32 +10,32 @@
   cursor: grab;
   z-index: 2;
 
-  & .datagraph-node__wrapper {
+  & .node__wrapper {
     position: relative;
     width: 100%;
     height: 100%;
     pointer-events: none;
 
-    & .datagraph-node__ports {
+    & .node__ports {
       position: absolute;
       width: 100%;
       display: flex;
       justify-content: space-around;
       height: 0px;
 
-      &.datagraph-node__ports--input {
+      &.node__ports--input {
         top: 0;
 
-        & .datagraph-node__port {
+        & .node__port {
           transform: translateY(-50%);
           background: var(--color-background);
         }
       }
 
-      &.datagraph-node__ports--output {
+      &.node__ports--output {
         bottom: 0;
 
-        & .datagraph-node__port {
+        & .node__port {
           transform: translateY(-50%);
           background: color-mix(
             in srgb,
@@ -46,7 +46,7 @@
       }
     }
 
-    & .datagraph-node__port {
+    & .node__port {
       width: 10px;
       height: 10px;
       background:;
@@ -61,19 +61,19 @@
       }
     }
 
-    & .datagraph-node__content {
+    & .node__content {
       display: flex;
       flex-direction: column;
       padding: var(--datagraph-node-padding);
       gap: var(--datagraph-node-padding);
 
-      & .datagraph-node__head {
+      & .node__head {
         display: flex;
         flex-direction: row;
         gap: var(--datagraph-node-padding);
       }
 
-      & .datagraph-node__body {
+      & .node__body {
         display: flex;
 
         & input {
@@ -83,7 +83,7 @@
     }
   }
 
-  &.datagraph-node--selected {
+  &.node--selected {
     outline: 2px solid color-mix(in srgb, var(--color-accent) 70%, var(--color-gray-light));
     outline-offset: 1px;
   }

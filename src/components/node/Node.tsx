@@ -1,65 +1,67 @@
 import classNames from "classnames";
-import "./DatagraphNode.css";
+import "./Node.css";
 
-export type DatagraphNodeProps = {
+export type NodeProps = {
   nodeId: string;
   kind: string;
   label?: string;
   inputPorts: string[];
   outputPorts: string[];
   selected?: boolean;
-  position?: { x: number; y: number };
+  x?: number;
+  y?: number;
   onClick?: (nodeId: string, event: React.MouseEvent<HTMLDivElement>) => void;
 };
 
-export function DatagraphNode({
+export function Node({
   nodeId,
   kind,
   label,
   inputPorts,
   outputPorts,
-  position,
+  x,
+  y,
   children,
   selected,
   onClick,
-}: React.PropsWithChildren<DatagraphNodeProps>) {
+}: React.PropsWithChildren<NodeProps>) {
   return (
     <div
-      className={classNames("datagraph-node", {
-        "datagraph-node--selected": selected,
+      className={classNames("node", {
+        "node--selected": selected,
       })}
-      data-datagraph-node={nodeId}
-      data-datagraph-kind={kind}
-      style={{ left: position?.x, top: position?.y }}
+      data-node-id={nodeId}
+      data-kind={kind}
+      style={{ left: x, top: y }}
       onClick={(ev) => onClick?.(nodeId, ev)}
     >
-      <div className="datagraph-node__wrapper">
-        <div className="datagraph-node__ports datagraph-node__ports--input">
+      <div className="node__wrapper">
+        <div className="node__ports node__ports--input">
           {inputPorts.map((name, i) => (
             <div
               key={i}
-              data-datagraph-port={portKey({ node: nodeId, port: i, portType: "in" })}
-              className="datagraph-node__port"
+              data-port={portKey({ node: nodeId, port: i, portType: "in" })}
+              className="node__port"
               title={name}
             ></div>
           ))}
         </div>
-        <div className="datagraph-node__ports datagraph-node__ports--output">
+        <div className="node__ports node__ports--output">
           {outputPorts.map((name, i) => (
             <div
               key={i}
-              data-datagraph-port={portKey({ node: nodeId, port: i, portType: "out" })}
-              className="datagraph-node__port"
+              data-port={portKey({ node: nodeId, port: i, portType: "out" })}
+              className="node__port"
               title={name}
             ></div>
           ))}
         </div>
-        <div className="datagraph-node__content">
-          <div className="datagraph-node__head">
-            <div className="datagraph-node__icon">🔘</div>
-            <div className="datagraph-node__label">{label || kind}</div>
+        <div className="node__content">
+          <div className="node__head">
+            <div className="node__icon">🔘</div>
+            <div className="node__label">{label || kind}</div>
           </div>
-          {children && <div className="datagraph-node__body">{children}</div>}
+          {children && <div className="node__body">{children}</div>}
         </div>
       </div>
     </div>
@@ -84,7 +86,7 @@ export function parsePortKey(portKey: string): PortInfo {
 }
 
 export function getDatagraphNodeElement(nodeKey: string) {
-  const el = document.querySelector(`[data-datagraph-node="${nodeKey}"]`) as HTMLElement;
+  const el = document.querySelector(`[data-node-id="${nodeKey}"]`) as HTMLElement;
   if (!el) {
     throw new Error(`Node element with key ${nodeKey} not found`);
   }
@@ -92,7 +94,7 @@ export function getDatagraphNodeElement(nodeKey: string) {
 }
 
 export function getDatagraphNodePortElement(portKey: string) {
-  const el = document.querySelector(`[data-datagraph-port="${portKey}"]`) as HTMLElement;
+  const el = document.querySelector(`[data-port="${portKey}"]`) as HTMLElement;
   if (!el) {
     throw new Error(`Node port element with key ${portKey} not found`);
   }
@@ -100,7 +102,7 @@ export function getDatagraphNodePortElement(portKey: string) {
 }
 
 export function getDatagraphNodePortElementForInfo(portInfo: PortInfo) {
-  const el = document.querySelector(`[data-datagraph-port="${portKey(portInfo)}"]`) as HTMLElement;
+  const el = document.querySelector(`[data-port="${portKey(portInfo)}"]`) as HTMLElement;
   if (!el) {
     throw new Error(`Node port element with key ${portKey(portInfo)} not found`);
   }
@@ -108,12 +110,12 @@ export function getDatagraphNodePortElementForInfo(portInfo: PortInfo) {
 }
 
 export function getDatagraphNodeKeyFromElement(el: HTMLElement) {
-  const nodeKey = el.getAttribute("data-datagraph-node");
+  const nodeKey = el.getAttribute("data-node-id");
   return nodeKey;
 }
 
 export function getDatagraphNodePortFromElement(el: HTMLElement) {
-  const port = el.getAttribute("data-datagraph-port");
+  const port = el.getAttribute("data-port");
   return port;
 }
 

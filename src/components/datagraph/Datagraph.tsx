@@ -2,16 +2,13 @@ import { useDatagraph } from "../../datagraph.context";
 import "./Datagraph.css";
 import { useNodeDragging } from "./node-dragging.hook";
 import { useEdgeDragging } from "./edge-dragging.hook";
-import { DatagraphEdge } from "../edge/DatagraphEdge";
-import { PortInfo, DatagraphNode, portKey, DatagraphNodeProps } from "../node/DatagraphNode";
-import { DatagraphParamNode, DatagraphParamNodeProps } from "../node/DatagraphParamNode";
+import { Edge } from "../edge/Edge";
+import { PortInfo, Node, portKey, NodeProps } from "../node/Node";
+import { ParamNode, ParamNodeProps } from "../node/ParamNode";
 import { ContextMenu } from "../contextmenu/ContextMenu";
-import { NodeSpec, NodeSpecKind } from "../../audio-worklet/datagraph-audio-worklet-commands";
-import { DatagraphOutputNodeNode } from "../node/DatagraphOutputNode";
-import {
-  DatagraphVisualizerNode,
-  DatagraphVisualizerNodeProps,
-} from "../node/DatagraphVisualizerNode";
+import { NodeSpec } from "../../audio-worklet/datagraph-audio-worklet-commands";
+import { OutputNode } from "../node/OutputNode";
+import { VisualizerNode, VisualizerNodeProps } from "../node/VisualizerNode";
 
 import React, { useCallback, useEffect, useState } from "react";
 
@@ -44,7 +41,7 @@ function useEdges() {
 
 function useNodes() {
   const { ready, addNode: addNodeToGraph, removeNode: removeNodeFromGraph } = useDatagraph();
-  const [nodes, setNodes] = useState<(DatagraphNodeProps & { kind: NodeSpecKind })[]>([]);
+  const [nodes, setNodes] = useState<NodeProps[]>([]);
 
   const addNode = useCallback(
     async (spec: NodeSpec, position: { x: number; y: number }) => {
@@ -55,10 +52,10 @@ function useNodes() {
         {
           label: spec.kind,
           nodeId: info.nodeId,
-          position,
           inputPorts: info.inputNames,
           outputPorts: info.outputNames,
           kind: spec.kind,
+          ...position,
         },
       ]);
     },
@@ -83,7 +80,7 @@ function useNodes() {
 
 function useParams() {
   const { ready, addParam: addParamToGraph, removeNode: removeNodeFromGraph } = useDatagraph();
-  type ParamState = DistributiveOmit<DatagraphParamNodeProps, "onClick" | "selected">;
+  type ParamState = DistributiveOmit<ParamNodeProps, "onClick" | "selected">;
   const [params, setParams] = useState<ParamState[]>([]);
 
   const addParam = useCallback(
@@ -114,14 +111,17 @@ function useParams() {
 function useVisualizers() {
   const { ready, addNode, removeNode } = useDatagraph();
   const [visualizers, setVisualizers] = useState<
-    Omit<DatagraphVisualizerNodeProps, "onClick" | "selected">[]
+    Omit<VisualizerNodeProps, "onClick" | "selected">[]
   >([]);
 
   const addVisualizer = useCallback(
     async (position: { x: number; y: number }) => {
       if (!ready) return;
       const { nodeId } = await addNode({ kind: "passthrough" });
-      setVisualizers((visualizers) => [...visualizers, { nodeId, kind: "oscilloscope", position }]);
+      setVisualizers((visualizers) => [
+        ...visualizers,
+        { nodeId, kind: "oscilloscope", ...position },
+      ]);
     },
     [addNode, ready]
   );
@@ -217,7 +217,7 @@ export function Datagraph() {
   const handleClickAddParam = useCallback(
     async (props: Parameters<typeof addParam>[0]) => {
       if (!menu || !ready) return;
-      await addParam(props);
+      await addParam({ x: menu.x, y: menu.y, ...props });
       setMenu(null);
     },
     [addParam, menu, ready]
@@ -237,7 +237,7 @@ export function Datagraph() {
 
   const handleClickAddVisualizer = useCallback(async () => {
     if (!menu || !ready) return;
-    await addVisualizer({ x: menu!.x, y: menu!.y });
+    await addVisualizer({ x: menu.x, y: menu.y });
     setMenu(null);
   }, [addVisualizer, menu, ready]);
 
@@ -340,11 +340,11 @@ export function Datagraph() {
         </ContextMenu>
       )}
 
-      <svg className="datagraph-edge" ref={ghostRef}>
-        <line className="datagraph-edge__line datagraph-edge__line--ghost" />
+      <svg className="edge" ref={ghostRef}>
+        <line className="edge__line edge__line--ghost" />
       </svg>
       {edges.map((edge) => (
-        <DatagraphEdge
+        <Edge
           key={`${portKey(edge.from)}->${portKey(edge.to)}`}
           from={edge.from.node}
           fromPort={edge.from.port}
@@ -356,7 +356,7 @@ export function Datagraph() {
 
       {params.map((p) => {
         return (
-          <DatagraphParamNode
+          <ParamNode
             key={p.nodeId}
             onClick={handleNodeClick}
             selected={selectedNodes.has(p.nodeId)}
@@ -365,7 +365,7 @@ export function Datagraph() {
         );
       })}
       {visualizers.map((v) => (
-        <DatagraphVisualizerNode
+        <VisualizerNode
           onClick={handleNodeClick}
           key={v.nodeId}
           selected={selectedNodes.has(v.nodeId)}
@@ -373,14 +373,14 @@ export function Datagraph() {
         />
       ))}
       {nodes.map((n) => (
-        <DatagraphNode
+        <Node
           onClick={handleNodeClick}
           key={n.nodeId}
           selected={selectedNodes.has(n.nodeId)}
           {...n}
         />
       ))}
-      {outputNode && <DatagraphOutputNodeNode nodeId={outputNode} position={{ x: 200, y: 500 }} />}
+      {outputNode && <OutputNode nodeId={outputNode} x={200} y={500} />}
     </div>
   );
 }
