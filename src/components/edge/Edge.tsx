@@ -1,5 +1,5 @@
 import "./Edge.css";
-import { getDatagraphNodePortElementForInfo, getDatagraphNodeElement } from "../node/Node";
+import { getDatagraphNodePortElementForInfo, getDatagraphNodeElement } from "../node/node-utils";
 
 import { useCallback, useEffect, useRef } from "react";
 

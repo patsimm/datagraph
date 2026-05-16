@@ -1,4 +1,4 @@
-import { PortInfo } from "./components/node/Node";
+import { PortInfo } from "./components/node/node-utils";
 import { useDatagraph } from "./datagraph.context";
 
 import { createContext, useState, useCallback, useContext } from "react";

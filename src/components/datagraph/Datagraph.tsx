@@ -3,9 +3,8 @@ import "./Datagraph.css";
 import { useNodeDragging } from "./node-dragging.hook";
 import { useEdgeDragging } from "./edge-dragging.hook";
 import { Edge } from "../edge/Edge";
-import { PortInfo, portKey } from "../node/Node";
+import { PortInfo, portKey } from "../node/node-utils";
 import { ContextMenu } from "../contextmenu/ContextMenu";
-import { NodeSpec } from "../../audio-worklet/datagraph-audio-worklet-commands";
 import { OutputNode } from "../node/OutputNode";
 import { ContextView } from "./ContextView";
 import { useSelection } from "../../selection.context";
@@ -17,7 +16,7 @@ import React, { useCallback, useEffect, useState } from "react";
 
 export function Datagraph() {
   const { ready, start } = useDatagraph();
-  const { addNode, addParam, addVisualizer, removeNode } = useNodes();
+  const { addNode, removeNode } = useNodes();
   const [outputNode, setOutputNode] = useState<string | null>(null);
   useNodeDragging();
   const [menu, setMenu] = useState<{ x: number; y: number } | null>(null);
@@ -77,21 +76,11 @@ export function Datagraph() {
   }, []);
 
   const handleClickAdd = useCallback(
-    async (spec: NodeSpec) => {
-      if (!menu) return;
-      await addNode(spec, { x: menu!.x, y: menu!.y });
+    async (spec: Parameters<typeof addNode>[0]) => {
+      await addNode(spec);
       setMenu(null);
     },
-    [addNode, menu]
-  );
-
-  const handleClickAddParam = useCallback(
-    async (props: Parameters<typeof addParam>[0]) => {
-      if (!menu || !ready) return;
-      await addParam({ x: menu.x, y: menu.y, ...props });
-      setMenu(null);
-    },
-    [addParam, menu, ready]
+    [addNode]
   );
 
   const handleNodeClick = useCallback(
@@ -100,12 +89,6 @@ export function Datagraph() {
     },
     [setSelectedNodeId]
   );
-
-  const handleClickAddVisualizer = useCallback(async () => {
-    if (!menu || !ready) return;
-    await addVisualizer({ x: menu.x, y: menu.y });
-    setMenu(null);
-  }, [addVisualizer, menu, ready]);
 
   const handleKeyDown = useCallback(
     async (ev: KeyboardEvent) => {
@@ -137,29 +120,49 @@ export function Datagraph() {
       {menu && (
         <ContextMenu x={menu.x} y={menu.y} onClose={handleCloseContextMenu}>
           <div className="contextmenu__title">add Node</div>
-          <button onClick={() => handleClickAdd({ kind: "sin" })}>sin</button>
-          <button onClick={() => handleClickAdd({ kind: "saw" })}>saw</button>
-          <button onClick={() => handleClickAdd({ kind: "square" })}>square</button>
-          <button onClick={() => handleClickAdd({ kind: "multiply" })}>multiply</button>
-          <button onClick={() => handleClickAdd({ kind: "add" })}>add</button>
-          <button onClick={() => handleClickAdd({ kind: "delay" })}>delay</button>
-          <button onClick={() => handleClickAdd({ kind: "one-pole" })}>one-pole lowpass</button>
+          <button onClick={() => handleClickAdd({ kind: "sin", x: menu.x, y: menu.y })}>sin</button>
+          <button onClick={() => handleClickAdd({ kind: "saw", x: menu.x, y: menu.y })}>saw</button>
+          <button onClick={() => handleClickAdd({ kind: "square", x: menu.x, y: menu.y })}>
+            square
+          </button>
+          <button onClick={() => handleClickAdd({ kind: "multiply", x: menu.x, y: menu.y })}>
+            multiply
+          </button>
+          <button onClick={() => handleClickAdd({ kind: "add", x: menu.x, y: menu.y })}>add</button>
+          <button onClick={() => handleClickAdd({ kind: "delay", x: menu.x, y: menu.y })}>
+            delay
+          </button>
+          <button onClick={() => handleClickAdd({ kind: "one-pole", x: menu.x, y: menu.y })}>
+            one-pole lowpass
+          </button>
           <button
             onClick={() =>
-              handleClickAdd({ kind: "adsr", attack: 0.1, decay: 0.1, sustain: 0.7, release: 0.2 })
+              handleClickAdd({
+                kind: "adsr",
+                attack: 0.1,
+                decay: 0.1,
+                sustain: 0.8,
+                release: 0.1,
+                x: menu.x,
+                y: menu.y,
+              })
             }
           >
             adsr
           </button>
-          <button onClick={() => handleClickAdd({ kind: "passthrough" })}>passthrough</button>
+          <button onClick={() => handleClickAdd({ kind: "passthrough", x: menu.x, y: menu.y })}>
+            passthrough
+          </button>
           <button
             onClick={() =>
-              handleClickAddParam({
+              handleClickAdd({
                 kind: "param:slider",
                 min: 0,
                 max: 1,
-                defaultValue: 0,
+                value: 0,
                 step: 0.01,
+                x: menu.x,
+                y: menu.y,
               })
             }
           >
@@ -167,17 +170,21 @@ export function Datagraph() {
           </button>
           <button
             onClick={() =>
-              handleClickAddParam({
+              handleClickAdd({
                 kind: "param:button",
                 onValue: 1,
                 offValue: 0,
-                defaultValue: 0,
+                value: 0,
+                x: menu.x,
+                y: menu.y,
               })
             }
           >
             button
           </button>
-          <button onClick={handleClickAddVisualizer}>oscilloscope</button>
+          <button onClick={() => handleClickAdd({ kind: "oscilloscope", x: menu.x, y: menu.y })}>
+            oscilloscope
+          </button>
         </ContextMenu>
       )}
 
@@ -195,7 +202,7 @@ export function Datagraph() {
         />
       ))}
       <Nodes onNodeClick={handleNodeClick} />
-      {outputNode && <OutputNode nodeId={outputNode} x={200} y={500} />}
+      {outputNode && <OutputNode label="speaker" nodeId={outputNode} x={200} y={500} />}
     </div>
   );
 }

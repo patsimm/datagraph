@@ -1,17 +1,18 @@
-import classNames from "classnames";
+import { portKey } from "./node-utils";
 import "./Node.css";
+import type { NodeInteractionProps } from "../../node.types";
+
+import classNames from "classnames";
 
 export type NodeProps = {
   nodeId: string;
   kind: string;
-  label?: React.ReactNode;
+  label: React.ReactNode;
   inputPorts: string[];
   outputPorts: string[];
-  selected?: boolean;
-  x?: number;
-  y?: number;
-  onClick?: (nodeId: string, event: React.MouseEvent<HTMLDivElement>) => void;
-};
+  x: number;
+  y: number;
+} & NodeInteractionProps;
 
 export function Node({
   nodeId,
@@ -66,61 +67,4 @@ export function Node({
       </div>
     </div>
   );
-}
-
-export type PortInfo = {
-  node: string;
-  port: number;
-  portType: "in" | "out";
-};
-
-export function portKey({ node, port, portType }: PortInfo) {
-  return `${node}[${portType}:${port}]`;
-}
-
-export function parsePortKey(portKey: string): PortInfo {
-  const [node, port] = portKey.split("[");
-  const [portType, portIndex] = port.split("]")[0].split(":");
-
-  return { node, port: parseInt(portIndex), portType: portType as "in" | "out" };
-}
-
-export function getDatagraphNodeElement(nodeKey: string) {
-  const el = document.querySelector(`[data-node-id="${nodeKey}"]`) as HTMLElement;
-  if (!el) {
-    throw new Error(`Node element with key ${nodeKey} not found`);
-  }
-  return el;
-}
-
-export function getDatagraphNodePortElement(portKey: string) {
-  const el = document.querySelector(`[data-port="${portKey}"]`) as HTMLElement;
-  if (!el) {
-    throw new Error(`Node port element with key ${portKey} not found`);
-  }
-  return el;
-}
-
-export function getDatagraphNodePortElementForInfo(portInfo: PortInfo) {
-  const el = document.querySelector(`[data-port="${portKey(portInfo)}"]`) as HTMLElement;
-  if (!el) {
-    throw new Error(`Node port element with key ${portKey(portInfo)} not found`);
-  }
-  return el;
-}
-
-export function getDatagraphNodeKeyFromElement(el: HTMLElement) {
-  const nodeKey = el.getAttribute("data-node-id");
-  return nodeKey;
-}
-
-export function getDatagraphNodePortFromElement(el: HTMLElement) {
-  const port = el.getAttribute("data-port");
-  return port;
-}
-
-export function getDatagraphNodePortInfoFromElement(el: HTMLElement) {
-  const port = getDatagraphNodePortFromElement(el);
-  if (!port) return null;
-  return parsePortKey(port);
 }

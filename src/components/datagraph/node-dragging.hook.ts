@@ -1,4 +1,5 @@
-import { getDatagraphNodeKeyFromElement, getDatagraphNodeElement } from "../node/Node";
+import { useNodes } from "../../nodes.context";
+import { getDatagraphNodeKeyFromElement, getDatagraphNodeElement } from "../node/node-utils";
 
 import { useRef, useCallback, useEffect } from "react";
 
@@ -9,6 +10,7 @@ type NodeDraggingState = {
 };
 
 export function useNodeDragging() {
+  const { updateNodeState } = useNodes();
   const draggingStateRef = useRef<NodeDraggingState | null>(null);
 
   const handlePointerDown = useCallback(
@@ -31,8 +33,18 @@ export function useNodeDragging() {
   );
 
   const handlePointerUp = useCallback(() => {
+    if (!draggingStateRef.current) return;
+
+    const draggingNodeElem = getDatagraphNodeElement(draggingStateRef.current.draggingKey);
+
+    // Calculate new position
+    const x = parseFloat(draggingNodeElem.style.left);
+    const y = parseFloat(draggingNodeElem.style.top);
+
+    updateNodeState(draggingStateRef.current.draggingKey, { x, y });
+
     draggingStateRef.current = null;
-  }, [draggingStateRef]);
+  }, [updateNodeState]);
 
   const handlePointerMove = useCallback(
     (event: PointerEvent) => {

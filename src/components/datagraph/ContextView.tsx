@@ -4,12 +4,12 @@ import "./ContextView.css";
 
 export function ContextView() {
   const { selectedNodeInfo, selectedNodeId } = useSelection();
-  const { params, updateParamSettings } = useNodes();
+  const { nodes, updateNodeState: updateNodeSettings } = useNodes();
 
   const classname = selectedNodeInfo?.nodeType.split("::").slice(-1)[0];
   const classpath = selectedNodeInfo?.nodeType.split("::").slice(0, -1).join("::") + "::" || "";
 
-  const selectedParam = selectedNodeId && params[selectedNodeId];
+  const selectedParam = selectedNodeId ? nodes[selectedNodeId] : null;
 
   return (
     <div className="contextview">
@@ -40,7 +40,7 @@ export function ContextView() {
               type="number"
               value={selectedParam.min}
               onChange={(ev) => {
-                updateParamSettings(selectedNodeId, {
+                updateNodeSettings(selectedNodeId!, {
                   ...selectedParam,
                   min: parseFloat(ev.target.value),
                 });
@@ -53,7 +53,7 @@ export function ContextView() {
               type="number"
               value={selectedParam.max}
               onChange={(ev) => {
-                updateParamSettings(selectedNodeId, {
+                updateNodeSettings(selectedNodeId!, {
                   ...selectedParam,
                   max: parseFloat(ev.target.value),
                 });
@@ -66,12 +66,15 @@ export function ContextView() {
               type="number"
               value={selectedParam.step}
               onChange={(ev) => {
-                updateParamSettings(selectedNodeId, {
+                updateNodeSettings(selectedNodeId!, {
                   ...selectedParam,
                   step: parseFloat(ev.target.value),
                 });
               }}
             />
+          </div>
+          <div>
+            <span className="contextview__datalabel">value:</span>
           </div>
         </div>
       )}

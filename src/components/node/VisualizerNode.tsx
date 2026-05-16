@@ -1,22 +1,19 @@
 import { useDatagraph } from "../../datagraph.context";
-import { Node, NodeProps } from "./Node";
+import { Node } from "./Node";
+import type { AnyVisualizerNodeState, NodeInteractionProps } from "../../node.types";
 
 import { useCallback, useEffect, useRef } from "react";
 
-export type VisualizerNodeProps = Omit<NodeProps, "inputPorts" | "outputPorts"> & {};
+export type VisualizerNodeProps = AnyVisualizerNodeState & NodeInteractionProps;
 
-const PARAM_OUTPUT_PORTNAMES = ["input"];
-const PRAM_INPUT_PORTNAMES = ["output"];
+const PARAM_INPUT_PORTNAMES = ["input"];
+const PARAM_OUTPUT_PORTNAMES = ["output"];
 
 function map(value: number, inMin: number, inMax: number, outMin: number, outMax: number) {
   return ((value - inMin) * (outMax - outMin)) / (inMax - inMin) + outMin;
 }
 
-export function VisualizerNode({
-  nodeId,
-
-  ...nodeProps
-}: VisualizerNodeProps) {
+export function VisualizerNode({ nodeId, ...nodeProps }: VisualizerNodeProps) {
   const { ready, subscribeNode, unsubscribeNode } = useDatagraph();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const maxValue = useRef(0);
@@ -81,8 +78,9 @@ export function VisualizerNode({
   return (
     <Node
       nodeId={nodeId}
-      inputPorts={PRAM_INPUT_PORTNAMES}
+      inputPorts={PARAM_INPUT_PORTNAMES}
       outputPorts={PARAM_OUTPUT_PORTNAMES}
+      label={nodeProps.kind}
       {...nodeProps}
     >
       <canvas className="datagraph-node__vis-canvas" ref={canvasRef} />

@@ -1,64 +1,38 @@
 import "./ParamNode.css";
-import { useDatagraph } from "../../datagraph.context";
-import { Node, NodeProps } from "./Node";
+import { Node } from "./Node";
+import type {
+  SliderParamNodeState,
+  ButtonParamNodeState,
+  AnyParamNodeState,
+  NodeInteractionProps,
+} from "../../node.types";
 
-import { useState } from "react";
 import classNames from "classnames";
 
-export type ParamNodeProps = Omit<NodeProps, "inputPorts" | "outputPorts" | "kind"> & {
-  defaultValue: number;
-} & AnyParamBodyProps;
+export type ParamNodeProps = AnyParamNodeState & NodeInteractionProps;
 
 const PARAM_OUTPUT_PORTNAMES = ["value"];
-const PRAM_INPUT_PORTNAMES: string[] = [];
+const PARAM_INPUT_PORTNAMES: string[] = [];
 
-export function ParamNode({ nodeId, defaultValue, ...nodeProps }: ParamNodeProps) {
-  const datagraph = useDatagraph();
-  const [currentValue, setCurrentValue] = useState(defaultValue);
-
-  const handleChange = (next: number) => {
-    if (!datagraph.ready) return;
-    setCurrentValue(next);
-    datagraph.setParam(nodeId, next);
-  };
-
+export function ParamNode({ nodeId, value, onChange, ...nodeProps }: ParamNodeProps) {
   return (
     <Node
       nodeId={nodeId}
-      inputPorts={PRAM_INPUT_PORTNAMES}
+      inputPorts={PARAM_INPUT_PORTNAMES}
       outputPorts={PARAM_OUTPUT_PORTNAMES}
       label={
         <>
-          {nodeProps.label || nodeProps.kind.split(":")[1]}{" "}
-          <span className="node__value">: {currentValue}</span>
+          {nodeProps.kind.split(":")[1]} <span className="node__value">: {value}</span>
         </>
       }
       {...nodeProps}
     >
-      {renderParamBody({ ...nodeProps, currentValue, handleChange })}
+      {renderParamBody({ ...nodeProps, nodeId, value, onChange })}
     </Node>
   );
 }
 
-type BaseParamBodyProps = {
-  currentValue: number;
-  handleChange: (value: number) => void;
-};
-
-type SliderParamBodyProps = {
-  kind: "param:slider";
-  min?: number;
-  max?: number;
-  step?: number;
-};
-
-function SliderParamBody({
-  min,
-  max,
-  step,
-  currentValue,
-  handleChange,
-}: SliderParamBodyProps & BaseParamBodyProps) {
+function SliderParamBody({ nodeId, min, max, step, value, onChange }: SliderParamNodeState) {
   return (
     <input
       className="node__input-slider"
@@ -66,41 +40,28 @@ function SliderParamBody({
       min={min}
       max={max}
       step={step}
-      value={currentValue}
-      onChange={(e) => handleChange(parseFloat(e.target.value))}
+      value={value}
+      onChange={(e) => onChange(nodeId, parseFloat(e.target.value))}
     />
   );
 }
 
-type ButtonParamBodyProps = {
-  kind: "param:button";
-  onValue: number;
-  offValue: number;
-};
-
-function ButtonParamBody({
-  onValue,
-  offValue,
-  currentValue,
-  handleChange,
-}: ButtonParamBodyProps & BaseParamBodyProps) {
+function ButtonParamBody({ nodeId, onValue, offValue, value, onChange }: ButtonParamNodeState) {
   return (
     <input
       className={classNames("node__input-button", {
-        "node__input--active": currentValue === onValue,
+        "node__input--active": value === onValue,
       })}
       type="button"
-      onMouseDown={() => handleChange(onValue)}
-      onMouseUp={() => handleChange(offValue)}
-      onMouseLeave={() => handleChange(offValue)}
-      aria-pressed={currentValue === onValue}
+      onMouseDown={() => onChange(nodeId, onValue)}
+      onMouseUp={() => onChange(nodeId, offValue)}
+      onMouseLeave={() => onChange(nodeId, offValue)}
+      aria-pressed={value === onValue}
     />
   );
 }
 
-type AnyParamBodyProps = SliderParamBodyProps | ButtonParamBodyProps;
-
-function renderParamBody(p: AnyParamBodyProps & BaseParamBodyProps) {
+function renderParamBody(p: AnyParamNodeState) {
   switch (p.kind) {
     case "param:slider":
       return <SliderParamBody {...p} />;

@@ -1,4 +1,4 @@
-import { PortInfo, getDatagraphNodePortFromElement, parsePortKey } from "../node/Node";
+import { PortInfo, getDatagraphNodePortFromElement, parsePortKey } from "../node/node-utils";
 
 import { useRef, useCallback, useEffect } from "react";
 
