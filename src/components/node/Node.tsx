@@ -1,8 +1,13 @@
-import { portKey } from "./node-utils";
+import { parsePortKey, PortInfo, portKey } from "./node-utils";
 import "./Node.css";
 import type { NodeInteractionProps } from "../../node.types";
+import {
+  PortConnectionCompletedEvent,
+  PortConnectionInitiatedEvent,
+} from "../datagraph/connection-events";
 
 import classNames from "classnames";
+import { useCallback, useEffect, useRef } from "react";
 
 export type NodeProps = {
   nodeId: string;
@@ -25,6 +30,8 @@ export function Node({
   children,
   selected,
   onClick,
+  onPortConnectionInitiated,
+  onPortConnectionCompleted,
 }: React.PropsWithChildren<NodeProps>) {
   return (
     <div
@@ -39,22 +46,24 @@ export function Node({
       <div className="node__wrapper">
         <div className="node__ports node__ports--input">
           {inputPorts.map((name, i) => (
-            <div
-              key={i}
-              data-port={portKey({ node: nodeId, port: i, portType: "in" })}
-              className="node__port"
-              title={name}
-            ></div>
+            <Port
+              key={portKey({ node: nodeId, port: i, portType: "in" })}
+              portName={name}
+              portKey={portKey({ node: nodeId, port: i, portType: "in" })}
+              onPortConnectionInitiated={onPortConnectionInitiated}
+              onPortConnectionCompleted={onPortConnectionCompleted}
+            />
           ))}
         </div>
         <div className="node__ports node__ports--output">
           {outputPorts.map((name, i) => (
-            <div
-              key={i}
-              data-port={portKey({ node: nodeId, port: i, portType: "out" })}
-              className="node__port"
-              title={name}
-            ></div>
+            <Port
+              key={portKey({ node: nodeId, port: i, portType: "out" })}
+              portName={name}
+              portKey={portKey({ node: nodeId, port: i, portType: "out" })}
+              onPortConnectionInitiated={onPortConnectionInitiated}
+              onPortConnectionCompleted={onPortConnectionCompleted}
+            />
           ))}
         </div>
         <div className="node__content">
@@ -67,4 +76,54 @@ export function Node({
       </div>
     </div>
   );
+}
+
+export type PortProps = {
+  portKey: string;
+  portName: string;
+  onPortConnectionInitiated?: (startPort: PortInfo) => void;
+  onPortConnectionCompleted?: (startPort: PortInfo, endPort: PortInfo) => void;
+};
+
+function Port({
+  portKey,
+  portName,
+  onPortConnectionInitiated,
+  onPortConnectionCompleted,
+}: PortProps) {
+  const ref = useRef<HTMLDivElement>(null);
+
+  const handlePortConnectionInitiated = useCallback(
+    (ev: Event) => {
+      if (ev instanceof PortConnectionInitiatedEvent) {
+        onPortConnectionInitiated?.(parsePortKey(ev.detail.startPortKey));
+      }
+    },
+    [onPortConnectionInitiated]
+  );
+  const handlePortConnectionCompleted = useCallback(
+    (ev: Event) => {
+      if (ev instanceof PortConnectionCompletedEvent) {
+        onPortConnectionCompleted?.(
+          parsePortKey(ev.detail.startPortKey),
+          parsePortKey(ev.detail.endPortKey)
+        );
+      }
+    },
+    [onPortConnectionCompleted]
+  );
+
+  useEffect(() => {
+    if (!ref.current) return;
+    ref.current.addEventListener(
+      PortConnectionInitiatedEvent.EVENT_NAME,
+      handlePortConnectionInitiated
+    );
+    ref.current.addEventListener(
+      PortConnectionCompletedEvent.EVENT_NAME,
+      handlePortConnectionCompleted
+    );
+  }, [handlePortConnectionCompleted, handlePortConnectionInitiated]);
+
+  return <div ref={ref} data-port={portKey} className="node__port" title={portName}></div>;
 }

@@ -1,4 +1,5 @@
 import type { NodeSpec } from "./audio-worklet/datagraph-audio-worklet-commands";
+import { PortInfo } from "./components/node/node-utils";
 
 export type DistributiveOmit<T, K extends PropertyKey> = T extends unknown ? Omit<T, K> : never;
 
@@ -48,4 +49,6 @@ export type AnyNodeState = AnyAudioNodeState | AnyParamNodeState | AnyVisualizer
 export type NodeInteractionProps = {
   selected?: boolean;
   onClick?: (nodeId: string, event: React.MouseEvent<HTMLDivElement>) => void;
+  onPortConnectionInitiated?: (startPort: PortInfo) => void;
+  onPortConnectionCompleted?: (startPort: PortInfo, endPort: PortInfo) => void;
 };

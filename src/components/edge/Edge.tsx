@@ -1,5 +1,5 @@
 import "./Edge.css";
-import { getDatagraphNodePortElementForInfo, getDatagraphNodeElement } from "../node/node-utils";
+import { getNodeElement, getNodePortElement, portKey } from "../node/node-utils";
 
 import { useCallback, useEffect, useRef } from "react";
 
@@ -15,16 +15,20 @@ export function Edge({ from, fromPort, to, toPort, onClick }: EdgeProps) {
   const edgeRef = useRef<SVGSVGElement>(null);
 
   const recalculatePosition = useCallback(() => {
-    const fromPortElem = getDatagraphNodePortElementForInfo({
-      node: from,
-      port: fromPort,
-      portType: "out",
-    });
-    const toPortElem = getDatagraphNodePortElementForInfo({
-      node: to,
-      port: toPort,
-      portType: "in",
-    });
+    const fromPortElem = getNodePortElement(
+      portKey({
+        node: from,
+        port: fromPort,
+        portType: "out",
+      })
+    );
+    const toPortElem = getNodePortElement(
+      portKey({
+        node: to,
+        port: toPort,
+        portType: "in",
+      })
+    );
 
     const containerElem = document.querySelector(".datagraph") as HTMLElement;
 
@@ -63,8 +67,8 @@ export function Edge({ from, fromPort, to, toPort, onClick }: EdgeProps) {
   }, [from, fromPort, to, toPort]);
 
   useEffect(() => {
-    const fromElem = getDatagraphNodeElement(from);
-    const toElem = getDatagraphNodeElement(to);
+    const fromElem = getNodeElement(from);
+    const toElem = getNodeElement(to);
     const observer = new MutationObserver(recalculatePosition);
     observer.observe(fromElem, {
       attributes: true,

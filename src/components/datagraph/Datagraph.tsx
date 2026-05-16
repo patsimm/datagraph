@@ -10,7 +10,7 @@ import { ContextView } from "./ContextView";
 import { useSelection } from "../../selection.context";
 import { useNodes } from "../../nodes.context";
 import { Nodes } from "./Nodes";
-import { useEdges } from "../../edges.context";
+import { usePortConnections } from "../../edges.context";
 
 import React, { useCallback, useEffect, useState } from "react";
 
@@ -20,46 +20,29 @@ export function Datagraph() {
   const [outputNode, setOutputNode] = useState<string | null>(null);
   useNodeDragging();
   const [menu, setMenu] = useState<{ x: number; y: number } | null>(null);
-  const { edges, addEdge, removeEdge, removeEdgesForNodes } = useEdges();
-  const [draggedPort, setDraggedPort] = useState<PortInfo | null>(null);
+  const { edges, connect, disconnectPorts, disconnectNodes } = usePortConnections();
   const { selectedNodeId, setSelectedNodeId } = useSelection();
 
-  const handleEdgeDragStart = useCallback((port: PortInfo) => {
-    setDraggedPort(port);
-  }, []);
-
-  const handleEdgeDragEnd = useCallback(
-    async (port: PortInfo | null) => {
-      if (!draggedPort || !port) {
-        setDraggedPort(null);
-        return;
-      }
-      if (draggedPort.portType === port.portType) {
-        setDraggedPort(null);
-        throw new Error(`Cannot connect ${draggedPort.portType} to ${port.portType}`);
-      }
-      const from = draggedPort.portType === "out" ? draggedPort : port;
-      const to = draggedPort.portType === "in" ? draggedPort : port;
-      await addEdge(from, to);
-      setDraggedPort(null);
+  const handleOutputConnectionCompleted = useCallback(
+    async (port1: PortInfo, port2: PortInfo) => {
+      console.log("Output connection completed", port1, port2);
+      await connect(port1, port2);
     },
-    [addEdge, draggedPort]
+    [connect]
   );
 
   const handleEdgeClick = useCallback(
-    (edge: { from: PortInfo; to: PortInfo }) => removeEdge(edge.from, edge.to),
-    [removeEdge]
+    (edge: { from: PortInfo; to: PortInfo }) => disconnectPorts(edge.from, edge.to),
+    [disconnectPorts]
   );
 
-  const { ghostRef } = useEdgeDragging({
-    onDragStart: handleEdgeDragStart,
-    onDragEnd: handleEdgeDragEnd,
-  });
+  const { ghostRef } = useEdgeDragging();
 
-  const handleClickStart = useCallback(async () => {
+  useEffect(() => {
     if (ready) return;
-    const { outputNodeId } = await start();
-    setOutputNode(outputNodeId);
+    start().then(({ outputNodeId }) => {
+      setOutputNode(outputNodeId);
+    });
   }, [ready, start]);
 
   const handleContextMenu = useCallback(
@@ -94,12 +77,12 @@ export function Datagraph() {
     async (ev: KeyboardEvent) => {
       if (!selectedNodeId) return;
       if (ev.key === "Backspace" || ev.key === "Delete") {
-        removeEdgesForNodes(selectedNodeId);
+        disconnectNodes(selectedNodeId);
         removeNode(selectedNodeId);
         setSelectedNodeId(null);
       }
     },
-    [removeEdgesForNodes, removeNode, selectedNodeId, setSelectedNodeId]
+    [disconnectNodes, removeNode, selectedNodeId, setSelectedNodeId]
   );
 
   useEffect(() => {
@@ -112,11 +95,6 @@ export function Datagraph() {
   return (
     <div onContextMenu={handleContextMenu} className="datagraph">
       <ContextView />
-      {!ready && (
-        <button className="datagraph__start-button" onClick={handleClickStart}>
-          Start Datagraph
-        </button>
-      )}
       {menu && (
         <ContextMenu x={menu.x} y={menu.y} onClose={handleCloseContextMenu}>
           <div className="contextmenu__title">add Node</div>
@@ -202,7 +180,15 @@ export function Datagraph() {
         />
       ))}
       <Nodes onNodeClick={handleNodeClick} />
-      {outputNode && <OutputNode label="speaker" nodeId={outputNode} x={200} y={500} />}
+      {outputNode && (
+        <OutputNode
+          onPortConnectionCompleted={handleOutputConnectionCompleted}
+          label="speaker"
+          nodeId={outputNode}
+          x={200}
+          y={500}
+        />
+      )}
     </div>
   );
 }

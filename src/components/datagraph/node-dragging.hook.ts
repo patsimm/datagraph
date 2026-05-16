@@ -1,5 +1,5 @@
 import { useNodes } from "../../nodes.context";
-import { getDatagraphNodeKeyFromElement, getDatagraphNodeElement } from "../node/node-utils";
+import { getNodeKeyFromElement, getNodeElement } from "../node/node-utils";
 
 import { useRef, useCallback, useEffect } from "react";
 
@@ -16,7 +16,7 @@ export function useNodeDragging() {
   const handlePointerDown = useCallback(
     (event: PointerEvent) => {
       if (event.target instanceof HTMLElement) {
-        const nodeKey = getDatagraphNodeKeyFromElement(event.target);
+        const nodeKey = getNodeKeyFromElement(event.target);
         if (!nodeKey) return;
 
         const nodeElem = event.target as HTMLElement;
@@ -35,7 +35,7 @@ export function useNodeDragging() {
   const handlePointerUp = useCallback(() => {
     if (!draggingStateRef.current) return;
 
-    const draggingNodeElem = getDatagraphNodeElement(draggingStateRef.current.draggingKey);
+    const draggingNodeElem = getNodeElement(draggingStateRef.current.draggingKey);
 
     // Calculate new position
     const x = parseFloat(draggingNodeElem.style.left);
@@ -50,7 +50,7 @@ export function useNodeDragging() {
     (event: PointerEvent) => {
       if (!draggingStateRef.current) return;
 
-      const draggingNodeElem = getDatagraphNodeElement(draggingStateRef.current.draggingKey);
+      const draggingNodeElem = getNodeElement(draggingStateRef.current.draggingKey);
       const containerElem = document.querySelector(".datagraph") as HTMLElement;
 
       // Calculate new position

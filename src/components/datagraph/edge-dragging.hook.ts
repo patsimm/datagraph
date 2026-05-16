@@ -1,85 +1,72 @@
-import { PortInfo, getDatagraphNodePortFromElement, parsePortKey } from "../node/node-utils";
+import { getNodePortElement, getNodePortKeyFromElement } from "../node/node-utils";
+import { PortConnectionCompletedEvent, PortConnectionInitiatedEvent } from "./connection-events";
 
 import { useRef, useCallback, useEffect } from "react";
 
 type DraggingState = {
-  draggingKey: string;
+  dragStartPort: string;
   dragStartX: number;
   dragStartY: number;
-  elemOffsetX: number;
-  elemOffsetY: number;
 };
 
-type EdgeDraggingState = {
-  onDragStart: (port: PortInfo) => void;
-  onDragEnd: (port: PortInfo | null) => void;
-};
-
-export function useEdgeDragging({ onDragStart, onDragEnd }: EdgeDraggingState) {
+export function useEdgeDragging() {
   const draggingStateRef = useRef<DraggingState | null>(null);
   const edgeRef = useRef<SVGSVGElement | null>(null);
 
-  const handlePointerDown = useCallback(
-    (event: PointerEvent) => {
-      if (!edgeRef.current) return;
-      if (!(event.target instanceof HTMLElement)) return;
-      const portKey = getDatagraphNodePortFromElement(event.target);
-      if (!portKey) return;
+  const handlePointerDown = useCallback((event: PointerEvent) => {
+    if (!edgeRef.current) return;
+    if (!(event.target instanceof HTMLElement)) return;
+    const portKey = getNodePortKeyFromElement(event.target);
+    if (!portKey) return;
 
-      onDragStart(parsePortKey(portKey));
+    const nodeElem = event.target as HTMLElement;
+    const portelem = getNodePortElement(portKey);
+    const containerElem = document.querySelector(".datagraph") as HTMLElement;
 
-      const nodeElem = event.target as HTMLElement;
-      const containerElem = document.querySelector(".datagraph") as HTMLElement;
+    const startPosX =
+      nodeElem.getBoundingClientRect().left -
+      containerElem.getBoundingClientRect().left +
+      0.5 * nodeElem.getBoundingClientRect().width;
+    const startPosY =
+      nodeElem.getBoundingClientRect().top -
+      containerElem.getBoundingClientRect().top +
+      0.5 * nodeElem.getBoundingClientRect().height;
 
-      const offsetX = event.clientX - nodeElem.getBoundingClientRect().left;
-      const offsetY = event.clientY - nodeElem.getBoundingClientRect().top;
+    draggingStateRef.current = {
+      dragStartPort: portKey,
+      dragStartX: startPosX,
+      dragStartY: startPosY,
+    };
+    edgeRef.current.style.left = `${startPosX}px`;
+    edgeRef.current.style.top = `${startPosY}px`;
+    edgeRef.current.style.width = `0px`;
+    edgeRef.current.style.height = `0px`;
+    edgeRef.current.style.display = "block";
+    const line = edgeRef.current.querySelector(".edge__line")!;
+    line.setAttribute("x1", "0");
+    line.setAttribute("y1", "0");
+    line.setAttribute("x2", "0");
+    line.setAttribute("y2", "0");
 
-      const startPosX =
-        nodeElem.getBoundingClientRect().left -
-        containerElem.getBoundingClientRect().left +
-        0.5 * nodeElem.getBoundingClientRect().width;
-      const startPosY =
-        nodeElem.getBoundingClientRect().top -
-        containerElem.getBoundingClientRect().top +
-        0.5 * nodeElem.getBoundingClientRect().height;
+    portelem.dispatchEvent(new PortConnectionInitiatedEvent(portKey));
+  }, []);
 
-      draggingStateRef.current = {
-        draggingKey: portKey,
-        dragStartX: startPosX,
-        dragStartY: startPosY,
-        elemOffsetX: offsetX,
-        elemOffsetY: offsetY,
-      };
-      edgeRef.current.style.left = `${startPosX}px`;
-      edgeRef.current.style.top = `${startPosY}px`;
-      edgeRef.current.style.width = `0px`;
-      edgeRef.current.style.height = `0px`;
-      edgeRef.current.style.display = "block";
-      const line = edgeRef.current.querySelector(".edge__line")!;
-      line.setAttribute("x1", "0");
-      line.setAttribute("y1", "0");
-      line.setAttribute("x2", "0");
-      line.setAttribute("y2", "0");
-    },
-    [onDragStart]
-  );
+  const handlePointerUp = useCallback((event: PointerEvent) => {
+    if (!edgeRef.current || !draggingStateRef.current) return;
+    const startPortKey = draggingStateRef.current.dragStartPort;
+    draggingStateRef.current = null;
+    edgeRef.current.style.left = `0px`;
+    edgeRef.current.style.top = `0px`;
+    edgeRef.current.style.width = `0px`;
+    edgeRef.current.style.height = `0px`;
+    edgeRef.current.style.display = "none";
 
-  const handlePointerUp = useCallback(
-    (event: PointerEvent) => {
-      if (!edgeRef.current) return;
-      draggingStateRef.current = null;
-      edgeRef.current.style.left = `0px`;
-      edgeRef.current.style.top = `0px`;
-      edgeRef.current.style.width = `0px`;
-      edgeRef.current.style.height = `0px`;
-      edgeRef.current.style.display = "none";
-
-      const portKey =
-        event.target instanceof HTMLElement ? getDatagraphNodePortFromElement(event.target) : null;
-      onDragEnd(portKey ? parsePortKey(portKey) : null);
-    },
-    [onDragEnd]
-  );
+    const endPortElem = event.target instanceof HTMLElement ? event.target : null;
+    const endPortKey = endPortElem && getNodePortKeyFromElement(endPortElem);
+    if (endPortKey) {
+      endPortElem.dispatchEvent(new PortConnectionCompletedEvent(endPortKey, startPortKey));
+    }
+  }, []);
 
   const handlePointerMove = useCallback(
     (event: PointerEvent) => {

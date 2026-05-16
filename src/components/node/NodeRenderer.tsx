@@ -12,24 +12,22 @@ export type NodeRendererProps = {
 
 export const NodeRenderer = React.memo(function NodeRenderer({
   node,
-  selected,
-  onClick,
+  ...interactionProps
 }: NodeRendererProps) {
   switch (node.kind) {
     case "param:slider":
     case "param:button":
-      return <ParamNode {...node} selected={selected} onClick={onClick} />;
+      return <ParamNode {...node} {...interactionProps} />;
     case "oscilloscope":
-      return <VisualizerNode {...node} selected={selected} onClick={onClick} />;
+      return <VisualizerNode {...node} {...interactionProps} />;
     default:
       return (
         <Node
           {...node}
+          {...interactionProps}
           label={node.kind}
           inputPorts={node.inputPorts ?? []}
           outputPorts={node.outputPorts ?? []}
-          selected={selected}
-          onClick={onClick}
         />
       );
   }
