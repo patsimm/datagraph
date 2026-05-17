@@ -20,16 +20,8 @@ export function Datagraph() {
   const [outputNode, setOutputNode] = useState<string | null>(null);
   useNodeDragging();
   const [menu, setMenu] = useState<{ x: number; y: number } | null>(null);
-  const { edges, connect, disconnectPorts, disconnectNodes } = usePortConnections();
+  const { edges, disconnectPorts, disconnectNodes } = usePortConnections();
   const { selectedNodeId, setSelectedNodeId } = useSelection();
-
-  const handleOutputConnectionCompleted = useCallback(
-    async (port1: PortInfo, port2: PortInfo) => {
-      console.log("Output connection completed", port1, port2);
-      await connect(port1, port2);
-    },
-    [connect]
-  );
 
   const handleEdgeClick = useCallback(
     (edge: { from: PortInfo; to: PortInfo }) => disconnectPorts(edge.from, edge.to),
@@ -180,15 +172,7 @@ export function Datagraph() {
         />
       ))}
       <Nodes onNodeClick={handleNodeClick} />
-      {outputNode && (
-        <OutputNode
-          onPortConnectionCompleted={handleOutputConnectionCompleted}
-          label="speaker"
-          nodeId={outputNode}
-          x={200}
-          y={500}
-        />
-      )}
+      {outputNode && <OutputNode label="speaker" nodeId={outputNode} x={200} y={500} />}
     </div>
   );
 }

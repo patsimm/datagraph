@@ -3,12 +3,21 @@ import { PortInfo } from "./components/node/node-utils";
 
 export type DistributiveOmit<T, K extends PropertyKey> = T extends unknown ? Omit<T, K> : never;
 
-export type NodeBase = { nodeId: string; x: number; y: number };
+export type NodePort = {
+  name: string;
+  connectedTo: PortInfo[];
+};
+
+export type NodeBase = {
+  nodeId: string;
+  x: number;
+  y: number;
+  inputPorts: NodePort[];
+  outputPorts: NodePort[];
+};
 
 export type AnyAudioNodeState = NodeBase & {
   kind: NodeSpec["kind"];
-  inputPorts: string[];
-  outputPorts: string[];
 };
 
 export type ParamNodeBase = {
@@ -34,9 +43,12 @@ export type AnyVisualizerNodeState = NodeBase & { kind: "oscilloscope" };
 
 export type AnyParamNodeConfig = DistributiveOmit<
   AnyParamNodeState,
-  "nodeId" | "onChange" | "label"
+  "nodeId" | "inputPorts" | "outputPorts" | "onChange" | "label"
 >;
-export type AnyVisualizerNodeConfig = DistributiveOmit<AnyVisualizerNodeState, "nodeId">;
+export type AnyVisualizerNodeConfig = DistributiveOmit<
+  AnyVisualizerNodeState,
+  "nodeId" | "inputPorts" | "outputPorts"
+>;
 export type AnyAudioNodeConfig = DistributiveOmit<
   AnyAudioNodeState,
   "nodeId" | "inputPorts" | "outputPorts"

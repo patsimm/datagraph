@@ -46,6 +46,12 @@ export class DatagraphAudioWorkletNode extends AudioWorkletNode {
     type: T,
     payload: CommandPayload<T>
   ): Promise<CommandResult<T>> {
+    const context = this.context instanceof AudioContext ? this.context : undefined;
+    if (context && context.state === "suspended" && navigator.userActivation.isActive) {
+      console.log("First user activation detected, resuming audio context");
+      context?.resume();
+    }
+
     return new Promise<CommandResult<T>>((resolve, reject) => {
       const id = crypto.randomUUID();
       const message: DatagraphAudioWorkletMessage<T> = {

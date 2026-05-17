@@ -1,5 +1,5 @@
 import { useDatagraph } from "./datagraph.context";
-import type { AnyNodeState, AnyParamNodeState, AnyNodeConfig } from "./node.types";
+import type { AnyNodeState, AnyNodeConfig } from "./node.types";
 
 import { useState, useCallback, createContext, useContext } from "react";
 
@@ -20,13 +20,12 @@ function useAllNodes() {
   const [nodes, setNodes] = useState<{ [nodeId: string]: AnyNodeState }>({});
 
   const updateNodeState = useCallback(
-    (nodeId: string, settings: Partial<AnyNodeState>) => {
+    (nodeId: string, update: (current: AnyNodeState) => AnyNodeState) => {
       if (!ready) return;
-      console.log("Updating node state", nodeId, settings);
       setNodes((prev) => {
         const current = prev[nodeId];
         if (!current) return prev;
-        return { ...prev, [nodeId]: { ...current, ...settings } as AnyNodeState };
+        return { ...prev, [nodeId]: update(current) };
       });
     },
     [ready]
@@ -36,7 +35,7 @@ function useAllNodes() {
     async (nodeId: string, value: number) => {
       if (!ready) return;
       await setParam(nodeId, value);
-      updateNodeState(nodeId, { value } as Partial<AnyParamNodeState>);
+      updateNodeState(nodeId, (current) => ({ ...current, value }) as AnyNodeState);
     },
     [ready, setParam, updateNodeState]
   );
@@ -48,13 +47,24 @@ function useAllNodes() {
         const nodeId = await addParamToGraph(config.value);
         setNodes((prev) => ({
           ...prev,
-          [nodeId]: { nodeId, onChange: handleParamChange, ...config },
+          [nodeId]: {
+            nodeId,
+            onChange: handleParamChange,
+            inputPorts: [],
+            outputPorts: ["output"].map((name) => name).map((name) => ({ name, connectedTo: [] })),
+            ...config,
+          },
         }));
       } else if (config.kind === "oscilloscope") {
         const { nodeId } = await addNodeToGraph({ kind: "passthrough" });
         setNodes((prev) => ({
           ...prev,
-          [nodeId]: { nodeId, ...config },
+          [nodeId]: {
+            nodeId,
+            inputPorts: ["input"].map((name) => ({ name, connectedTo: [] })),
+            outputPorts: ["output"].map((name) => ({ name, connectedTo: [] })),
+            ...config,
+          },
         }));
       } else {
         const { x, y, ...spec } = config;
@@ -63,8 +73,8 @@ function useAllNodes() {
           ...prev,
           [info.nodeId]: {
             nodeId: info.nodeId,
-            inputPorts: info.inputNames,
-            outputPorts: info.outputNames,
+            inputPorts: info.inputNames.map((name) => ({ name, connectedTo: [] })),
+            outputPorts: info.outputNames.map((name) => ({ name, connectedTo: [] })),
             kind: spec.kind,
             x,
             y,
@@ -95,7 +105,7 @@ const nodesContext = createContext<{
   nodes: { [nodeId: string]: AnyNodeState };
   addNode: (config: AnyNodeConfig) => Promise<void>;
   removeNode: (nodeId: string) => Promise<void>;
-  updateNodeState: (nodeId: string, settings: Partial<AnyNodeState>) => void;
+  updateNodeState: (nodeId: string, update: (current: AnyNodeState) => AnyNodeState) => void;
 }>({
   nodes: {},
   addNode: async () => {

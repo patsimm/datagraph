@@ -7,15 +7,15 @@
   --color-accent: #ff9f19;
   --color-text-light: #fff;
   --color-text-dark: #000;
-
   --color-background: var(--color-gray-light);
+
   background: var(--color-background);
   color: var(--color-text-dark);
   font-family:
-    Inclusive Sans,
-    DM Sans,
-    DM Mono,
-    Space Grotesk,
+    "Inclusive Sans",
+    "DM Sans",
+    "DM Mono",
+    "Space Grotesk",
     -apple-system,
     BlinkMacSystemFont,
     "Segoe UI",

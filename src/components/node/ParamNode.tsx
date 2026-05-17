@@ -11,15 +11,10 @@ import classNames from "classnames";
 
 export type ParamNodeProps = AnyParamNodeState & NodeInteractionProps;
 
-const PARAM_OUTPUT_PORTNAMES = ["value"];
-const PARAM_INPUT_PORTNAMES: string[] = [];
-
 export function ParamNode({ nodeId, value, onChange, ...nodeProps }: ParamNodeProps) {
   return (
     <Node
       nodeId={nodeId}
-      inputPorts={PARAM_INPUT_PORTNAMES}
-      outputPorts={PARAM_OUTPUT_PORTNAMES}
       label={
         <>
           {nodeProps.kind.split(":")[1]} <span className="node__value">: {value}</span>
@@ -31,6 +26,8 @@ export function ParamNode({ nodeId, value, onChange, ...nodeProps }: ParamNodePr
     </Node>
   );
 }
+
+ParamNode.outputPortNames = ["value"];
 
 function SliderParamBody({ nodeId, min, max, step, value, onChange }: SliderParamNodeState) {
   return (

@@ -41,7 +41,7 @@ export function useNodeDragging() {
     const x = parseFloat(draggingNodeElem.style.left);
     const y = parseFloat(draggingNodeElem.style.top);
 
-    updateNodeState(draggingStateRef.current.draggingKey, { x, y });
+    updateNodeState(draggingStateRef.current.draggingKey, (current) => ({ ...current, x, y }));
 
     draggingStateRef.current = null;
   }, [updateNodeState]);

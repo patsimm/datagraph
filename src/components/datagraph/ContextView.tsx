@@ -1,4 +1,4 @@
-import { useNodes } from "../../nodes.context";
+import { useNodes, type AnyNodeState } from "../../nodes.context";
 import { useSelection } from "../../selection.context";
 import "./ContextView.css";
 
@@ -40,10 +40,7 @@ export function ContextView() {
               type="number"
               value={selectedParam.min}
               onChange={(ev) => {
-                updateNodeSettings(selectedNodeId!, {
-                  ...selectedParam,
-                  min: parseFloat(ev.target.value),
-                });
+                updateNodeSettings(selectedNodeId!, (current) => ({ ...current, min: parseFloat(ev.target.value) } as AnyNodeState));
               }}
             />
           </div>
@@ -53,10 +50,7 @@ export function ContextView() {
               type="number"
               value={selectedParam.max}
               onChange={(ev) => {
-                updateNodeSettings(selectedNodeId!, {
-                  ...selectedParam,
-                  max: parseFloat(ev.target.value),
-                });
+                updateNodeSettings(selectedNodeId!, (current) => ({ ...current, max: parseFloat(ev.target.value) } as AnyNodeState));
               }}
             />
           </div>
@@ -66,10 +60,7 @@ export function ContextView() {
               type="number"
               value={selectedParam.step}
               onChange={(ev) => {
-                updateNodeSettings(selectedNodeId!, {
-                  ...selectedParam,
-                  step: parseFloat(ev.target.value),
-                });
+                updateNodeSettings(selectedNodeId!, (current) => ({ ...current, step: parseFloat(ev.target.value) } as AnyNodeState));
               }}
             />
           </div>

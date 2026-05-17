@@ -86,8 +86,8 @@ export const commandHandlers = {
     return {
       nodeId,
       nodeType: info.nodeType,
-      inputNames: info.inputNames,
-      outputNames: info.outputNames,
+      inputNames: info.inputNames as string[],
+      outputNames: info.outputNames as string[],
     };
   },
   remove_node: async (context: GraphContext, { nodeId }: { nodeId: string }) => {
@@ -127,8 +127,8 @@ export const commandHandlers = {
     return {
       nodeId,
       nodeType: info.nodeType,
-      inputNames: info.inputNames,
-      outputNames: info.outputNames,
+      inputNames: info.inputNames as string[],
+      outputNames: info.outputNames as string[],
     };
   },
 } as const;

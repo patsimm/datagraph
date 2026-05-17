@@ -42,11 +42,6 @@ export function DatagraphProvider({ children }: { children: React.ReactNode }) {
       throw new Error("Datagraph node not initialized yet");
     }
 
-    if (navigator.userActivation.isActive) {
-      const context = node.context instanceof AudioContext ? node.context : undefined;
-      context?.resume();
-    }
-
     return node;
   }, [node]);
 

@@ -2,7 +2,7 @@
   min-width: 8rem;
 
   & .node__value {
-    color: color-mix(in srgb, var(--datagraph-node-color-bg) 30%, var(--color-gray-dark));
+    color: color-mix(in srgb, var(--node-color-bg) 30%, var(--color-gray-dark));
   }
 
   & .node__body {
@@ -13,7 +13,8 @@
     padding: 0.25rem;
 
     & input {
-      --datagraph-input-accent-color: var(--color-accent);
+      --input-accent-color: var(--color-accent);
+
       color: var(--color-text-light);
 
       &:hover {
@@ -34,16 +35,15 @@
     }
 
     & input[type="button"] {
-      background: var(--datagraph-input-accent-color);
+      background: var(--input-accent-color);
       border-radius: 4px;
-      border: 1px solid
-        color-mix(in srgb, var(--datagraph-input-accent-color) 70%, var(--color-gray-light));
+      border: 1px solid color-mix(in srgb, var(--input-accent-color) 70%, var(--color-gray-light));
       width: 100%;
     }
 
     & input[type="range"] {
       background: var(--color-background);
-      accent-color: var(--datagraph-input-accent-color);
+      accent-color: var(--input-accent-color);
     }
   }
 }

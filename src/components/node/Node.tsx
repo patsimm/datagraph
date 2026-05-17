@@ -1,6 +1,6 @@
 import { parsePortKey, PortInfo, portKey } from "./node-utils";
 import "./Node.css";
-import type { NodeInteractionProps } from "../../node.types";
+import type { NodeBase, NodeInteractionProps } from "../../node.types";
 import {
   PortConnectionCompletedEvent,
   PortConnectionInitiatedEvent,
@@ -10,14 +10,10 @@ import classNames from "classnames";
 import { useCallback, useEffect, useRef } from "react";
 
 export type NodeProps = {
-  nodeId: string;
   kind: string;
   label: React.ReactNode;
-  inputPorts: string[];
-  outputPorts: string[];
-  x: number;
-  y: number;
-} & NodeInteractionProps;
+} & NodeBase &
+  NodeInteractionProps;
 
 export function Node({
   nodeId,
@@ -40,27 +36,31 @@ export function Node({
       })}
       data-node-id={nodeId}
       data-kind={kind}
+      data-input-ports={inputPorts.length}
+      data-output-ports={outputPorts.length}
       style={{ left: x, top: y }}
       onClick={(ev) => onClick?.(nodeId, ev)}
     >
       <div className="node__wrapper">
-        <div className="node__ports node__ports--input">
-          {inputPorts.map((name, i) => (
+        <div className={"node__ports node__ports--input"}>
+          {inputPorts.map((port, i) => (
             <Port
               key={portKey({ node: nodeId, port: i, portType: "in" })}
-              portName={name}
+              portName={port.name}
               portKey={portKey({ node: nodeId, port: i, portType: "in" })}
+              connected={port.connectedTo.length > 0}
               onPortConnectionInitiated={onPortConnectionInitiated}
               onPortConnectionCompleted={onPortConnectionCompleted}
             />
           ))}
         </div>
         <div className="node__ports node__ports--output">
-          {outputPorts.map((name, i) => (
+          {outputPorts.map((port, i) => (
             <Port
               key={portKey({ node: nodeId, port: i, portType: "out" })}
-              portName={name}
+              portName={port.name}
               portKey={portKey({ node: nodeId, port: i, portType: "out" })}
+              connected={port.connectedTo.length > 0}
               onPortConnectionInitiated={onPortConnectionInitiated}
               onPortConnectionCompleted={onPortConnectionCompleted}
             />
@@ -81,6 +81,7 @@ export function Node({
 export type PortProps = {
   portKey: string;
   portName: string;
+  connected: boolean;
   onPortConnectionInitiated?: (startPort: PortInfo) => void;
   onPortConnectionCompleted?: (startPort: PortInfo, endPort: PortInfo) => void;
 };
@@ -88,6 +89,7 @@ export type PortProps = {
 function Port({
   portKey,
   portName,
+  connected,
   onPortConnectionInitiated,
   onPortConnectionCompleted,
 }: PortProps) {
@@ -125,5 +127,12 @@ function Port({
     );
   }, [handlePortConnectionCompleted, handlePortConnectionInitiated]);
 
-  return <div ref={ref} data-port={portKey} className="node__port" title={portName}></div>;
+  return (
+    <div
+      ref={ref}
+      data-port={portKey}
+      className={classNames("node__port", { "node__port--connected": connected })}
+      title={portName}
+    ></div>
+  );
 }

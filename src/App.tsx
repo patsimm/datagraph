@@ -7,13 +7,13 @@ import { SelectionProvider } from "./selection.context";
 export function App() {
   return (
     <DatagraphProvider>
-      <EdgesProvider>
-        <NodesProvider>
+      <NodesProvider>
+        <EdgesProvider>
           <SelectionProvider>
             <Datagraph />
           </SelectionProvider>
-        </NodesProvider>
-      </EdgesProvider>
+        </EdgesProvider>
+      </NodesProvider>
     </DatagraphProvider>
   );
 }
