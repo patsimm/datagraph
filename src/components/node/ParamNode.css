@@ -1,6 +1,16 @@
 .node[data-kind^="param"] {
   min-width: 8rem;
 
+  &[data-kind="param:input"] {
+    min-width: 6rem;
+    width: 6rem;
+  }
+
+  &[data-kind="param:button"] {
+    min-width: 6rem;
+    width: 6rem;
+  }
+
   & .node__value {
     color: color-mix(in srgb, var(--node-color-bg) 30%, var(--color-gray-dark));
   }
@@ -38,12 +48,21 @@
       background: var(--input-accent-color);
       border-radius: 4px;
       border: 1px solid color-mix(in srgb, var(--input-accent-color) 70%, var(--color-gray-light));
-      width: 100%;
+      flex: 1;
     }
 
     & input[type="range"] {
       background: var(--color-background);
       accent-color: var(--input-accent-color);
+    }
+
+    & input[type="number"] {
+      background-color: rgb(0 0 0 / 10%);
+      width: 100%;
+      border: none;
+      color: inherit;
+      font-family: inherit;
+      font-size: inherit;
     }
   }
 }

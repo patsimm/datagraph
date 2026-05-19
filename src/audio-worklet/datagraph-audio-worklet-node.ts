@@ -2,7 +2,7 @@ import {
   CommandPayload,
   CommandResult,
   CommandType,
-  NodeSpec,
+  AnyNodeSpec,
 } from "./datagraph-audio-worklet-commands";
 import {
   DatagraphAudioWorkletMessage,
@@ -76,7 +76,7 @@ export class DatagraphAudioWorkletNode extends AudioWorkletNode {
     return await this.sendCommand("add_param", { value });
   }
 
-  async addNode(nodeSpec: NodeSpec) {
+  async addNode(nodeSpec: AnyNodeSpec) {
     return await this.sendCommand("add_node", { node: nodeSpec });
   }
 

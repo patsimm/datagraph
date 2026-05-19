@@ -7,7 +7,7 @@ import { createContext, useState, useCallback, useContext } from "react";
 const edgesContext = createContext<{
   edges: { from: PortInfo; to: PortInfo }[];
   connect: (from: PortInfo, to: PortInfo) => Promise<void>;
-  disconnectPorts: (...ports: PortInfo[]) => Promise<void>;
+  disconnectPorts: (port: [PortInfo, PortInfo]) => Promise<void>;
   disconnectNodes: (...nodeIds: string[]) => Promise<void>;
 }>({
   edges: [],
@@ -113,17 +113,19 @@ function useEdgesList() {
   );
 
   const disconnectPorts = useCallback(
-    async (...ports: PortInfo[]) => {
-      const connectionsToRemove = edges.filter((edge) =>
-        ports.some(
-          (port) =>
-            (port.node === edge.from.node &&
-              port.port === edge.from.port &&
-              port.portType === edge.from.portType) ||
-            (port.node === edge.to.node &&
-              port.port === edge.to.port &&
-              port.portType === edge.to.portType)
-        )
+    async (port: [PortInfo, PortInfo]) => {
+      const fromPort = port.find((p) => p.portType === "out");
+      const toPort = port.find((p) => p.portType === "in");
+      if (!fromPort || !toPort) return;
+
+      const connectionsToRemove = edges.filter(
+        (edge) =>
+          edge.from.node === fromPort.node &&
+          edge.from.port === fromPort.port &&
+          edge.from.portType === fromPort.portType &&
+          edge.to.node === toPort.node &&
+          edge.to.port === toPort.port &&
+          edge.to.portType === toPort.portType
       );
       for (const connection of connectionsToRemove) {
         await removeConnection(connection);

@@ -1,5 +1,7 @@
 import { useDatagraph } from "./datagraph.context";
-import type { AnyNodeState, AnyNodeConfig } from "./node.types";
+import { isParamKind, type AnyNodeState, type NodeKind, type NodeState } from "./node.types";
+import type { AnyNodeSpec } from "./audio-worklet/datagraph-audio-worklet-commands";
+import { convertToCv } from "./unit-conversion";
 
 import { useState, useCallback, createContext, useContext } from "react";
 
@@ -16,7 +18,7 @@ function useAllNodes() {
     addParam: addParamToGraph,
     removeNode: removeNodeFromGraph,
     nodeInfo,
-    setParam,
+    setParam: setParamInGraph,
   } = useDatagraph();
   const [nodes, setNodes] = useState<{ [nodeId: string]: AnyNodeState }>({});
 
@@ -32,49 +34,80 @@ function useAllNodes() {
     [ready]
   );
 
-  const handleParamChange = useCallback(
+  const setParamValue = useCallback(
     async (nodeId: string, value: number) => {
       if (!ready) return;
-      await setParam(nodeId, value);
-      updateNodeState(nodeId, (current) => ({ ...current, value }) as AnyNodeState);
+      const node = nodes[nodeId];
+      if (!isParamKind(node)) {
+        throw new Error(`Node ${nodeId} is not a param node`);
+      }
+      const unit = node.settings.unit;
+      if (!unit) return;
+      await setParamInGraph(nodeId, convertToCv(value, unit));
+      updateNodeState(
+        nodeId,
+        (current) =>
+          ({
+            ...current,
+            config: { ...(current.config as object), value },
+          }) as AnyNodeState
+      );
     },
-    [ready, setParam, updateNodeState]
+    [nodes, ready, setParamInGraph, updateNodeState]
   );
 
   const addNode = useCallback(
-    async (config: AnyNodeConfig) => {
+    async <T extends NodeKind>(
+      kind: T,
+      position: { x: number; y: number },
+      config: NodeState<T>["config"],
+      settings: NodeState<T>["settings"]
+    ) => {
       if (!ready) return null;
       let nodeId: string;
-      if (config.kind === "param:slider" || config.kind === "param:button") {
-        nodeId = await addParamToGraph(config.value);
+      if (kind.startsWith("param:")) {
+        const typedConfig = config as NodeState<"param:slider" | "param:button">["config"];
+        nodeId = await addParamToGraph(typedConfig.value);
+        console.log("Added param node to graph with id", nodeId);
         const { nodeType } = await nodeInfo(nodeId);
         setNodes((prev) => ({
           ...prev,
           [nodeId]: {
             nodeId,
-            onChange: handleParamChange,
+            kind,
+            rustNodeType: nodeType,
             inputPorts: [],
             outputPorts: ["output"].map((name) => name).map((name) => ({ name, connectedTo: [] })),
-            rustNodeType: nodeType,
-            ...config,
-          },
+            ...position,
+            config: {
+              value: typedConfig.value,
+            },
+            settings: {
+              ...settings,
+            },
+          } as AnyNodeState,
         }));
-      } else if (config.kind === "oscilloscope") {
+      } else if (kind === "oscilloscope") {
         const info = await addNodeToGraph({ kind: "passthrough" });
         nodeId = info.nodeId;
         setNodes((prev) => ({
           ...prev,
           [nodeId]: {
             nodeId,
+            kind,
             inputPorts: ["input"].map((name) => ({ name, connectedTo: [] })),
             outputPorts: ["output"].map((name) => ({ name, connectedTo: [] })),
             rustNodeType: info.nodeType,
-            ...config,
-          },
+            ...position,
+            settings: undefined,
+            config: undefined,
+          } as unknown as AnyNodeState,
         }));
       } else {
-        const { x, y, ...spec } = config;
-        const info = await addNodeToGraph(spec);
+        const info = await addNodeToGraph({
+          kind,
+          ...(config ?? {}),
+        } as AnyNodeSpec);
         nodeId = info.nodeId;
         setNodes((prev) => ({
           ...prev,
@@ -82,16 +115,17 @@ function useAllNodes() {
             nodeId,
             inputPorts: info.inputNames.map((name) => ({ name, connectedTo: [] })),
             outputPorts: info.outputNames.map((name) => ({ name, connectedTo: [] })),
-            kind: spec.kind,
+            kind,
             rustNodeType: info.nodeType,
-            x,
-            y,
-          },
+            config,
+            settings: undefined,
+            ...position,
+          } as AnyNodeState,
         }));
       }
       return nodeId;
     },
-    [addNodeToGraph, addParamToGraph, handleParamChange, nodeInfo, ready]
+    [addNodeToGraph, addParamToGraph, nodeInfo, ready]
   );
 
   const removeNode = useCallback(
@@ -114,15 +148,21 @@ function useAllNodes() {
     [nodes]
   );
 
-  return { nodes, addNode, removeNode, updateNodeState, getNode };
+  return { nodes, addNode, removeNode, updateNodeState, getNode, setParamValue };
 }
 
 const nodesContext = createContext<{
   nodes: { [nodeId: string]: AnyNodeState };
-  addNode: (config: AnyNodeConfig) => Promise<string | null>;
+  addNode: <T extends NodeKind>(
+    kind: T,
+    position: { x: number; y: number },
+    config: NodeState<T>["config"],
+    settings: NodeState<T>["settings"]
+  ) => Promise<string | null>;
   removeNode: (nodeId: string) => Promise<void>;
   updateNodeState: (nodeId: string, update: (current: AnyNodeState) => AnyNodeState) => void;
-  getNode: (nodeId: string) => AnyNodeState;
+  getNode: (nodeId: string) => AnyNodeState | undefined;
+  setParamValue: (nodeId: string, value: number) => Promise<void>;
 }>({
   nodes: {},
   addNode: async () => {
@@ -137,13 +177,18 @@ const nodesContext = createContext<{
   getNode: () => {
     throw new Error("Nodes context not initialized yet");
   },
+  setParamValue: async () => {
+    throw new Error("Nodes context not initialized yet");
+  },
 });
 
 export function NodesProvider({ children }: { children: React.ReactNode }) {
-  const { nodes, addNode, removeNode, updateNodeState, getNode } = useAllNodes();
+  const { nodes, addNode, removeNode, updateNodeState, getNode, setParamValue } = useAllNodes();
 
   return (
-    <nodesContext.Provider value={{ nodes, addNode, removeNode, updateNodeState, getNode }}>
+    <nodesContext.Provider
+      value={{ nodes, addNode, removeNode, updateNodeState, getNode, setParamValue }}
+    >
       {children}
     </nodesContext.Provider>
   );

@@ -17,7 +17,16 @@
       flex-grow: 1;
       background: transparent;
       border: none;
-      color: var(--contextview-color-fg);
+      color: inherit;
+      font-family: inherit;
+      font-size: inherit;
+    }
+
+    & > select {
+      flex-grow: 1;
+      background: transparent;
+      border: none;
+      color: inherit;
       font-family: inherit;
       font-size: inherit;
     }

@@ -1,6 +1,6 @@
 import { parsePortKey, PortInfo, portKey } from "./node-utils";
 import "./Node.css";
-import type { NodeBase, NodeInteractionProps } from "../../node.types";
+import type { NodePort, NodeInteractionProps } from "../../node.types";
 import {
   PortConnectionCompletedEvent,
   PortConnectionInitiatedEvent,
@@ -12,8 +12,13 @@ import { useCallback, useEffect, useRef } from "react";
 export type NodeProps = {
   kind: string;
   label: React.ReactNode;
-} & NodeBase &
-  NodeInteractionProps;
+  nodeId: string;
+  x: number;
+  y: number;
+  inputPorts: NodePort[];
+  outputPorts: NodePort[];
+  rustNodeType: string;
+} & NodeInteractionProps;
 
 export function Node({
   nodeId,
@@ -26,9 +31,19 @@ export function Node({
   children,
   selected,
   onClick,
+  onFocus,
+  onBlur,
   onPortConnectionInitiated,
   onPortConnectionCompleted,
 }: React.PropsWithChildren<NodeProps>) {
+  const handleFocus = useCallback(() => {
+    onFocus?.(nodeId);
+  }, [nodeId, onFocus]);
+
+  const handleBlur = useCallback(() => {
+    onBlur?.(nodeId);
+  }, [nodeId, onBlur]);
+
   return (
     <div
       className={classNames("node", {
@@ -40,6 +55,9 @@ export function Node({
       data-output-ports={outputPorts.length}
       style={{ left: x, top: y }}
       onClick={(ev) => onClick?.(nodeId, ev)}
+      tabIndex={0}
+      onFocus={handleFocus}
+      onBlur={handleBlur}
     >
       <div className="node__wrapper">
         <div className={"node__ports node__ports--input"}>

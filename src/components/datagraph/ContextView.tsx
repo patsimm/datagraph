@@ -1,4 +1,4 @@
-import { useNodes } from "../../nodes.context";
+import { useNodes, AnyNodeState } from "../../nodes.context";
 import { useSelection } from "../../selection.context";
 import "./ContextView.css";
 import { NodeSettings } from "../node/NodeSettings";
@@ -18,13 +18,17 @@ export function ContextView() {
   const selectedNodeId = node?.nodeId || null;
 
   const handleNodeSettingChange = useCallback(
-    (nodeId: string, settingsKey: string, value: number) => {
+    (nodeId: string, settingsKey: string, value: unknown) => {
       const nodeToChange = getNode(nodeId);
       if (!nodeToChange) return;
-      updateNodeState(nodeId, (curr) => ({
-        ...curr,
-        [settingsKey]: value,
-      }));
+      updateNodeState(
+        nodeId,
+        (curr) =>
+          ({
+            ...curr,
+            settings: { ...curr.settings, [settingsKey]: value },
+          }) as AnyNodeState
+      );
     },
     [getNode, updateNodeState]
   );
@@ -50,7 +54,7 @@ export function ContextView() {
             </div>
           </div>
           <NodeSettings
-            node={node}
+            nodeId={selectedNodeId}
             onChange={(...args) => handleNodeSettingChange(selectedNodeId, ...args)}
           />
         </>

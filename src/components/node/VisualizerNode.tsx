@@ -6,9 +6,6 @@ import { useCallback, useEffect, useRef } from "react";
 
 export type VisualizerNodeProps = AnyVisualizerNodeState & NodeInteractionProps;
 
-const PARAM_INPUT_PORTNAMES = ["input"];
-const PARAM_OUTPUT_PORTNAMES = ["output"];
-
 function map(value: number, inMin: number, inMax: number, outMin: number, outMax: number) {
   return ((value - inMin) * (outMax - outMin)) / (inMax - inMin) + outMin;
 }
@@ -76,13 +73,7 @@ export function VisualizerNode({ nodeId, ...nodeProps }: VisualizerNodeProps) {
   }, [handleData, nodeId, ready, subscribeNode, unsubscribeNode]);
 
   return (
-    <Node
-      nodeId={nodeId}
-      inputPorts={PARAM_INPUT_PORTNAMES}
-      outputPorts={PARAM_OUTPUT_PORTNAMES}
-      label={nodeProps.kind}
-      {...nodeProps}
-    >
+    <Node nodeId={nodeId} label={nodeProps.kind} {...nodeProps}>
       <canvas className="datagraph-node__vis-canvas" ref={canvasRef} />
     </Node>
   );

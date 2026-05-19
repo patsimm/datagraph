@@ -1,4 +1,4 @@
-import { NodeInteractionProps } from "../../node.types";
+import { isParamKind, NodeInteractionProps } from "../../node.types";
 import { AnyNodeState } from "../../nodes.context";
 import { Node } from "./Node";
 import { ParamNode } from "./ParamNode";
@@ -14,10 +14,11 @@ export const NodeRenderer = React.memo(function NodeRenderer({
   node,
   ...interactionProps
 }: NodeRendererProps) {
+  if (isParamKind(node)) {
+    return <ParamNode {...node} {...interactionProps} />;
+  }
+
   switch (node.kind) {
-    case "param:slider":
-    case "param:button":
-      return <ParamNode {...node} {...interactionProps} />;
     case "oscilloscope":
       return <VisualizerNode {...node} {...interactionProps} />;
     default:

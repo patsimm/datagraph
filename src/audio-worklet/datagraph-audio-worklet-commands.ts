@@ -1,7 +1,7 @@
 import { Graph, Param } from "@patsimm/datagraph-core";
 import * as datagraph from "@patsimm/datagraph-core";
 
-export type NodeSpec =
+export type AnyNodeSpec =
   | { kind: "sin" }
   | { kind: "saw" }
   | { kind: "square" }
@@ -18,7 +18,7 @@ export type NodeSpec =
   | { kind: "one-pole" }
   | { kind: "passthrough" };
 
-export type NodeSpecKind = NodeSpec["kind"];
+export type NodeSpecKind = AnyNodeSpec["kind"];
 
 export type NodeInfo = {
   inputNames: string[];
@@ -41,7 +41,7 @@ export const commandHandlers = {
     context.params.set(nodeId, param);
     return nodeId;
   },
-  add_node: async (context: GraphContext, { node }: { node: NodeSpec }) => {
+  add_node: async (context: GraphContext, { node }: { node: AnyNodeSpec }) => {
     let graphNode: datagraph.GraphNode;
     switch (node.kind) {
       case "sin":

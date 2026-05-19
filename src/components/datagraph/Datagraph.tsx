@@ -3,12 +3,13 @@ import "./Datagraph.css";
 import { useNodeDragging } from "./node-dragging.hook";
 import { useEdgeDragging } from "./edge-dragging.hook";
 import { Edge } from "../edge/Edge";
-import { PortInfo, portKey } from "../node/node-utils";
+import { getNodeKeyFromElement, PortInfo, portKey } from "../node/node-utils";
 import { ContextMenu } from "../contextmenu/ContextMenu";
 import { OutputNode } from "../node/OutputNode";
 import { ContextView } from "./ContextView";
 import { useSelection } from "../../selection.context";
 import { useNodes } from "../../nodes.context";
+import type { NodeKind, NodeState } from "../../node.types";
 import { Nodes } from "./Nodes";
 import { usePortConnections } from "../../edges.context";
 
@@ -22,10 +23,10 @@ export function Datagraph() {
   useNodeDragging();
   const [menu, setMenu] = useState<{ x: number; y: number } | null>(null);
   const { edges, disconnectPorts, disconnectNodes } = usePortConnections();
-  const { handleNodeSelected, getSelectedNode } = useSelection();
+  const { handleNodeSelected } = useSelection();
 
   const handleEdgeClick = useCallback(
-    (edge: { from: PortInfo; to: PortInfo }) => disconnectPorts(edge.from, edge.to),
+    (edge: { from: PortInfo; to: PortInfo }) => disconnectPorts([edge.from, edge.to]),
     [disconnectPorts]
   );
 
@@ -51,8 +52,13 @@ export function Datagraph() {
   }, []);
 
   const handleClickAdd = useCallback(
-    async (spec: Parameters<typeof addNode>[0]) => {
-      const nodeId = await addNode(spec);
+    async <T extends NodeKind>(
+      kind: T,
+      position: { x: number; y: number },
+      config: NodeState<T>["config"],
+      settings: NodeState<T>["settings"]
+    ) => {
+      const nodeId = await addNode(kind, position, config, settings);
       setMenu(null);
       handleNodeSelected(nodeId);
     },
@@ -68,15 +74,18 @@ export function Datagraph() {
 
   const handleKeyDown = useCallback(
     async (ev: KeyboardEvent) => {
-      const selectedNode = getSelectedNode();
-      if (!selectedNode) return;
+      const nodeId =
+        document.activeElement instanceof HTMLElement
+          ? getNodeKeyFromElement(document.activeElement)
+          : null;
+      if (!nodeId) return;
       if (ev.key === "Backspace" || ev.key === "Delete") {
-        disconnectNodes(selectedNode.nodeId);
-        removeNode(selectedNode.nodeId);
+        disconnectNodes(nodeId);
+        removeNode(nodeId);
         handleNodeSelected(null);
       }
     },
-    [disconnectNodes, getSelectedNode, handleNodeSelected, removeNode]
+    [disconnectNodes, handleNodeSelected, removeNode]
   );
 
   useEffect(() => {
@@ -92,70 +101,101 @@ export function Datagraph() {
       {menu && (
         <ContextMenu x={menu.x} y={menu.y} onClose={handleCloseContextMenu}>
           <div className="contextmenu__title">add Node</div>
-          <button onClick={() => handleClickAdd({ kind: "sin", x: menu.x, y: menu.y })}>sin</button>
-          <button onClick={() => handleClickAdd({ kind: "saw", x: menu.x, y: menu.y })}>saw</button>
-          <button onClick={() => handleClickAdd({ kind: "square", x: menu.x, y: menu.y })}>
+          <button
+            onClick={() => handleClickAdd("sin", { x: menu.x, y: menu.y }, undefined, undefined)}
+          >
+            sin
+          </button>
+          <button
+            onClick={() => handleClickAdd("saw", { x: menu.x, y: menu.y }, undefined, undefined)}
+          >
+            saw
+          </button>
+          <button
+            onClick={() => handleClickAdd("square", { x: menu.x, y: menu.y }, undefined, undefined)}
+          >
             square
           </button>
-          <button onClick={() => handleClickAdd({ kind: "multiply", x: menu.x, y: menu.y })}>
+          <button
+            onClick={() =>
+              handleClickAdd("multiply", { x: menu.x, y: menu.y }, undefined, undefined)
+            }
+          >
             multiply
           </button>
-          <button onClick={() => handleClickAdd({ kind: "add", x: menu.x, y: menu.y })}>add</button>
-          <button onClick={() => handleClickAdd({ kind: "delay", x: menu.x, y: menu.y })}>
+          <button
+            onClick={() => handleClickAdd("add", { x: menu.x, y: menu.y }, undefined, undefined)}
+          >
+            add
+          </button>
+          <button
+            onClick={() => handleClickAdd("delay", { x: menu.x, y: menu.y }, undefined, undefined)}
+          >
             delay
           </button>
-          <button onClick={() => handleClickAdd({ kind: "one-pole", x: menu.x, y: menu.y })}>
+          <button
+            onClick={() =>
+              handleClickAdd("one-pole", { x: menu.x, y: menu.y }, undefined, undefined)
+            }
+          >
             one-pole lowpass
           </button>
           <button
             onClick={() =>
-              handleClickAdd({
-                kind: "adsr",
-                attack: 0.1,
-                decay: 0.1,
-                sustain: 0.8,
-                release: 0.1,
-                x: menu.x,
-                y: menu.y,
-              })
+              handleClickAdd(
+                "adsr",
+                { x: menu.x, y: menu.y },
+                { attack: 0.1, decay: 0.1, sustain: 0.8, release: 0.1 },
+                undefined
+              )
             }
           >
             adsr
           </button>
-          <button onClick={() => handleClickAdd({ kind: "passthrough", x: menu.x, y: menu.y })}>
+          <button
+            onClick={() =>
+              handleClickAdd("passthrough", { x: menu.x, y: menu.y }, undefined, undefined)
+            }
+          >
             passthrough
           </button>
           <button
             onClick={() =>
-              handleClickAdd({
-                kind: "param:slider",
-                min: 0,
-                max: 1,
-                value: 0,
-                step: 0.01,
-                x: menu.x,
-                y: menu.y,
-              })
+              handleClickAdd(
+                "param:slider",
+                { x: menu.x, y: menu.y },
+                { value: 0 },
+                { unit: "raw", min: 0, max: 1, step: 0.01 }
+              )
             }
           >
             slider
           </button>
           <button
             onClick={() =>
-              handleClickAdd({
-                kind: "param:button",
-                onValue: 1,
-                offValue: 0,
-                value: 0,
-                x: menu.x,
-                y: menu.y,
-              })
+              handleClickAdd(
+                "param:button",
+                { x: menu.x, y: menu.y },
+                { value: 0 },
+                { unit: "raw", onValue: 1, offValue: 0 }
+              )
             }
           >
             button
           </button>
-          <button onClick={() => handleClickAdd({ kind: "oscilloscope", x: menu.x, y: menu.y })}>
+          <button
+            onClick={() =>
+              handleClickAdd("oscilloscope", { x: menu.x, y: menu.y }, undefined, undefined)
+            }
+          >
             oscilloscope
+          </button>
+          <button
+            onClick={() =>
+              handleClickAdd("param:input", { x: menu.x, y: menu.y }, { value: 0 }, { unit: "raw" })
+            }
+          >
+            input
           </button>
         </ContextMenu>
       )}

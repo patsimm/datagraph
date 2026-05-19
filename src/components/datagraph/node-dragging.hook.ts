@@ -5,8 +5,10 @@ import { useRef, useCallback, useEffect } from "react";
 
 type NodeDraggingState = {
   draggingKey: string;
-  elemOffsetX: number;
-  elemOffsetY: number;
+  startDragX: number;
+  startDragY: number;
+  startLeft: number;
+  startTop: number;
 };
 
 export function useNodeDragging() {
@@ -20,59 +22,64 @@ export function useNodeDragging() {
         if (!nodeKey) return;
 
         const nodeElem = event.target as HTMLElement;
-        const offsetX = event.clientX - nodeElem.getBoundingClientRect().left;
-        const offsetY = event.clientY - nodeElem.getBoundingClientRect().top;
+        const startDragX = event.clientX;
+        const startDragY = event.clientY;
+        const startLeft = nodeElem.getBoundingClientRect().left;
+        const startTop = nodeElem.getBoundingClientRect().top;
         draggingStateRef.current = {
           draggingKey: nodeKey,
-          elemOffsetX: offsetX,
-          elemOffsetY: offsetY,
+          startDragX,
+          startDragY,
+          startLeft,
+          startTop,
         };
       }
     },
     [draggingStateRef]
   );
 
-  const handlePointerUp = useCallback(() => {
-    if (!draggingStateRef.current) return;
-    const draggingNodeId = draggingStateRef.current.draggingKey;
-    draggingStateRef.current = null;
+  const handlePointerUp = useCallback(
+    (ev: PointerEvent) => {
+      if (!draggingStateRef.current) return;
+      const draggingNodeId = draggingStateRef.current.draggingKey;
+      const didMove =
+        ev.clientX !== draggingStateRef.current.startDragX ||
+        ev.clientY !== draggingStateRef.current.startDragY;
+      draggingStateRef.current = null;
 
-    const draggingNodeElem = getNodeElement(draggingNodeId);
+      const draggingNodeElem = getNodeElement(draggingNodeId);
 
-    // Calculate new position
-    const x = parseFloat(draggingNodeElem.style.left);
-    const y = parseFloat(draggingNodeElem.style.top);
+      // Calculate new position
+      const x = parseFloat(draggingNodeElem.style.left);
+      const y = parseFloat(draggingNodeElem.style.top);
 
-    const node = getNode(draggingNodeId);
-    if (node.x === x && node.y === y) {
-      return;
-    }
+      const node = getNode(draggingNodeId);
+      if (node && didMove) {
+        updateNodeState(draggingNodeId, (current) => ({ ...current, x, y }));
+      }
 
-    updateNodeState(draggingNodeId, (current) => ({ ...current, x, y }));
-
-    const suppressClick = (e: MouseEvent) => {
-      e.stopPropagation();
-      document.removeEventListener("click", suppressClick, true);
-    };
-    document.addEventListener("click", suppressClick, true);
-  }, [getNode, updateNodeState]);
+      if (didMove) {
+        const suppressClick = (e: MouseEvent) => {
+          e.stopPropagation();
+          document.removeEventListener("click", suppressClick, true);
+        };
+        document.addEventListener("click", suppressClick, true);
+      }
+    },
+    [getNode, updateNodeState]
+  );
 
   const handlePointerMove = useCallback(
     (event: PointerEvent) => {
       if (!draggingStateRef.current) return;
 
       const draggingNodeElem = getNodeElement(draggingStateRef.current.draggingKey);
-      const containerElem = document.querySelector(".datagraph") as HTMLElement;
 
       // Calculate new position
       const x =
-        event.clientX -
-        draggingStateRef.current.elemOffsetX -
-        containerElem.getBoundingClientRect().left;
+        event.clientX - draggingStateRef.current.startDragX + draggingStateRef.current.startLeft;
       const y =
-        event.clientY -
-        draggingStateRef.current.elemOffsetY -
-        containerElem.getBoundingClientRect().top;
+        event.clientY - draggingStateRef.current.startDragY + draggingStateRef.current.startTop;
 
       // Update element position
       draggingNodeElem.style.left = `${x}px`;
