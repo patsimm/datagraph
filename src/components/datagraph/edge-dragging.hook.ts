@@ -55,6 +55,13 @@ export function useEdgeDragging() {
     if (!edgeRef.current || !draggingStateRef.current) return;
     const startPortKey = draggingStateRef.current.dragStartPort;
     draggingStateRef.current = null;
+
+    const suppressClick = (e: MouseEvent) => {
+      e.stopPropagation();
+      document.removeEventListener("click", suppressClick, true);
+    };
+    document.addEventListener("click", suppressClick, true);
+
     edgeRef.current.style.left = `0px`;
     edgeRef.current.style.top = `0px`;
     edgeRef.current.style.width = `0px`;

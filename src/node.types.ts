@@ -14,6 +14,7 @@ export type NodeBase = {
   y: number;
   inputPorts: NodePort[];
   outputPorts: NodePort[];
+  rustNodeType: string;
 };
 
 export type AnyAudioNodeState = NodeBase & {
@@ -43,15 +44,15 @@ export type AnyVisualizerNodeState = NodeBase & { kind: "oscilloscope" };
 
 export type AnyParamNodeConfig = DistributiveOmit<
   AnyParamNodeState,
-  "nodeId" | "inputPorts" | "outputPorts" | "onChange" | "label"
+  "nodeId" | "rustNodeType" | "inputPorts" | "outputPorts" | "onChange" | "label"
 >;
 export type AnyVisualizerNodeConfig = DistributiveOmit<
   AnyVisualizerNodeState,
-  "nodeId" | "inputPorts" | "outputPorts"
+  "nodeId" | "rustNodeType" | "inputPorts" | "outputPorts"
 >;
 export type AnyAudioNodeConfig = DistributiveOmit<
   AnyAudioNodeState,
-  "nodeId" | "inputPorts" | "outputPorts"
+  "nodeId" | "rustNodeType" | "inputPorts" | "outputPorts"
 > &
   NodeSpec;
 
@@ -64,3 +65,9 @@ export type NodeInteractionProps = {
   onPortConnectionInitiated?: (startPort: PortInfo) => void;
   onPortConnectionCompleted?: (startPort: PortInfo, endPort: PortInfo) => void;
 };
+
+export type NodeState<T extends AnyNodeState["kind"]> = AnyNodeState extends infer U
+  ? U extends { kind: T }
+    ? U
+    : never
+  : never;

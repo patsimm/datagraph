@@ -1,11 +1,9 @@
 import postcssFor from "postcss-for";
 import postcssMixins from "postcss-mixins";
 import autoprefixer from "autoprefixer";
-import stylelint from "stylelint";
 
 export default {
   plugins: [
-    stylelint,
     postcssFor,
     postcssMixins({
       mixins: {

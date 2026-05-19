@@ -1,19 +1,28 @@
+import { NodeInfo } from "../../audio-worklet/datagraph-audio-worklet-commands";
+import { useDatagraph } from "../../datagraph.context";
 import { usePortConnections } from "../../edges.context";
 import { NodePort } from "../../node.types";
 import { Node, NodeProps } from "./Node";
 import { PortInfo } from "./node-utils";
 
-import { useCallback, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 export type OutputNodeProps = Omit<
   NodeProps,
-  "inputPorts" | "outputPorts" | "kind" | "onPortConnectionCompleted"
+  "rustNodeType" | "inputPorts" | "outputPorts" | "kind" | "onPortConnectionCompleted"
 >;
 
 const OUTPUT_PORTS: NodePort[] = [];
 
 export function OutputNode(props: OutputNodeProps) {
+  const [info, setInfo] = useState<NodeInfo | null>(null);
   const { edges, connect } = usePortConnections();
+  const { ready, nodeInfo } = useDatagraph();
+
+  useEffect(() => {
+    if (!ready) return;
+    nodeInfo(props.nodeId).then(setInfo);
+  }, [nodeInfo, props.nodeId, ready]);
 
   const handleOutputConnectionCompleted = useCallback(
     async (port1: PortInfo, port2: PortInfo) => {
@@ -29,12 +38,15 @@ export function OutputNode(props: OutputNodeProps) {
   }, [edges, props.nodeId]);
 
   return (
-    <Node
-      kind="output"
-      inputPorts={inputPorts}
-      outputPorts={OUTPUT_PORTS}
-      onPortConnectionCompleted={handleOutputConnectionCompleted}
-      {...props}
-    ></Node>
+    info && (
+      <Node
+        kind="output"
+        inputPorts={inputPorts}
+        outputPorts={OUTPUT_PORTS}
+        onPortConnectionCompleted={handleOutputConnectionCompleted}
+        rustNodeType={info.nodeType}
+        {...props}
+      ></Node>
+    )
   );
 }

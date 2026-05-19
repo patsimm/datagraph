@@ -7,14 +7,21 @@
   width: 360px;
   padding: 0.5rem;
   height: 100%;
-  box-sizing: border-box;
   background-color: var(--contextview-color-bg);
   color: var(--contextview-color-fg);
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
+  cursor: auto;
+  pointer-events: auto;
+  user-select: auto;
 
-  & .contextview__title {
+  & .contextview__header {
+    & .contextview__title {
+      font-size: 1.25rem;
+      font-weight: bold;
+    }
+
     & .contextview__classpath {
       color: color-mix(in srgb, var(--contextview-color-fg) 70%, var(--contextview-color-bg));
     }

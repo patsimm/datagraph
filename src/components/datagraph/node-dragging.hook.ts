@@ -10,7 +10,7 @@ type NodeDraggingState = {
 };
 
 export function useNodeDragging() {
-  const { updateNodeState } = useNodes();
+  const { updateNodeState, getNode } = useNodes();
   const draggingStateRef = useRef<NodeDraggingState | null>(null);
 
   const handlePointerDown = useCallback(
@@ -34,17 +34,28 @@ export function useNodeDragging() {
 
   const handlePointerUp = useCallback(() => {
     if (!draggingStateRef.current) return;
+    const draggingNodeId = draggingStateRef.current.draggingKey;
+    draggingStateRef.current = null;
 
-    const draggingNodeElem = getNodeElement(draggingStateRef.current.draggingKey);
+    const draggingNodeElem = getNodeElement(draggingNodeId);
 
     // Calculate new position
     const x = parseFloat(draggingNodeElem.style.left);
     const y = parseFloat(draggingNodeElem.style.top);
 
-    updateNodeState(draggingStateRef.current.draggingKey, (current) => ({ ...current, x, y }));
+    const node = getNode(draggingNodeId);
+    if (node.x === x && node.y === y) {
+      return;
+    }
 
-    draggingStateRef.current = null;
-  }, [updateNodeState]);
+    updateNodeState(draggingNodeId, (current) => ({ ...current, x, y }));
+
+    const suppressClick = (e: MouseEvent) => {
+      e.stopPropagation();
+      document.removeEventListener("click", suppressClick, true);
+    };
+    document.addEventListener("click", suppressClick, true);
+  }, [getNode, updateNodeState]);
 
   const handlePointerMove = useCallback(
     (event: PointerEvent) => {

@@ -8,7 +8,7 @@ export type NodesProps = {
 };
 
 export function Nodes({ onNodeClick }: NodesProps) {
-  const { selectedNodeId } = useSelection();
+  const { getSelectedNode } = useSelection();
   const { nodes } = useNodes();
   const { connect } = usePortConnections();
 
@@ -18,7 +18,7 @@ export function Nodes({ onNodeClick }: NodesProps) {
         <NodeRenderer
           key={node.nodeId}
           node={node}
-          selected={selectedNodeId === node.nodeId}
+          selected={getSelectedNode()?.nodeId === node.nodeId}
           onClick={onNodeClick}
           onPortConnectionCompleted={connect}
         />

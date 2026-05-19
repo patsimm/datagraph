@@ -12,16 +12,17 @@ import { useNodes } from "../../nodes.context";
 import { Nodes } from "./Nodes";
 import { usePortConnections } from "../../edges.context";
 
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 
 export function Datagraph() {
+  const ref = useRef<HTMLDivElement>(null);
   const { ready, start } = useDatagraph();
   const { addNode, removeNode } = useNodes();
   const [outputNode, setOutputNode] = useState<string | null>(null);
   useNodeDragging();
   const [menu, setMenu] = useState<{ x: number; y: number } | null>(null);
   const { edges, disconnectPorts, disconnectNodes } = usePortConnections();
-  const { selectedNodeId, setSelectedNodeId } = useSelection();
+  const { handleNodeSelected, getSelectedNode } = useSelection();
 
   const handleEdgeClick = useCallback(
     (edge: { from: PortInfo; to: PortInfo }) => disconnectPorts(edge.from, edge.to),
@@ -37,10 +38,9 @@ export function Datagraph() {
     });
   }, [ready, start]);
 
-  const handleContextMenu = useCallback(
+  const handleClick = useCallback(
     (e: React.MouseEvent) => {
-      e.preventDefault();
-      if (!ready) return;
+      if (e.target !== ref.current || !ready) return;
       setMenu({ x: e.clientX, y: e.clientY });
     },
     [ready]
@@ -52,29 +52,31 @@ export function Datagraph() {
 
   const handleClickAdd = useCallback(
     async (spec: Parameters<typeof addNode>[0]) => {
-      await addNode(spec);
+      const nodeId = await addNode(spec);
       setMenu(null);
+      handleNodeSelected(nodeId);
     },
-    [addNode]
+    [addNode, handleNodeSelected]
   );
 
   const handleNodeClick = useCallback(
     (nodeId: string) => {
-      setSelectedNodeId(nodeId);
+      handleNodeSelected(nodeId);
     },
-    [setSelectedNodeId]
+    [handleNodeSelected]
   );
 
   const handleKeyDown = useCallback(
     async (ev: KeyboardEvent) => {
-      if (!selectedNodeId) return;
+      const selectedNode = getSelectedNode();
+      if (!selectedNode) return;
       if (ev.key === "Backspace" || ev.key === "Delete") {
-        disconnectNodes(selectedNodeId);
-        removeNode(selectedNodeId);
-        setSelectedNodeId(null);
+        disconnectNodes(selectedNode.nodeId);
+        removeNode(selectedNode.nodeId);
+        handleNodeSelected(null);
       }
     },
-    [disconnectNodes, removeNode, selectedNodeId, setSelectedNodeId]
+    [disconnectNodes, getSelectedNode, handleNodeSelected, removeNode]
   );
 
   useEffect(() => {
@@ -85,7 +87,7 @@ export function Datagraph() {
   }, [handleKeyDown]);
 
   return (
-    <div onContextMenu={handleContextMenu} className="datagraph">
+    <div ref={ref} onClick={handleClick} className="datagraph">
       <ContextView />
       {menu && (
         <ContextMenu x={menu.x} y={menu.y} onClose={handleCloseContextMenu}>

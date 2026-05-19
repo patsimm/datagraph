@@ -1,49 +1,34 @@
-import { useDatagraph } from "./datagraph.context";
-import { NodeInfo } from "./audio-worklet/datagraph-audio-worklet-commands";
+import { AnyNodeState, useNodes } from "./nodes.context";
 
 import { createContext, useState, useCallback, useContext } from "react";
 
 const selectionContext = createContext<{
-  setSelectedNodeId: (id: string | null) => Promise<void>;
-  selectedNodeId: string | null;
-  selectedNodeInfo: NodeInfo | null;
+  handleNodeSelected: (nodeId: string | null) => void;
+  getSelectedNode: () => AnyNodeState | null;
 }>({
-  setSelectedNodeId: () => {
-    throw new Error("Selection context not initialized yet");
+  handleNodeSelected: () => {
+    throw new Error("handleNodeSelected not implemented");
   },
-  selectedNodeId: null,
-  selectedNodeInfo: null,
+  getSelectedNode: () => {
+    throw new Error("getSelectedNode not implemented");
+  },
 });
 
 export function SelectionProvider({ children }: { children: React.ReactNode }) {
-  const datagraph = useDatagraph();
-  const [selectedNodeInfo, setSelectedNodeInfo] = useState<NodeInfo | null>(null);
+  const { getNode } = useNodes();
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
 
-  const handleNodeSelected = useCallback(
-    async (nodeId: string | null) => {
-      console.log("Node selected", nodeId);
-      if (nodeId === null) {
-        setSelectedNodeInfo(null);
-        return;
-      }
-      if (!datagraph.ready) {
-        return;
-      }
-      console.log("Fetching node info for", nodeId);
+  const handleNodeSelected = useCallback(async (nodeId: string | null) => {
+    setSelectedNodeId(nodeId);
+  }, []);
 
-      const nodeInfo = await datagraph.nodeInfo(nodeId);
-      console.log("Node info", nodeInfo);
-      setSelectedNodeInfo(nodeInfo);
-      setSelectedNodeId(nodeId);
-    },
-    [datagraph]
-  );
+  const getSelectedNode = useCallback(() => {
+    if (!selectedNodeId) return null;
+    return getNode(selectedNodeId) || null;
+  }, [getNode, selectedNodeId]);
 
   return (
-    <selectionContext.Provider
-      value={{ selectedNodeId, selectedNodeInfo, setSelectedNodeId: handleNodeSelected }}
-    >
+    <selectionContext.Provider value={{ handleNodeSelected, getSelectedNode }}>
       {children}
     </selectionContext.Provider>
   );

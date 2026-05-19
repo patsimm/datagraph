@@ -1,21 +1,40 @@
-import { useNodes, type AnyNodeState } from "../../nodes.context";
+import { useNodes } from "../../nodes.context";
 import { useSelection } from "../../selection.context";
 import "./ContextView.css";
+import { NodeSettings } from "../node/NodeSettings";
+
+import { useCallback } from "react";
 
 export function ContextView() {
-  const { selectedNodeInfo, selectedNodeId } = useSelection();
-  const { nodes, updateNodeState: updateNodeSettings } = useNodes();
+  const { getSelectedNode } = useSelection();
+  const { getNode, updateNodeState } = useNodes();
 
-  const classname = selectedNodeInfo?.nodeType.split("::").slice(-1)[0];
-  const classpath = selectedNodeInfo?.nodeType.split("::").slice(0, -1).join("::") + "::" || "";
+  const node = getSelectedNode();
 
-  const selectedParam = selectedNodeId ? nodes[selectedNodeId] : null;
+  const rustNodeType = node?.rustNodeType;
+  const classname = rustNodeType?.split("::").slice(-1)[0];
+  const classpath = rustNodeType?.split("::").slice(0, -1).join("::") + "::" || "";
+
+  const selectedNodeId = node?.nodeId || null;
+
+  const handleNodeSettingChange = useCallback(
+    (nodeId: string, settingsKey: string, value: number) => {
+      const nodeToChange = getNode(nodeId);
+      if (!nodeToChange) return;
+      updateNodeState(nodeId, (curr) => ({
+        ...curr,
+        [settingsKey]: value,
+      }));
+    },
+    [getNode, updateNodeState]
+  );
 
   return (
-    <div className="contextview">
-      {selectedNodeInfo && selectedNodeId && (
+    <aside className="contextview">
+      {node && selectedNodeId && (
         <>
-          <div className="contextview__title">
+          <div className="contextview__header">
+            <h1 className="contextview__title">{node.kind}</h1>
             <span className="contextview__classpath">{classpath}</span>
             <span className="contextview__classname">{classname}</span>
             <div className="contextview__nodeid">#{selectedNodeId}</div>
@@ -23,52 +42,19 @@ export function ContextView() {
           <div>
             <div>
               <span className="contextview__datalabel">inputs:</span> [
-              {selectedNodeInfo.inputNames.join(", ")}]
+              {node.inputPorts.map((port) => port.name).join(", ")}]
             </div>
             <div>
               <span className="contextview__datalabel">outputs:</span> [
-              {selectedNodeInfo.outputNames.join(", ")}]
+              {node.outputPorts.map((port) => port.name).join(", ")}]
             </div>
           </div>
+          <NodeSettings
+            node={node}
+            onChange={(...args) => handleNodeSettingChange(selectedNodeId, ...args)}
+          />
         </>
       )}
-      {selectedParam && selectedParam.kind === "param:slider" && (
-        <div>
-          <div>
-            <span className="contextview__datalabel">min:</span>{" "}
-            <input
-              type="number"
-              value={selectedParam.min}
-              onChange={(ev) => {
-                updateNodeSettings(selectedNodeId!, (current) => ({ ...current, min: parseFloat(ev.target.value) } as AnyNodeState));
-              }}
-            />
-          </div>
-          <div>
-            <span className="contextview__datalabel">max:</span>
-            <input
-              type="number"
-              value={selectedParam.max}
-              onChange={(ev) => {
-                updateNodeSettings(selectedNodeId!, (current) => ({ ...current, max: parseFloat(ev.target.value) } as AnyNodeState));
-              }}
-            />
-          </div>
-          <div>
-            <span className="contextview__datalabel">step:</span>
-            <input
-              type="number"
-              value={selectedParam.step}
-              onChange={(ev) => {
-                updateNodeSettings(selectedNodeId!, (current) => ({ ...current, step: parseFloat(ev.target.value) } as AnyNodeState));
-              }}
-            />
-          </div>
-          <div>
-            <span className="contextview__datalabel">value:</span>
-          </div>
-        </div>
-      )}
-    </div>
+    </aside>
   );
 }

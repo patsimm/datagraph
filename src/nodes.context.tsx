@@ -15,6 +15,7 @@ function useAllNodes() {
     addNode: addNodeToGraph,
     addParam: addParamToGraph,
     removeNode: removeNodeFromGraph,
+    nodeInfo,
     setParam,
   } = useDatagraph();
   const [nodes, setNodes] = useState<{ [nodeId: string]: AnyNodeState }>({});
@@ -42,9 +43,11 @@ function useAllNodes() {
 
   const addNode = useCallback(
     async (config: AnyNodeConfig) => {
-      if (!ready) return;
+      if (!ready) return null;
+      let nodeId: string;
       if (config.kind === "param:slider" || config.kind === "param:button") {
-        const nodeId = await addParamToGraph(config.value);
+        nodeId = await addParamToGraph(config.value);
+        const { nodeType } = await nodeInfo(nodeId);
         setNodes((prev) => ({
           ...prev,
           [nodeId]: {
@@ -52,37 +55,43 @@ function useAllNodes() {
             onChange: handleParamChange,
             inputPorts: [],
             outputPorts: ["output"].map((name) => name).map((name) => ({ name, connectedTo: [] })),
+            rustNodeType: nodeType,
             ...config,
           },
         }));
       } else if (config.kind === "oscilloscope") {
-        const { nodeId } = await addNodeToGraph({ kind: "passthrough" });
+        const info = await addNodeToGraph({ kind: "passthrough" });
+        nodeId = info.nodeId;
         setNodes((prev) => ({
           ...prev,
           [nodeId]: {
             nodeId,
             inputPorts: ["input"].map((name) => ({ name, connectedTo: [] })),
             outputPorts: ["output"].map((name) => ({ name, connectedTo: [] })),
+            rustNodeType: info.nodeType,
             ...config,
           },
         }));
       } else {
         const { x, y, ...spec } = config;
         const info = await addNodeToGraph(spec);
+        nodeId = info.nodeId;
         setNodes((prev) => ({
           ...prev,
           [info.nodeId]: {
-            nodeId: info.nodeId,
+            nodeId,
             inputPorts: info.inputNames.map((name) => ({ name, connectedTo: [] })),
             outputPorts: info.outputNames.map((name) => ({ name, connectedTo: [] })),
             kind: spec.kind,
+            rustNodeType: info.nodeType,
             x,
             y,
           },
         }));
       }
+      return nodeId;
     },
-    [addNodeToGraph, addParamToGraph, handleParamChange, ready]
+    [addNodeToGraph, addParamToGraph, handleParamChange, nodeInfo, ready]
   );
 
   const removeNode = useCallback(
@@ -98,14 +107,22 @@ function useAllNodes() {
     [ready, removeNodeFromGraph]
   );
 
-  return { nodes, addNode, removeNode, updateNodeState };
+  const getNode = useCallback(
+    (nodeId: string) => {
+      return nodes[nodeId];
+    },
+    [nodes]
+  );
+
+  return { nodes, addNode, removeNode, updateNodeState, getNode };
 }
 
 const nodesContext = createContext<{
   nodes: { [nodeId: string]: AnyNodeState };
-  addNode: (config: AnyNodeConfig) => Promise<void>;
+  addNode: (config: AnyNodeConfig) => Promise<string | null>;
   removeNode: (nodeId: string) => Promise<void>;
   updateNodeState: (nodeId: string, update: (current: AnyNodeState) => AnyNodeState) => void;
+  getNode: (nodeId: string) => AnyNodeState;
 }>({
   nodes: {},
   addNode: async () => {
@@ -117,13 +134,16 @@ const nodesContext = createContext<{
   updateNodeState: () => {
     throw new Error("Nodes context not initialized yet");
   },
+  getNode: () => {
+    throw new Error("Nodes context not initialized yet");
+  },
 });
 
 export function NodesProvider({ children }: { children: React.ReactNode }) {
-  const { nodes, addNode, removeNode, updateNodeState } = useAllNodes();
+  const { nodes, addNode, removeNode, updateNodeState, getNode } = useAllNodes();
 
   return (
-    <nodesContext.Provider value={{ nodes, addNode, removeNode, updateNodeState }}>
+    <nodesContext.Provider value={{ nodes, addNode, removeNode, updateNodeState, getNode }}>
       {children}
     </nodesContext.Provider>
   );
