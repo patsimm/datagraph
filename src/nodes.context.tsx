@@ -1,5 +1,12 @@
 import { useDatagraph } from "./datagraph.context";
-import { isParamKind, type AnyNodeState, type NodeKind, type NodeState } from "./node.types";
+import {
+  isParamKind,
+  isParamNodeState,
+  isVisualizerKind,
+  type AnyNodeState,
+  type NodeKind,
+  type NodeState,
+} from "./node.types";
 import type { AnyNodeSpec } from "./audio-worklet/datagraph-audio-worklet-commands";
 import { convertToCv } from "./unit-conversion";
 
@@ -38,7 +45,7 @@ function useAllNodes() {
     async (nodeId: string, value: number) => {
       if (!ready) return;
       const node = nodes[nodeId];
-      if (!isParamKind(node)) {
+      if (!isParamNodeState(node)) {
         throw new Error(`Node ${nodeId} is not a param node`);
       }
       const unit = node.settings.unit;
@@ -65,7 +72,7 @@ function useAllNodes() {
     ) => {
       if (!ready) return null;
       let nodeId: string;
-      if (kind.startsWith("param:")) {
+      if (isParamKind(kind)) {
         const typedConfig = config as NodeState<"param:slider" | "param:button">["config"];
         nodeId = await addParamToGraph(typedConfig.value);
         console.log("Added param node to graph with id", nodeId);
@@ -87,7 +94,7 @@ function useAllNodes() {
             },
           } as AnyNodeState,
         }));
-      } else if (kind === "oscilloscope") {
+      } else if (isVisualizerKind(kind)) {
         const info = await addNodeToGraph({ kind: "passthrough" });
         nodeId = info.nodeId;
         setNodes((prev) => ({

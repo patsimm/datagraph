@@ -1,4 +1,4 @@
-import { isParamKind, NodeInteractionProps } from "../../node.types";
+import { isParamNodeState, isVisualizerNodeState, NodeInteractionProps } from "../../node.types";
 import { AnyNodeState } from "../../nodes.context";
 import { Node } from "./Node";
 import { ParamNode } from "./ParamNode";
@@ -14,22 +14,21 @@ export const NodeRenderer = React.memo(function NodeRenderer({
   node,
   ...interactionProps
 }: NodeRendererProps) {
-  if (isParamKind(node)) {
+  if (isParamNodeState(node)) {
     return <ParamNode {...node} {...interactionProps} />;
   }
 
-  switch (node.kind) {
-    case "oscilloscope":
-      return <VisualizerNode {...node} {...interactionProps} />;
-    default:
-      return (
-        <Node
-          {...node}
-          {...interactionProps}
-          label={node.kind}
-          inputPorts={node.inputPorts ?? []}
-          outputPorts={node.outputPorts ?? []}
-        />
-      );
+  if (isVisualizerNodeState(node)) {
+    return <VisualizerNode {...node} {...interactionProps} />;
   }
+
+  return (
+    <Node
+      {...node}
+      {...interactionProps}
+      label={node.kind}
+      inputPorts={node.inputPorts ?? []}
+      outputPorts={node.outputPorts ?? []}
+    />
+  );
 });

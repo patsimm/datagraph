@@ -231,7 +231,7 @@ export function Datagraph() {
           <button
             onClick={() =>
               handleClickAdd(
-                "oscilloscope",
+                "visualizer:oscilloscope",
                 getCanvasPosition(menu.x, menu.y),
                 undefined,
                 undefined
@@ -239,6 +239,18 @@ export function Datagraph() {
             }
           >
             oscilloscope
+          </button>
+          <button
+            onClick={() =>
+              handleClickAdd(
+                "visualizer:inspect",
+                getCanvasPosition(menu.x, menu.y),
+                undefined,
+                undefined
+              )
+            }
+          >
+            inspect
           </button>
           <button
             onClick={() =>

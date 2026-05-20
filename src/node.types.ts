@@ -54,16 +54,19 @@ export type ButtonParamNodeState = ParamNodeBase<
 >;
 export type InputParamNodeState = ParamNodeBase<"param:input", { unit: Unit }>;
 
-export function isParamKind(nodeState: AnyNodeState): nodeState is AnyParamNodeState {
-  return nodeState.kind.startsWith("param:");
-}
-
 export type AnyParamNodeState = SliderParamNodeState | ButtonParamNodeState | InputParamNodeState;
 export type ParamNodeState<T extends AnyParamNodeState["kind"]> = Extract<
   AnyParamNodeState,
   { kind: T }
 >;
-export type AnyVisualizerNodeState = NodeBase<"oscilloscope">;
+
+export type ParamKind = AnyParamNodeState["kind"];
+
+export type OscilloscopeVisualizerNodeState = NodeBase<"visualizer:oscilloscope">;
+export type InspectVisualizerNodeState = NodeBase<"visualizer:inspect">;
+export type AnyVisualizerNodeState = OscilloscopeVisualizerNodeState | InspectVisualizerNodeState;
+
+export type VisualizerKind = AnyVisualizerNodeState["kind"];
 
 export type AnyParamNodeConfig = DistributiveOmit<
   AnyParamNodeState,
@@ -94,3 +97,18 @@ export type NodeInteractionProps = {
 export type NodeKind = AnyNodeState["kind"];
 
 export type NodeState<T extends NodeKind> = Extract<AnyNodeState, { kind: T }>;
+
+export function isParamKind(kind: NodeKind): kind is ParamKind {
+  return kind.startsWith("param:");
+}
+export function isParamNodeState(nodeState: AnyNodeState): nodeState is AnyParamNodeState {
+  return isParamKind(nodeState.kind);
+}
+export function isVisualizerKind(kind: NodeKind): kind is VisualizerKind {
+  return kind.startsWith("visualizer:");
+}
+export function isVisualizerNodeState(
+  nodeState: AnyNodeState
+): nodeState is AnyVisualizerNodeState {
+  return isVisualizerKind(nodeState.kind);
+}
