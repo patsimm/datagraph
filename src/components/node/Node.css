@@ -37,7 +37,8 @@
       border-radius: 50%;
       pointer-events: auto;
 
-      &:hover {
+      &:hover,
+      &.node__port--drag-over {
         background: color-mix(in srgb, var(--node-color-bg) 80%, var(--color-gray-light));
         outline: 2px solid color-mix(in srgb, var(--node-color-bg) 80%, var(--color-gray-light));
         cursor: pointer;
@@ -65,7 +66,8 @@
             background: transparent;
           }
 
-          &:hover {
+          &:hover,
+          &.node__port--drag-over {
             background: var(--color-background);
           }
         }

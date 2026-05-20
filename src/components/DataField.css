@@ -10,11 +10,10 @@
 
   & .datafield__value {
     flex-grow: 1;
-    display: flex;
     background-color: rgb(0 0 0 / 10%);
 
     & > input {
-      flex-grow: 1;
+      width: 100%;
       background: transparent;
       border: none;
       color: inherit;
@@ -23,7 +22,7 @@
     }
 
     & > select {
-      flex-grow: 1;
+      width: 100%;
       background: transparent;
       border: none;
       color: inherit;

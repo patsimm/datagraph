@@ -1,8 +1,6 @@
 import { useDatagraph } from "../../datagraph.context";
 import "./Datagraph.css";
-import { useNodeDragging } from "./node-dragging.hook";
-import { useEdgeDragging } from "./edge-dragging.hook";
-import { Edge } from "../edge/Edge";
+import { usePortConnecting } from "./port-connecting.hook";
 import { getNodeKeyFromElement, PortInfo, portKey } from "../node/node-utils";
 import { ContextMenu } from "../contextmenu/ContextMenu";
 import { OutputNode } from "../node/OutputNode";
@@ -12,25 +10,49 @@ import { useNodes } from "../../nodes.context";
 import type { NodeKind, NodeState } from "../../node.types";
 import { Nodes } from "./Nodes";
 import { usePortConnections } from "../../edges.context";
+import { ScrollDragging, ScrollDraggingHandle } from "../scroll-dragging/ScrollDragging";
+import { PortConnectionEdge } from "../edge/PortConnectionEdge";
+import { Edge } from "../edge/Edge";
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
 
 export function Datagraph() {
   const ref = useRef<HTMLDivElement>(null);
+  const scrollDraggingRef = useRef<ScrollDraggingHandle>(null);
   const { ready, start } = useDatagraph();
   const { addNode, removeNode } = useNodes();
   const [outputNode, setOutputNode] = useState<string | null>(null);
-  useNodeDragging();
   const [menu, setMenu] = useState<{ x: number; y: number } | null>(null);
   const { edges, disconnectPorts, disconnectNodes } = usePortConnections();
   const { handleNodeSelected } = useSelection();
+  const {
+    handlePointerDown: portConnectPointerDown,
+    handlePointerUp: portConnectPointerUp,
+    position: ghostPosition,
+  } = usePortConnecting({ containerRef: scrollDraggingRef });
 
-  const handleEdgeClick = useCallback(
-    (edge: { from: PortInfo; to: PortInfo }) => disconnectPorts([edge.from, edge.to]),
-    [disconnectPorts]
+  const handlePointerDown = useCallback(
+    (e: React.PointerEvent) => {
+      portConnectPointerDown(e);
+    },
+    [portConnectPointerDown]
   );
 
-  const { ghostRef } = useEdgeDragging();
+  const handlePointerUp = useCallback(
+    (e: React.PointerEvent) => {
+      portConnectPointerUp(e);
+    },
+    [portConnectPointerUp]
+  );
+
+  const handleEdgeClick = useCallback(
+    (edge: { from: PortInfo; to: PortInfo }, ev: React.MouseEvent) => {
+      console.log("edge click");
+      ev.stopPropagation();
+      disconnectPorts([edge.from, edge.to]);
+    },
+    [disconnectPorts]
+  );
 
   useEffect(() => {
     if (ready) return;
@@ -39,15 +61,23 @@ export function Datagraph() {
     });
   }, [ready, start]);
 
+  const getCanvasPosition = useCallback((screenX: number, screenY: number) => {
+    const canvas = document.querySelector(".scroll-dragging__content") as HTMLElement;
+    if (!canvas) return { x: screenX, y: screenY };
+    const r = canvas.getBoundingClientRect();
+    return { x: screenX - r.left, y: screenY - r.top };
+  }, []);
+
   const handleClick = useCallback(
     (e: React.MouseEvent) => {
-      if (e.target !== ref.current || !ready) return;
+      if (!ready) return;
       setMenu({ x: e.clientX, y: e.clientY });
     },
     [ready]
   );
 
-  const handleCloseContextMenu = useCallback(() => {
+  const handleCloseContextMenu = useCallback((ev: React.MouseEvent) => {
+    ev.stopPropagation();
     setMenu(null);
   }, []);
 
@@ -66,7 +96,8 @@ export function Datagraph() {
   );
 
   const handleNodeClick = useCallback(
-    (nodeId: string) => {
+    (nodeId: string, ev: React.MouseEvent) => {
+      ev.stopPropagation();
       handleNodeSelected(nodeId);
     },
     [handleNodeSelected]
@@ -96,46 +127,60 @@ export function Datagraph() {
   }, [handleKeyDown]);
 
   return (
-    <div ref={ref} onClick={handleClick} className="datagraph">
-      <ContextView />
+    <div
+      ref={ref}
+      onPointerDown={handlePointerDown}
+      onPointerUp={handlePointerUp}
+      className="datagraph"
+    >
       {menu && (
         <ContextMenu x={menu.x} y={menu.y} onClose={handleCloseContextMenu}>
           <div className="contextmenu__title">add Node</div>
           <button
-            onClick={() => handleClickAdd("sin", { x: menu.x, y: menu.y }, undefined, undefined)}
+            onClick={() =>
+              handleClickAdd("sin", getCanvasPosition(menu.x, menu.y), undefined, undefined)
+            }
           >
             sin
           </button>
           <button
-            onClick={() => handleClickAdd("saw", { x: menu.x, y: menu.y }, undefined, undefined)}
+            onClick={() =>
+              handleClickAdd("saw", getCanvasPosition(menu.x, menu.y), undefined, undefined)
+            }
           >
             saw
           </button>
           <button
-            onClick={() => handleClickAdd("square", { x: menu.x, y: menu.y }, undefined, undefined)}
+            onClick={() =>
+              handleClickAdd("square", getCanvasPosition(menu.x, menu.y), undefined, undefined)
+            }
           >
             square
           </button>
           <button
             onClick={() =>
-              handleClickAdd("multiply", { x: menu.x, y: menu.y }, undefined, undefined)
+              handleClickAdd("multiply", getCanvasPosition(menu.x, menu.y), undefined, undefined)
             }
           >
             multiply
           </button>
           <button
-            onClick={() => handleClickAdd("add", { x: menu.x, y: menu.y }, undefined, undefined)}
+            onClick={() =>
+              handleClickAdd("add", getCanvasPosition(menu.x, menu.y), undefined, undefined)
+            }
           >
             add
           </button>
           <button
-            onClick={() => handleClickAdd("delay", { x: menu.x, y: menu.y }, undefined, undefined)}
+            onClick={() =>
+              handleClickAdd("delay", getCanvasPosition(menu.x, menu.y), undefined, undefined)
+            }
           >
             delay
           </button>
           <button
             onClick={() =>
-              handleClickAdd("one-pole", { x: menu.x, y: menu.y }, undefined, undefined)
+              handleClickAdd("one-pole", getCanvasPosition(menu.x, menu.y), undefined, undefined)
             }
           >
             one-pole lowpass
@@ -144,7 +189,7 @@ export function Datagraph() {
             onClick={() =>
               handleClickAdd(
                 "adsr",
-                { x: menu.x, y: menu.y },
+                getCanvasPosition(menu.x, menu.y),
                 { attack: 0.1, decay: 0.1, sustain: 0.8, release: 0.1 },
                 undefined
               )
@@ -154,7 +199,7 @@ export function Datagraph() {
           </button>
           <button
             onClick={() =>
-              handleClickAdd("passthrough", { x: menu.x, y: menu.y }, undefined, undefined)
+              handleClickAdd("passthrough", getCanvasPosition(menu.x, menu.y), undefined, undefined)
             }
           >
             passthrough
@@ -163,7 +208,7 @@ export function Datagraph() {
             onClick={() =>
               handleClickAdd(
                 "param:slider",
-                { x: menu.x, y: menu.y },
+                getCanvasPosition(menu.x, menu.y),
                 { value: 0 },
                 { unit: "raw", min: 0, max: 1, step: 0.01 }
               )
@@ -175,7 +220,7 @@ export function Datagraph() {
             onClick={() =>
               handleClickAdd(
                 "param:button",
-                { x: menu.x, y: menu.y },
+                getCanvasPosition(menu.x, menu.y),
                 { value: 0 },
                 { unit: "raw", onValue: 1, offValue: 0 }
               )
@@ -185,14 +230,24 @@ export function Datagraph() {
           </button>
           <button
             onClick={() =>
-              handleClickAdd("oscilloscope", { x: menu.x, y: menu.y }, undefined, undefined)
+              handleClickAdd(
+                "oscilloscope",
+                getCanvasPosition(menu.x, menu.y),
+                undefined,
+                undefined
+              )
             }
           >
             oscilloscope
           </button>
           <button
             onClick={() =>
-              handleClickAdd("param:input", { x: menu.x, y: menu.y }, { value: 0 }, { unit: "raw" })
+              handleClickAdd(
+                "param:input",
+                getCanvasPosition(menu.x, menu.y),
+                { value: 0 },
+                { unit: "raw" }
+              )
             }
           >
             input
@@ -200,21 +255,27 @@ export function Datagraph() {
         </ContextMenu>
       )}
 
-      <svg className="edge" ref={ghostRef}>
-        <line className="edge__line edge__line--ghost" />
-      </svg>
-      {edges.map((edge) => (
-        <Edge
-          key={`${portKey(edge.from)}->${portKey(edge.to)}`}
-          from={edge.from.node}
-          fromPort={edge.from.port}
-          to={edge.to.node}
-          toPort={edge.to.port}
-          onClick={() => handleEdgeClick(edge)}
-        />
-      ))}
-      <Nodes onNodeClick={handleNodeClick} />
-      {outputNode && <OutputNode label="speaker" nodeId={outputNode} x={200} y={500} />}
+      <div className="datagraph__canvas" onClick={handleClick}>
+        <ScrollDragging ref={scrollDraggingRef}>
+          {ghostPosition && <Edge ghost {...ghostPosition} />}
+          {edges.map((edge) => (
+            <PortConnectionEdge
+              containerRef={scrollDraggingRef}
+              key={`${portKey(edge.from)}->${portKey(edge.to)}`}
+              from={edge.from.node}
+              fromPort={edge.from.port}
+              to={edge.to.node}
+              toPort={edge.to.port}
+              onClick={(ev) => handleEdgeClick(edge, ev)}
+            />
+          ))}
+          <Nodes onNodeClick={handleNodeClick} />
+          {outputNode && <OutputNode label="speaker" nodeId={outputNode} x={200} y={500} />}
+        </ScrollDragging>
+      </div>
+      <div className="datagraph__context-view">
+        <ContextView />
+      </div>
     </div>
   );
 }

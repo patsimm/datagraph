@@ -5,7 +5,7 @@ import { createPortal } from "react-dom";
 export type ContextMenuProps = React.PropsWithChildren<{
   x: number;
   y: number;
-  onClose?: () => void;
+  onClose?: (ev: React.MouseEvent) => void;
 }>;
 
 export function ContextMenu({ x, y, onClose, children }: ContextMenuProps) {

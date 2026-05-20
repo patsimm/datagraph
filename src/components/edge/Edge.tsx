@@ -1,95 +1,39 @@
 import "./Edge.css";
-import { getNodeElement, getNodePortElement, portKey } from "../node/node-utils";
 
-import { useCallback, useEffect, useRef } from "react";
+import classNames from "classnames";
+import { useRef } from "react";
 
 export type EdgeProps = {
-  from: string;
-  fromPort: number;
-  to: string;
-  toPort: number;
-  onClick?: () => void;
+  fromX: number;
+  fromY: number;
+  toX: number;
+  toY: number;
+  onClick?: (ev: React.MouseEvent<SVGLineElement>) => void;
+  ghost?: boolean;
 };
 
-export function Edge({ from, fromPort, to, toPort, onClick }: EdgeProps) {
+export function Edge({ fromX, fromY, toX, toY, onClick, ghost }: EdgeProps) {
   const edgeRef = useRef<SVGSVGElement>(null);
 
-  const recalculatePosition = useCallback(() => {
-    const fromPortElem = getNodePortElement(
-      portKey({
-        node: from,
-        port: fromPort,
-        portType: "out",
-      })
-    );
-    const toPortElem = getNodePortElement(
-      portKey({
-        node: to,
-        port: toPort,
-        portType: "in",
-      })
-    );
+  const width = Math.abs(fromX - toX);
+  const height = Math.abs(fromY - toY);
+  const startPosX = Math.min(fromX, toX);
+  const startPosY = Math.min(fromY, toY);
 
-    const containerElem = document.querySelector(".datagraph") as HTMLElement;
-
-    const fromPosX =
-      fromPortElem.getBoundingClientRect().left -
-      containerElem.getBoundingClientRect().left +
-      0.5 * fromPortElem.getBoundingClientRect().width;
-    const fromPosY =
-      fromPortElem.getBoundingClientRect().top -
-      containerElem.getBoundingClientRect().top +
-      0.5 * fromPortElem.getBoundingClientRect().height;
-
-    const toPosX =
-      toPortElem.getBoundingClientRect().left -
-      containerElem.getBoundingClientRect().left +
-      0.5 * toPortElem.getBoundingClientRect().width;
-    const toPosY =
-      toPortElem.getBoundingClientRect().top -
-      containerElem.getBoundingClientRect().top +
-      0.5 * toPortElem.getBoundingClientRect().height;
-
-    const width = Math.abs(fromPosX - toPosX);
-    const height = Math.abs(fromPosY - toPosY);
-    const startPosX = Math.min(fromPosX, toPosX);
-    const startPosY = Math.min(fromPosY, toPosY);
-
-    edgeRef.current!.style.left = `${startPosX}px`;
-    edgeRef.current!.style.top = `${startPosY}px`;
-    edgeRef.current!.style.width = `${width}px`;
-    edgeRef.current!.style.height = `${height}px`;
-    const line = edgeRef.current!.querySelector(".edge__line")!;
-    line.setAttribute("x1", `${fromPosX - startPosX}`);
-    line.setAttribute("y1", `${fromPosY - startPosY}`);
-    line.setAttribute("x2", `${toPosX - startPosX}`);
-    line.setAttribute("y2", `${toPosY - startPosY}`);
-  }, [from, fromPort, to, toPort]);
-
-  useEffect(() => {
-    const fromElem = getNodeElement(from);
-    const toElem = getNodeElement(to);
-    const observer = new MutationObserver(recalculatePosition);
-    observer.observe(fromElem, {
-      attributes: true,
-      attributeFilter: ["style", "class"],
-      subtree: false,
-    });
-    observer.observe(toElem, {
-      attributes: true,
-      attributeFilter: ["style", "class"],
-      subtree: false,
-    });
-
-    recalculatePosition();
-    return () => {
-      observer.disconnect();
-    };
-  }, [from, recalculatePosition, to]);
+  const x1 = fromX - startPosX;
+  const y1 = fromY - startPosY;
+  const x2 = toX - startPosX;
+  const y2 = toY - startPosY;
 
   return (
-    <svg className="edge" ref={edgeRef}>
-      <line onClick={onClick} className="edge__line" />
+    <svg
+      width={width}
+      height={height}
+      style={{ left: `${startPosX}px`, top: `${startPosY}px` }}
+      className={classNames("edge", { "edge--ghost": ghost })}
+      ref={edgeRef}
+    >
+      <line x1={x1} y1={y1} x2={x2} y2={y2} onClick={onClick} className="edge__line" />
     </svg>
   );
 }

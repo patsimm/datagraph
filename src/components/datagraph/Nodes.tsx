@@ -4,7 +4,7 @@ import { useSelection } from "../../selection.context";
 import { NodeRenderer } from "../node/NodeRenderer";
 
 export type NodesProps = {
-  onNodeClick: (nodeId: string, ev: React.MouseEvent) => void;
+  onNodeClick: (nodeId: string, ev: React.MouseEvent<HTMLDivElement>) => void;
 };
 
 export function Nodes({ onNodeClick }: NodesProps) {

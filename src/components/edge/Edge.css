@@ -12,8 +12,12 @@
       stroke: var(--color-accent);
       cursor: pointer;
     }
+  }
 
-    &.edge__line--ghost {
+  &.edge--ghost {
+    pointer-events: none;
+
+    & .edge__line {
       stroke: color-mix(in srgb, var(--color-gray-light) 60%, var(--color-gray-dark));
       stroke-width: 2px;
       stroke-dasharray: 5, 5;

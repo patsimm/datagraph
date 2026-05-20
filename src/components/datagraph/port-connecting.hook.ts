@@ -1,0 +1,129 @@
+import { getNodePortElement, getNodePortKeyFromElement } from "../node/node-utils";
+import { PortConnectionCompletedEvent, PortConnectionInitiatedEvent } from "./connection-events";
+
+import React, { useRef, useCallback } from "react";
+
+type DraggingState = {
+  dragStartPort: string;
+  dragStartX: number;
+  dragStartY: number;
+};
+
+export function usePortConnecting({
+  containerRef,
+}: {
+  containerRef: React.RefObject<Pick<HTMLElement, "getBoundingClientRect"> | null>;
+}) {
+  const draggingStateRef = useRef<DraggingState | null>(null);
+  const hoveredPortRef = useRef<HTMLElement | null>(null);
+  const [position, setPosition] = React.useState<{
+    fromX: number;
+    fromY: number;
+    toX: number;
+    toY: number;
+  } | null>(null);
+
+  const handlePointerMove = useCallback(
+    (event: PointerEvent) => {
+      if (!draggingStateRef.current) return;
+
+      const containerElem = containerRef.current;
+      if (!containerElem) return;
+
+      const x = event.clientX - containerElem.getBoundingClientRect().left;
+      const y = event.clientY - containerElem.getBoundingClientRect().top;
+
+      const startPosX = draggingStateRef.current.dragStartX;
+      const startPosY = draggingStateRef.current.dragStartY;
+
+      setPosition({ fromX: startPosX, fromY: startPosY, toX: x, toY: y });
+
+      const elemUnderCursor = document.elementFromPoint(event.clientX, event.clientY);
+      const portUnderCursor =
+        elemUnderCursor instanceof HTMLElement && getNodePortKeyFromElement(elemUnderCursor)
+          ? elemUnderCursor
+          : null;
+
+      if (portUnderCursor !== hoveredPortRef.current) {
+        hoveredPortRef.current?.classList.remove("node__port--drag-over");
+        portUnderCursor?.classList.add("node__port--drag-over");
+        hoveredPortRef.current = portUnderCursor;
+      }
+    },
+    [containerRef]
+  );
+
+  const handlePointerDown = useCallback(
+    (event: React.PointerEvent): boolean => {
+      if (!(event.target instanceof HTMLElement)) return false;
+      const portKey = getNodePortKeyFromElement(event.target);
+      if (!portKey) return false;
+
+      const nodeElem = event.target as HTMLElement;
+      const portelem = getNodePortElement(portKey);
+      const containerElem = containerRef.current;
+      if (!containerElem) return false;
+
+      const startPosX =
+        nodeElem.getBoundingClientRect().left -
+        containerElem.getBoundingClientRect().left +
+        0.5 * nodeElem.getBoundingClientRect().width;
+      const startPosY =
+        nodeElem.getBoundingClientRect().top -
+        containerElem.getBoundingClientRect().top +
+        0.5 * nodeElem.getBoundingClientRect().height;
+
+      draggingStateRef.current = {
+        dragStartPort: portKey,
+        dragStartX: startPosX,
+        dragStartY: startPosY,
+      };
+      setPosition({ fromX: startPosX, fromY: startPosY, toX: startPosX, toY: startPosY });
+
+      const elem = event.currentTarget as HTMLElement;
+      elem.setPointerCapture(event.pointerId);
+      elem.addEventListener("pointermove", handlePointerMove);
+
+      portelem.dispatchEvent(new PortConnectionInitiatedEvent(portKey));
+      return true;
+    },
+    [containerRef, handlePointerMove]
+  );
+
+  const handlePointerUp = useCallback(
+    (event: React.PointerEvent) => {
+      if (!draggingStateRef.current) return;
+
+      const elem = event.currentTarget as HTMLElement;
+      elem.removeEventListener("pointermove", handlePointerMove);
+
+      hoveredPortRef.current?.classList.remove("node__port--drag-over");
+      hoveredPortRef.current = null;
+
+      const startPortKey = draggingStateRef.current.dragStartPort;
+      draggingStateRef.current = null;
+
+      const suppressClick = (e: MouseEvent) => {
+        e.stopPropagation();
+        document.removeEventListener("click", suppressClick, true);
+      };
+      document.addEventListener("click", suppressClick, true);
+
+      setPosition({ fromX: 0, fromY: 0, toX: 0, toY: 0 });
+
+      const endPortElem = document.elementFromPoint(event.clientX, event.clientY);
+      const endPortKey =
+        endPortElem instanceof HTMLElement && getNodePortKeyFromElement(endPortElem);
+      if (endPortKey && endPortElem instanceof HTMLElement) {
+        endPortElem.dispatchEvent(new PortConnectionCompletedEvent(endPortKey, startPortKey));
+      }
+    },
+    [handlePointerMove]
+  );
+
+  return {
+    handlePointerDown,
+    handlePointerUp,
+    position,
+  };
+}

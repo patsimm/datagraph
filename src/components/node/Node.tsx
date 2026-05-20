@@ -5,6 +5,7 @@ import {
   PortConnectionCompletedEvent,
   PortConnectionInitiatedEvent,
 } from "../datagraph/connection-events";
+import { useNodeDragging } from "./node-dragging.hook";
 
 import classNames from "classnames";
 import { useCallback, useEffect, useRef } from "react";
@@ -36,6 +37,8 @@ export function Node({
   onPortConnectionInitiated,
   onPortConnectionCompleted,
 }: React.PropsWithChildren<NodeProps>) {
+  const { handlePointerDown, handlePointerUp } = useNodeDragging(nodeId);
+
   const handleFocus = useCallback(() => {
     onFocus?.(nodeId);
   }, [nodeId, onFocus]);
@@ -58,6 +61,8 @@ export function Node({
       tabIndex={0}
       onFocus={handleFocus}
       onBlur={handleBlur}
+      onPointerDown={handlePointerDown}
+      onPointerUp={handlePointerUp}
     >
       <div className="node__wrapper">
         <div className={"node__ports node__ports--input"}>
