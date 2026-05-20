@@ -20,13 +20,16 @@ export function convertToCv(value: number, unit: Unit): number {
       return value;
     }
     case "frequency:hz": {
-      return Math.log2(value / 440);
+      // 1V/oct, 0V = C4; c4Freq derived from A4=440 to match MIDI conversion
+      const c4Freq = 440 * Math.pow(2, (60 - 69) / 12);
+      return Math.log2(value / c4Freq);
     }
     case "frequency:cpm": {
-      return Math.log2(value / 60 / 440);
+      const c4Freq = 440 * Math.pow(2, (60 - 69) / 12);
+      return Math.log2(value / 60 / c4Freq);
     }
     case "frequency:midiNote": {
-      return (value - 69) / 12;
+      return (value - 60) / 12;
     }
   }
 }
