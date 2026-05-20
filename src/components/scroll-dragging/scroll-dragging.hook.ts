@@ -28,9 +28,20 @@ export function useScrollDragging({ dragHandleRef }: ScrollDraggingProps) {
     [dragHandleRef]
   );
 
+  const handlePointerCancel = useCallback(
+    (ev: React.PointerEvent) => {
+      console.log("pointer cancel");
+      if (!stateRef.current) return;
+      stateRef.current = null;
+      (ev.currentTarget as HTMLElement).removeEventListener("pointermove", handlePointerMove);
+      dragHandleRef.current?.setDragging(false);
+    },
+    [dragHandleRef, handlePointerMove]
+  );
+
   const handlePointerDown = useCallback(
     (ev: React.PointerEvent<HTMLDivElement>) => {
-      console.log("pointer down", ev.target);
+      if (ev.button !== 0) return;
       if (!dragHandleRef.current?.isDragHandleElement(ev.target)) return;
       if (!(ev.target instanceof HTMLElement)) return;
 
@@ -68,5 +79,11 @@ export function useScrollDragging({ dragHandleRef }: ScrollDraggingProps) {
     [dragHandleRef, handlePointerMove]
   );
 
-  return { handlePointerDown, handlePointerUp };
+  return {
+    containerProps: {
+      onPointerDown: handlePointerDown,
+      onPointerUp: handlePointerUp,
+      onPointerCancel: handlePointerCancel,
+    },
+  };
 }

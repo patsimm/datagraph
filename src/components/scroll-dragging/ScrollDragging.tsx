@@ -52,15 +52,10 @@ export const ScrollDragging = forwardRef<ScrollDraggingHandle, React.PropsWithCh
       setDragging,
     });
 
-    const { handlePointerDown, handlePointerUp } = useScrollDragging({ dragHandleRef });
+    const { containerProps } = useScrollDragging({ dragHandleRef });
 
     return (
-      <div
-        className="scroll-dragging"
-        onPointerDown={handlePointerDown}
-        onPointerUp={handlePointerUp}
-        ref={containerRef}
-      >
+      <div className="scroll-dragging" ref={containerRef} {...containerProps}>
         <div className="scroll-dragging__content" ref={contentRef} data-canvas-background="true">
           {children}
         </div>
