@@ -1,5 +1,7 @@
 import { useDatagraph } from "./datagraph.context";
 import {
+  AnyParamNodeState,
+  isNodeStateOfKind,
   isParamKind,
   isParamNodeState,
   isVisualizerKind,
@@ -155,7 +157,42 @@ function useAllNodes() {
     [nodes]
   );
 
-  return { nodes, addNode, removeNode, updateNodeState, getNode, setParamValue };
+  const updateNodeSettings = useCallback(
+    async <T extends NodeKind>(
+      kind: T,
+      nodeId: string,
+      updateNodeSettings: (current: NodeState<T>["settings"]) => NodeState<T>["settings"]
+    ) => {
+      if (!ready) return;
+      const node = nodes[nodeId];
+      if (!node) throw new Error(`Node ${nodeId} not found`);
+      if (!isNodeStateOfKind(node, kind)) throw new Error(`Node ${nodeId} is not of kind ${kind}`);
+      const updatedSettings = updateNodeSettings(node.settings as NodeState<T>["settings"]);
+      updateNodeState(
+        nodeId,
+        (current) =>
+          ({
+            ...current,
+            settings: updatedSettings,
+          }) as AnyNodeState
+      );
+      if (isParamKind(kind) && isParamNodeState(node)) {
+        const pramSetings = updatedSettings as AnyParamNodeState["settings"];
+        await setParamInGraph(nodeId, convertToCv(node.config.value, pramSetings.unit));
+      }
+    },
+    [nodes, ready, setParamInGraph, updateNodeState]
+  );
+
+  return {
+    nodes,
+    addNode,
+    removeNode,
+    updateNodeState,
+    updateNodeSettings,
+    getNode,
+    setParamValue,
+  };
 }
 
 const nodesContext = createContext<{
@@ -170,6 +207,11 @@ const nodesContext = createContext<{
   updateNodeState: (nodeId: string, update: (current: AnyNodeState) => AnyNodeState) => void;
   getNode: (nodeId: string) => AnyNodeState | undefined;
   setParamValue: (nodeId: string, value: number) => Promise<void>;
+  updateNodeSettings: <T extends NodeKind>(
+    kind: T,
+    nodeId: string,
+    updateNodeSettings: (current: NodeState<T>["settings"]) => NodeState<T>["settings"]
+  ) => Promise<void>;
 }>({
   nodes: {},
   addNode: async () => {
@@ -187,14 +229,33 @@ const nodesContext = createContext<{
   setParamValue: async () => {
     throw new Error("Nodes context not initialized yet");
   },
+  updateNodeSettings: async () => {
+    throw new Error("Nodes context not initialized yet");
+  },
 });
 
 export function NodesProvider({ children }: { children: React.ReactNode }) {
-  const { nodes, addNode, removeNode, updateNodeState, getNode, setParamValue } = useAllNodes();
+  const {
+    nodes,
+    addNode,
+    removeNode,
+    updateNodeState,
+    getNode,
+    setParamValue,
+    updateNodeSettings,
+  } = useAllNodes();
 
   return (
     <nodesContext.Provider
-      value={{ nodes, addNode, removeNode, updateNodeState, getNode, setParamValue }}
+      value={{
+        nodes,
+        addNode,
+        removeNode,
+        updateNodeState,
+        getNode,
+        setParamValue,
+        updateNodeSettings,
+      }}
     >
       {children}
     </nodesContext.Provider>

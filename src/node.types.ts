@@ -112,3 +112,10 @@ export function isVisualizerNodeState(
 ): nodeState is AnyVisualizerNodeState {
   return isVisualizerKind(nodeState.kind);
 }
+
+export function isNodeStateOfKind<T extends NodeKind>(
+  nodeState: AnyNodeState,
+  kind: T
+): nodeState is NodeState<T> {
+  return nodeState.kind === kind;
+}

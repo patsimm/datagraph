@@ -1,5 +1,6 @@
-import { useNodes, AnyNodeState } from "../../nodes.context";
+import { useNodes } from "../../nodes.context";
 import { useSelection } from "../../selection.context";
+import { isParamNodeState, NodeKind, NodeState, ParamKind } from "../../node.types";
 import "./ContextView.css";
 import { NodeSettings } from "../node/NodeSettings";
 
@@ -7,7 +8,7 @@ import { useCallback } from "react";
 
 export function ContextView() {
   const { getSelectedNode } = useSelection();
-  const { getNode, updateNodeState } = useNodes();
+  const { getNode, updateNodeSettings } = useNodes();
 
   const node = getSelectedNode();
 
@@ -18,19 +19,21 @@ export function ContextView() {
   const selectedNodeId = node?.nodeId || null;
 
   const handleNodeSettingChange = useCallback(
-    (nodeId: string, settingsKey: string, value: unknown) => {
+    <T extends NodeKind>(
+      nodeId: string,
+      settingsKey: keyof NodeState<T>["settings"],
+      value: NodeState<T>["settings"][keyof NodeState<T>["settings"]]
+    ) => {
       const nodeToChange = getNode(nodeId);
-      if (!nodeToChange) return;
-      updateNodeState(
-        nodeId,
-        (curr) =>
-          ({
-            ...curr,
-            settings: { ...curr.settings, [settingsKey]: value },
-          }) as AnyNodeState
-      );
+      if (!nodeToChange) throw new Error(`Node ${nodeId} not found`);
+      if (!nodeToChange.settings)
+        throw new Error(`Node ${nodeId} of kind ${nodeToChange.kind} has no settings`);
+      updateNodeSettings(nodeToChange.kind, nodeId, (curr) => ({
+        ...curr,
+        [settingsKey]: value,
+      }));
     },
-    [getNode, updateNodeState]
+    [getNode, updateNodeSettings]
   );
 
   return (
@@ -53,10 +56,14 @@ export function ContextView() {
               {node.outputPorts.map((port) => port.name).join(", ")}]
             </div>
           </div>
-          <NodeSettings
-            nodeId={selectedNodeId}
-            onChange={(...args) => handleNodeSettingChange(selectedNodeId, ...args)}
-          />
+          {isParamNodeState(node) && (
+            <NodeSettings
+              node={node}
+              onChange={(key, value) =>
+                handleNodeSettingChange<ParamKind>(selectedNodeId, key, value)
+              }
+            />
+          )}
         </>
       )}
     </aside>
