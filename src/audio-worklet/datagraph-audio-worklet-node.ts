@@ -10,7 +10,7 @@ import {
 } from "./datagraph-audio-worklet-message";
 import { createNodeDataBuffer, NodeDataSubscriptionReader } from "./node-data-subscription";
 
-import wasmUrl from "@patsimm/datagraph-core/datagraph_bg.wasm?url";
+import wasmUrl from "@patsimm/datagraph-core/pkg/datagraph_bg.wasm?url";
 
 export class DatagraphAudioWorkletNode extends AudioWorkletNode {
   _pending: Map<
