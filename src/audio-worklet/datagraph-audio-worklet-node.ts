@@ -88,6 +88,10 @@ export class DatagraphAudioWorkletNode extends AudioWorkletNode {
   }
 
   async setParam(nodeId: string, value: number) {
+    if (Number.isNaN(value) || !Number.isFinite(value)) {
+      console.error(`Invalid parameter value ${value} for node ${nodeId}`);
+      return;
+    }
     await this.sendCommand("set_param", { nodeId, value });
   }
 

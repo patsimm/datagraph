@@ -1,13 +1,16 @@
-import type { ParamBodyProps } from "./param-body.types";
+import { ComponentProps, PropsWithChildren, useState } from "react";
 
-import { useState } from "react";
+export type NumberInputProps = Omit<ComponentProps<"input">, "onChange" | "value" | "type"> & {
+  onChange?: (value: number) => void;
+  value: number;
+};
 
-export function SliderParamBody({
-  settings,
-  value,
+export function NumberInput({
   onChange,
-  ...rest
-}: ParamBodyProps<"param:slider">) {
+  value,
+  children,
+  ...props
+}: PropsWithChildren<NumberInputProps>) {
   const [displayValue, setDisplayValue] = useState<string>(value.toString());
   const [prevValue, setPrevValue] = useState(value);
 
@@ -24,15 +27,8 @@ export function SliderParamBody({
   };
 
   return (
-    <input
-      className="node__input-slider"
-      type="range"
-      min={settings.min}
-      max={settings.max}
-      step={settings.step}
-      value={displayValue}
-      onChange={handleChange}
-      {...rest}
-    />
+    <input type="number" onChange={handleChange} value={displayValue} {...props}>
+      {children}
+    </input>
   );
 }

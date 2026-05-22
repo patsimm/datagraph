@@ -16,7 +16,8 @@ export type AnyNodeSpec =
   | { kind: "add" }
   | { kind: "delay" }
   | { kind: "one-pole" }
-  | { kind: "passthrough" };
+  | { kind: "passthrough" }
+  | { kind: "sequencer" };
 
 export type NodeSpecKind = AnyNodeSpec["kind"];
 
@@ -76,6 +77,9 @@ export const commandHandlers = {
         break;
       case "passthrough":
         graphNode = datagraph.createPassthrough();
+        break;
+      case "sequencer":
+        graphNode = datagraph.createSequencer();
         break;
     }
     const nodeId = context.graph.add(graphNode);

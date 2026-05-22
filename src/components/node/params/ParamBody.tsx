@@ -8,20 +8,23 @@ export function ParamBody({
   ...node
 }: AnyParamNodeState & { onChange: (nodeId: string, value: number) => void }) {
   const getProps = <K extends AnyParamNodeState["kind"]>(nodeState: ParamNodeState<K>) => ({
-    onChange,
+    onChange: (value: number) => onChange(nodeState.nodeId, value),
     onPointerDown: (ev: React.PointerEvent) => ev.stopPropagation(),
     onPointerUp: (ev: React.PointerEvent) => ev.stopPropagation(),
-    nodeId: nodeState.nodeId,
     settings: nodeState.settings as ParamNodeState<K>["settings"],
     value: nodeState.config.value as ParamNodeState<K>["config"]["value"],
   });
 
-  switch (node.kind) {
-    case "param:slider":
-      return <SliderParamBody {...getProps(node)} />;
-    case "param:button":
-      return <ButtonParamBody {...getProps(node)} />;
-    case "param:input":
-      return <InputParamBody {...getProps(node)} />;
-  }
+  const Component = (() => {
+    switch (node.kind) {
+      case "param:slider":
+        return <SliderParamBody {...getProps(node)} />;
+      case "param:button":
+        return <ButtonParamBody {...getProps(node)} />;
+      case "param:input":
+        return <InputParamBody {...getProps(node)} />;
+    }
+  })();
+
+  return <div className="node__body">{Component}</div>;
 }

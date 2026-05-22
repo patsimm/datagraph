@@ -199,6 +199,13 @@ export function Datagraph() {
           </button>
           <button
             onClick={() =>
+              handleClickAdd("sequencer", getCanvasPosition(menu.x, menu.y), undefined, undefined)
+            }
+          >
+            sequencer
+          </button>
+          <button
+            onClick={() =>
               handleClickAdd("passthrough", getCanvasPosition(menu.x, menu.y), undefined, undefined)
             }
           >

@@ -1,6 +1,7 @@
 import { NodeKind, NodeState } from "../../node.types";
 import { allUnits, Unit } from "../../unit-conversion";
 import { DataField } from "../DataField";
+import { NumberInput } from "../NumberInput";
 import "./NodeSettings.css";
 
 export type NodeSettingsProps<T extends NodeKind> = {
@@ -68,33 +69,30 @@ function SliderParamNodeSettings(props: NodeSettingsComponentProps<"param:slider
       <DataField
         label="min"
         value={
-          <input
-            type="number"
+          <NumberInput
             step={1}
             value={props.settings.min}
-            onChange={(ev) => props.onChange("min", parseFloat(ev.target.value))}
+            onChange={(value) => props.onChange("min", value)}
           />
         }
       />
       <DataField
         label="max"
         value={
-          <input
-            type="number"
+          <NumberInput
             step={1}
             value={props.settings.max}
-            onChange={(ev) => props.onChange("max", parseFloat(ev.target.value))}
+            onChange={(value) => props.onChange("max", value)}
           />
         }
       />
       <DataField
         label="step"
         value={
-          <input
-            type="number"
+          <NumberInput
             step={0.01}
             value={props.settings.step}
-            onChange={(ev) => props.onChange("step", parseFloat(ev.target.value))}
+            onChange={(value) => props.onChange("step", value)}
           />
         }
       />

@@ -3,7 +3,6 @@ import type { ParamBodyProps } from "./param-body.types";
 import classNames from "classnames";
 
 export function ButtonParamBody({
-  nodeId,
   settings,
   onChange,
   value,
@@ -12,12 +11,12 @@ export function ButtonParamBody({
 }: ParamBodyProps<"param:button">) {
   const handlePointerDown = (ev: React.PointerEvent) => {
     onPointerDown?.(ev);
-    onChange?.(nodeId, settings.onValue);
+    onChange?.(settings.onValue);
   };
 
   const handlePointerUp = (ev: React.PointerEvent) => {
     onPointerUp?.(ev);
-    onChange?.(nodeId, settings.offValue);
+    onChange?.(settings.offValue);
   };
 
   return (
@@ -28,7 +27,7 @@ export function ButtonParamBody({
       type="button"
       onPointerDown={handlePointerDown}
       onPointerUp={handlePointerUp}
-      onPointerLeave={() => onChange?.(nodeId, settings.offValue)}
+      onPointerLeave={() => onChange?.(settings.offValue)}
       aria-pressed={value === settings.onValue}
     />
   );
