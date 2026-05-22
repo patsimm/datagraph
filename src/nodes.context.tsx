@@ -77,7 +77,6 @@ function useAllNodes() {
       if (isParamKind(kind)) {
         const typedConfig = config as NodeState<"param:slider" | "param:button">["config"];
         nodeId = await addParamToGraph(typedConfig.value);
-        console.log("Added param node to graph with id", nodeId);
         const { nodeType } = await nodeInfo(nodeId);
         setNodes((prev) => ({
           ...prev,

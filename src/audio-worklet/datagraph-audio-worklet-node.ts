@@ -48,7 +48,7 @@ export class DatagraphAudioWorkletNode extends AudioWorkletNode {
   ): Promise<CommandResult<T>> {
     const context = this.context instanceof AudioContext ? this.context : undefined;
     if (context && context.state === "suspended" && navigator.userActivation.isActive) {
-      console.log("First user activation detected, resuming audio context");
+      console.log("First user activation detected, resuming audio context 🔊");
       context?.resume();
     }
 
@@ -58,7 +58,6 @@ export class DatagraphAudioWorkletNode extends AudioWorkletNode {
         id,
         command: { type, payload },
       };
-      console.log("Sending message", message);
       this._pending.set(id, { resolve, reject });
       this.port.postMessage(message);
     });

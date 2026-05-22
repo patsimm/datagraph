@@ -30,7 +30,6 @@ export function useScrollDragging({ dragHandleRef }: ScrollDraggingProps) {
 
   const handlePointerCancel = useCallback(
     (ev: React.PointerEvent) => {
-      console.log("pointer cancel");
       if (!stateRef.current) return;
       stateRef.current = null;
       (ev.currentTarget as HTMLElement).removeEventListener("pointermove", handlePointerMove);

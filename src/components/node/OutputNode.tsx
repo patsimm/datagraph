@@ -26,7 +26,6 @@ export function OutputNode(props: OutputNodeProps) {
 
   const handleOutputConnectionCompleted = useCallback(
     async (port1: PortInfo, port2: PortInfo) => {
-      console.log("Output connection completed", port1, port2);
       await connect(port1, port2);
     },
     [connect]
