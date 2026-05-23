@@ -3,10 +3,12 @@
   background: transparent;
   overflow: visible;
   z-index: 1;
+  pointer-events: none;
 
   & .edge__line {
     stroke: color-mix(in srgb, var(--color-primary) 60%, var(--color-gray-light));
     stroke-width: 5px;
+    pointer-events: auto;
 
     &:not(.edge__line--ghost):hover {
       stroke: var(--color-accent);
@@ -15,8 +17,6 @@
   }
 
   &.edge--ghost {
-    pointer-events: none;
-
     & .edge__line {
       stroke: color-mix(in srgb, var(--color-gray-light) 60%, var(--color-gray-dark));
       stroke-width: 2px;
