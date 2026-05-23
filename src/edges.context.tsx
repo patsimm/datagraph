@@ -40,16 +40,16 @@ function useEdgesList() {
       const from = port1.portType === "out" ? port1 : port2;
       const to = port1.portType === "in" ? port1 : port2;
 
-      await addDatagraphConnection(from.node, from.port, to.node, to.port);
+      await addDatagraphConnection(from.nodeId, from.port, to.nodeId, to.port);
       setConnection((edges) => [...edges, { from, to }]);
 
-      updateNodeState(from.node, (current) => ({
+      updateNodeState(from.nodeId, (current) => ({
         ...current,
         outputPorts: current.outputPorts.map((p, i) =>
           i === from.port ? { ...p, connectedTo: [...p.connectedTo, to] } : p
         ),
       }));
-      updateNodeState(to.node, (current) => ({
+      updateNodeState(to.nodeId, (current) => ({
         ...current,
         inputPorts: current.inputPorts.map((p, i) =>
           i === to.port ? { ...p, connectedTo: [...p.connectedTo, from] } : p
@@ -63,16 +63,16 @@ function useEdgesList() {
     async (connection: { from: PortInfo; to: PortInfo }) => {
       if (!ready) return;
       await removeDatagraphConnection(
-        connection.from.node,
+        connection.from.nodeId,
         connection.from.port,
-        connection.to.node,
+        connection.to.nodeId,
         connection.to.port
       );
       setConnection((edges) =>
         edges.filter((e) => e.from !== connection.from || e.to !== connection.to)
       );
 
-      updateNodeState(connection.from.node, (current) => ({
+      updateNodeState(connection.from.nodeId, (current) => ({
         ...current,
         outputPorts: current.outputPorts.map((p, i) =>
           i === connection.from.port
@@ -81,7 +81,7 @@ function useEdgesList() {
                 connectedTo: p.connectedTo.filter(
                   (c) =>
                     !(
-                      c.node === connection.to.node &&
+                      c.nodeId === connection.to.nodeId &&
                       c.port === connection.to.port &&
                       c.portType === connection.to.portType
                     )
@@ -90,7 +90,7 @@ function useEdgesList() {
             : p
         ),
       }));
-      updateNodeState(connection.to.node, (current) => ({
+      updateNodeState(connection.to.nodeId, (current) => ({
         ...current,
         inputPorts: current.inputPorts.map((p, i) =>
           i === connection.to.port
@@ -99,7 +99,7 @@ function useEdgesList() {
                 connectedTo: p.connectedTo.filter(
                   (c) =>
                     !(
-                      c.node === connection.from.node &&
+                      c.nodeId === connection.from.nodeId &&
                       c.port === connection.from.port &&
                       c.portType === connection.from.portType
                     )
@@ -120,10 +120,10 @@ function useEdgesList() {
 
       const connectionsToRemove = edges.filter(
         (edge) =>
-          edge.from.node === fromPort.node &&
+          edge.from.nodeId === fromPort.nodeId &&
           edge.from.port === fromPort.port &&
           edge.from.portType === fromPort.portType &&
-          edge.to.node === toPort.node &&
+          edge.to.nodeId === toPort.nodeId &&
           edge.to.port === toPort.port &&
           edge.to.portType === toPort.portType
       );
@@ -138,8 +138,8 @@ function useEdgesList() {
     async (...nodeIds: string[]) => {
       const connectionsToRemove = edges.filter(
         (edge) =>
-          (edge.from.node && nodeIds.some((id) => id === edge.from.node)) ||
-          (edge.to.node && nodeIds.some((id) => id === edge.to.node))
+          (edge.from.nodeId && nodeIds.some((id) => id === edge.from.nodeId)) ||
+          (edge.to.nodeId && nodeIds.some((id) => id === edge.to.nodeId))
       );
 
       for (const connection of connectionsToRemove) {

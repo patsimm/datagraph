@@ -1,3 +1,4 @@
+import { PortInfo, portKey } from "../components/node/node-utils";
 import {
   CommandPayload,
   CommandResult,
@@ -8,6 +9,7 @@ import {
   DatagraphAudioWorkletMessage,
   DatagraphAudioWorkletResponse,
 } from "./datagraph-audio-worklet-message";
+import { createLatestValueBuffer, LatestValueSubscriptionReader } from "./latest-value-subscription";
 import { createNodeDataBuffer, NodeDataSubscriptionReader } from "./node-data-subscription";
 
 import wasmUrl from "@patsimm/datagraph-core/pkg/datagraph_bg.wasm?url";
@@ -21,12 +23,14 @@ export class DatagraphAudioWorkletNode extends AudioWorkletNode {
       reject: (err: unknown) => void;
     }
   > = new Map();
-  nodeSubscriptionReader: NodeDataSubscriptionReader;
+  nodeDataSubscriptionReader: NodeDataSubscriptionReader;
+  latestValueSubscriptionReader: LatestValueSubscriptionReader;
 
   constructor(context: BaseAudioContext, name: string) {
     super(context, name);
 
-    this.nodeSubscriptionReader = new NodeDataSubscriptionReader(createNodeDataBuffer());
+    this.nodeDataSubscriptionReader = new NodeDataSubscriptionReader(createNodeDataBuffer());
+    this.latestValueSubscriptionReader = new LatestValueSubscriptionReader(createLatestValueBuffer());
 
     this.port.onmessage = (e: MessageEvent) => {
       const response = e.data as DatagraphAudioWorkletResponse<CommandType>;
@@ -67,7 +71,8 @@ export class DatagraphAudioWorkletNode extends AudioWorkletNode {
     const wasmBytes = await fetch(wasmUrl).then((r) => r.arrayBuffer());
     return await this.sendCommand("init", {
       wasmBytes,
-      nodeDataSharedArrayBuffer: this.nodeSubscriptionReader.nodeDataBuffer,
+      nodeDataSharedArrayBuffer: this.nodeDataSubscriptionReader.nodeDataBuffer,
+      latestValueSharedArrayBuffer: this.latestValueSubscriptionReader.nodeDataBuffer,
     });
   }
 
@@ -80,9 +85,7 @@ export class DatagraphAudioWorkletNode extends AudioWorkletNode {
   }
 
   async removeNode(nodeId: string) {
-    if (this.nodeSubscriptionReader.removeSubscription(nodeId)) {
-      await this.sendCommand("unsubscribe_data", { nodeId });
-    }
+    await this.removeNodeDataSubscription(nodeId);
     await this.sendCommand("remove_node", { nodeId });
   }
 
@@ -106,18 +109,41 @@ export class DatagraphAudioWorkletNode extends AudioWorkletNode {
     return await this.sendCommand("node_info", { nodeId });
   }
 
-  addNodeSubscription(nodeId: string, callback: (data: Float32Array) => void) {
-    this.sendCommand("subscribe_data", { nodeId }).then((subscriptionIndex) => {
-      if (subscriptionIndex === undefined) {
-        console.warn(`Failed to subscribe to node data for node ${nodeId}`);
-        return;
-      }
-      this.nodeSubscriptionReader.addSubscription(nodeId, subscriptionIndex, callback);
+  async addNodeDataSubscription(nodeId: string, callback: (data: Float32Array) => void) {
+    const subscriptionIndex = await this.sendCommand("subscribe_data", {
+      nodeId,
+      port: 0,
+      portType: "out",
     });
+    if (subscriptionIndex === undefined) {
+      console.warn(`Failed to subscribe to node data for node ${nodeId}`);
+      return false;
+    }
+    this.nodeDataSubscriptionReader.addSubscription(nodeId, subscriptionIndex, callback);
+    return true;
   }
 
-  async removeNodeSubscription(nodeId: string) {
-    this.nodeSubscriptionReader.removeSubscription(nodeId);
-    return await this.sendCommand("unsubscribe_data", { nodeId });
+  async removeNodeDataSubscription(nodeId: string) {
+    if (!this.nodeDataSubscriptionReader.removeSubscription(nodeId)) return false;
+    return await this.sendCommand("unsubscribe_data", { nodeId, port: 0, portType: "out" });
+  }
+
+  async addLatestValueSubscription(port: PortInfo) {
+    const subscriptionIndex = await this.sendCommand("subscribe_latest_value", port);
+    if (subscriptionIndex === undefined) {
+      console.warn(`Failed to subscribe to latest value for port ${portKey(port)}`);
+      return false;
+    }
+    this.latestValueSubscriptionReader.register(port, subscriptionIndex);
+    return true;
+  }
+
+  async removeLatestValueSubscription(port: PortInfo) {
+    if (!this.latestValueSubscriptionReader.unregister(port)) return false;
+    return await this.sendCommand("unsubscribe_latest_value", port);
+  }
+
+  readLatestValue(port: PortInfo): number | undefined {
+    return this.latestValueSubscriptionReader.read(port);
   }
 }

@@ -21,34 +21,43 @@ type NodeSettingsComponentProps<T extends NodeKind> = {
 };
 
 export function NodeSettings<T extends NodeKind>(props: NodeSettingsProps<T>) {
-  switch (props.node.kind) {
-    case "param:slider":
-      return (
-        <SliderParamNodeSettings
-          settings={props.node.settings as NodeSettingsComponentProps<"param:slider">["settings"]}
-          onChange={props.onChange as NodeSettingsComponentProps<"param:slider">["onChange"]}
-        />
-      );
-    case "param:button":
-      return (
-        <ButtonParamNodeSettings
-          settings={props.node.settings as NodeSettingsComponentProps<"param:button">["settings"]}
-          onChange={props.onChange as NodeSettingsComponentProps<"param:button">["onChange"]}
-        />
-      );
-    case "param:input":
-      return (
-        <InputParamNodeSettings
-          settings={props.node.settings as NodeSettingsComponentProps<"param:input">["settings"]}
-          onChange={props.onChange as NodeSettingsComponentProps<"param:input">["onChange"]}
-        />
-      );
-  }
+  const SettingsComponent = (() => {
+    switch (props.node.kind) {
+      case "param:slider":
+        return (
+          <SliderParamNodeSettings
+            settings={props.node.settings as NodeSettingsComponentProps<"param:slider">["settings"]}
+            onChange={props.onChange as NodeSettingsComponentProps<"param:slider">["onChange"]}
+          />
+        );
+      case "param:button":
+        return (
+          <ButtonParamNodeSettings
+            settings={props.node.settings as NodeSettingsComponentProps<"param:button">["settings"]}
+            onChange={props.onChange as NodeSettingsComponentProps<"param:button">["onChange"]}
+          />
+        );
+      case "param:input":
+        return (
+          <InputParamNodeSettings
+            settings={props.node.settings as NodeSettingsComponentProps<"param:input">["settings"]}
+            onChange={props.onChange as NodeSettingsComponentProps<"param:input">["onChange"]}
+          />
+        );
+    }
+  })();
+
+  return (
+    <div className="nodesettings contextview__section">
+      <h2>Settings</h2>
+      {SettingsComponent}
+    </div>
+  );
 }
 
 function SliderParamNodeSettings(props: NodeSettingsComponentProps<"param:slider">) {
   return (
-    <div className="nodesettings">
+    <>
       <DataField
         label="unit"
         value={
@@ -96,13 +105,13 @@ function SliderParamNodeSettings(props: NodeSettingsComponentProps<"param:slider
           />
         }
       />
-    </div>
+    </>
   );
 }
 
 function ButtonParamNodeSettings(props: NodeSettingsComponentProps<"param:button">) {
   return (
-    <div className="nodesettings">
+    <>
       <DataField
         label="unit"
         value={
@@ -120,30 +129,28 @@ function ButtonParamNodeSettings(props: NodeSettingsComponentProps<"param:button
           </select>
         }
       />
-    </div>
+    </>
   );
 }
 
 function InputParamNodeSettings(props: NodeSettingsComponentProps<"param:input">) {
   return (
-    <div className="nodesettings">
-      <DataField
-        label="unit"
-        value={
-          <select
-            name="unit"
-            id="pet-select"
-            value={props.settings.unit}
-            onChange={(ev) => props.onChange("unit", ev.target.value as Unit)}
-          >
-            {allUnits.map((unit) => (
-              <option key={unit} value={unit}>
-                {unit}
-              </option>
-            ))}
-          </select>
-        }
-      />
-    </div>
+    <DataField
+      label="unit"
+      value={
+        <select
+          name="unit"
+          id="pet-select"
+          value={props.settings.unit}
+          onChange={(ev) => props.onChange("unit", ev.target.value as Unit)}
+        >
+          {allUnits.map((unit) => (
+            <option key={unit} value={unit}>
+              {unit}
+            </option>
+          ))}
+        </select>
+      }
+    />
   );
 }

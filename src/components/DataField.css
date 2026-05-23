@@ -1,7 +1,8 @@
 .datafield {
   display: flex;
-  align-items: center;
   justify-content: center;
+  height: 1.25rem;
+  align-items: center;
 
   & .datafield__label {
     flex-shrink: 0;
@@ -9,8 +10,17 @@
   }
 
   & .datafield__value {
+    height: 100%;
+    line-height: 1.25rem;
     flex-grow: 1;
     background-color: rgb(0 0 0 / 10%);
+    text-align: right;
+    font-family: "DM Mono", monospace;
+    user-select: text;
+
+    &:not(:has(> input, > select)) {
+      padding: 0 0.25rem;
+    }
 
     & > input {
       width: 100%;

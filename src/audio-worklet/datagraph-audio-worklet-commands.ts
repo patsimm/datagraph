@@ -1,3 +1,5 @@
+import { PortInfo } from "../components/node/node-utils";
+
 import { Graph, Param } from "@patsimm/datagraph-core";
 import * as datagraph from "@patsimm/datagraph-core";
 
@@ -31,8 +33,11 @@ export type GraphContext = {
   graph: Graph;
   params: Map<string, Param>;
   sampleRate: number;
-  subscribe: (nodeId: string) => number | undefined;
-  unsubscribe: (nodeId: string) => boolean;
+  subscribePortData: (port: PortInfo) => number | undefined;
+  unsubscribePortData: (port: PortInfo) => boolean;
+  subscribeLatestValue: (port: PortInfo) => number | undefined;
+  unsubscribeLatestValue: (port: PortInfo) => boolean;
+  latestValueSubscriptionIndex: (port: PortInfo) => number | undefined;
 };
 
 export const commandHandlers = {
@@ -120,11 +125,20 @@ export const commandHandlers = {
   ) => {
     context.graph.disconnect(from, fromPort, to, toPort);
   },
-  subscribe_data: async (context: GraphContext, { nodeId }: { nodeId: string }) => {
-    return context.subscribe(nodeId);
+  subscribe_data: async (context: GraphContext, port: PortInfo) => {
+    return context.subscribePortData(port);
   },
-  unsubscribe_data: async (context: GraphContext, { nodeId }: { nodeId: string }) => {
-    return context.unsubscribe(nodeId);
+  unsubscribe_data: async (context: GraphContext, port: PortInfo) => {
+    return context.unsubscribePortData(port);
+  },
+  subscribe_latest_value: async (context: GraphContext, port: PortInfo) => {
+    return context.subscribeLatestValue(port);
+  },
+  unsubscribe_latest_value: async (context: GraphContext, port: PortInfo) => {
+    return context.unsubscribeLatestValue(port);
+  },
+  latest_value_subscription_index: async (context: GraphContext, port: PortInfo) => {
+    return context.latestValueSubscriptionIndex(port);
   },
   node_info: async (context: GraphContext, { nodeId }: { nodeId: string }) => {
     const info = context.graph.nodeInfo(nodeId);
@@ -146,7 +160,11 @@ export type CommandPayload<T extends CommandType> = T extends keyof CommandHandl
     ? P
     : never
   : T extends "init"
-    ? { wasmBytes: ArrayBuffer; nodeDataSharedArrayBuffer: SharedArrayBuffer }
+    ? {
+        wasmBytes: ArrayBuffer;
+        nodeDataSharedArrayBuffer: SharedArrayBuffer;
+        latestValueSharedArrayBuffer: SharedArrayBuffer;
+      }
     : never;
 
 export type CommandResult<T extends CommandType> = T extends keyof CommandHandlers

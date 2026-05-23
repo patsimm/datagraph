@@ -1,22 +1,10 @@
-import { useDatagraph } from "../../../datagraph.context";
+import { useLatestPortValues } from "../latest-port-values.hook";
 
-import { useCallback, useEffect, useState } from "react";
+import { useMemo } from "react";
 
 export function InspectBody({ nodeId }: { nodeId: string }) {
-  const { ready, subscribeNode, unsubscribeNode } = useDatagraph();
-  const [value, setValue] = useState<string>("—");
+  const ports = useMemo(() => [{ nodeId, port: 0, portType: "in" as const }], [nodeId]);
+  const values = useLatestPortValues(ports);
 
-  const handleData = useCallback((data: Float32Array) => {
-    setValue(data[data.length - 1].toFixed(4));
-  }, []);
-
-  useEffect(() => {
-    if (!ready) return;
-    subscribeNode(nodeId, handleData);
-    return () => {
-      unsubscribeNode(nodeId);
-    };
-  }, [handleData, nodeId, ready, subscribeNode, unsubscribeNode]);
-
-  return <span className="datagraph-node__value-display">{value}</span>;
+  return <span className="datagraph-node__value-display">{values[0].toFixed(4)}</span>;
 }

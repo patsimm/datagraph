@@ -3,6 +3,7 @@ import { useSelection } from "../../selection.context";
 import { isParamNodeState, NodeKind, NodeState, ParamKind } from "../../node.types";
 import "./ContextView.css";
 import { NodeSettings } from "../node/NodeSettings";
+import { NodePortsSettings } from "./NodePortsSettings";
 
 import { useCallback } from "react";
 
@@ -46,16 +47,7 @@ export function ContextView() {
             <span className="contextview__classname">{classname}</span>
             <div className="contextview__nodeid">#{selectedNodeId}</div>
           </div>
-          <div>
-            <div>
-              <span className="contextview__datalabel">inputs:</span> [
-              {node.inputPorts.map((port) => port.name).join(", ")}]
-            </div>
-            <div>
-              <span className="contextview__datalabel">outputs:</span> [
-              {node.outputPorts.map((port) => port.name).join(", ")}]
-            </div>
-          </div>
+          <NodePortsSettings node={node} />
           {isParamNodeState(node) && (
             <NodeSettings
               node={node}

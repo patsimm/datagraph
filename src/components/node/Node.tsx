@@ -68,9 +68,9 @@ export function Node({
         <div className={"node__ports node__ports--input"}>
           {inputPorts.map((port, i) => (
             <Port
-              key={portKey({ node: nodeId, port: i, portType: "in" })}
+              key={portKey({ nodeId: nodeId, port: i, portType: "in" })}
               portName={port.name}
-              portKey={portKey({ node: nodeId, port: i, portType: "in" })}
+              portKey={portKey({ nodeId: nodeId, port: i, portType: "in" })}
               connected={port.connectedTo.length > 0}
               onPortConnectionInitiated={onPortConnectionInitiated}
               onPortConnectionCompleted={onPortConnectionCompleted}
@@ -80,9 +80,9 @@ export function Node({
         <div className="node__ports node__ports--output">
           {outputPorts.map((port, i) => (
             <Port
-              key={portKey({ node: nodeId, port: i, portType: "out" })}
+              key={portKey({ nodeId: nodeId, port: i, portType: "out" })}
               portName={port.name}
-              portKey={portKey({ node: nodeId, port: i, portType: "out" })}
+              portKey={portKey({ nodeId: nodeId, port: i, portType: "out" })}
               connected={port.connectedTo.length > 0}
               onPortConnectionInitiated={onPortConnectionInitiated}
               onPortConnectionCompleted={onPortConnectionCompleted}

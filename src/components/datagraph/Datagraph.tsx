@@ -280,9 +280,9 @@ export function Datagraph() {
             <PortConnectionEdge
               containerRef={scrollDraggingRef}
               key={`${portKey(edge.from)}->${portKey(edge.to)}`}
-              from={edge.from.node}
+              from={edge.from.nodeId}
               fromPort={edge.from.port}
-              to={edge.to.node}
+              to={edge.to.nodeId}
               toPort={edge.to.port}
               onClick={(ev) => handleEdgeClick(edge, ev)}
             />

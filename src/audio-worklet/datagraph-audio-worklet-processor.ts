@@ -15,13 +15,16 @@ import {
   DatagraphAudioWorkletResponse,
 } from "./datagraph-audio-worklet-message";
 import { NodeDataSubscriptionWriter } from "./node-data-subscription";
+import { LatestValueSubscriptionWriter } from "./latest-value-subscription";
+import { PortInfo } from "../components/node/node-utils";
 
 import * as datagraph from "@patsimm/datagraph-core";
 
 class DatagraphProcessor extends AudioWorkletProcessor {
   graph: datagraph.Graph | null = null;
   outputNodeId: string | null = null;
-  subscriptionWriter: NodeDataSubscriptionWriter | null = null;
+  nodeDataSubscriptionWriter: NodeDataSubscriptionWriter | null = null;
+  latestValueSubscriptionWriter: LatestValueSubscriptionWriter | null = null;
   params: Map<string, datagraph.Param> = new Map();
   sample_num = 0;
 
@@ -58,15 +61,20 @@ class DatagraphProcessor extends AudioWorkletProcessor {
     if (type === "init") {
       return (await this.init(payload as CommandPayload<"init">)) as CommandResult<T>;
     }
-    if (!this.graph || !this.subscriptionWriter) {
+    if (!this.graph || !this.nodeDataSubscriptionWriter || !this.latestValueSubscriptionWriter) {
       throw new Error(`Cannot execute command ${type} before initialization`);
     }
     const context: GraphContext = {
       graph: this.graph,
       params: this.params,
       sampleRate,
-      subscribe: (nodeId: string) => this.subscriptionWriter!.subscribe(nodeId),
-      unsubscribe: (nodeId: string) => this.subscriptionWriter!.unsubscribe(nodeId),
+      subscribePortData: (port: PortInfo) => this.nodeDataSubscriptionWriter!.subscribe(port),
+      unsubscribePortData: (port: PortInfo) => this.nodeDataSubscriptionWriter!.unsubscribe(port),
+      subscribeLatestValue: (port: PortInfo) => this.latestValueSubscriptionWriter!.subscribe(port),
+      unsubscribeLatestValue: (port: PortInfo) =>
+        this.latestValueSubscriptionWriter!.unsubscribe(port),
+      latestValueSubscriptionIndex: (port: PortInfo) =>
+        this.latestValueSubscriptionWriter!.getIndex(port),
     };
     const commandHandler = commandHandlers[type as keyof typeof commandHandlers] as CommandHandler<
       keyof typeof commandHandlers
@@ -80,11 +88,15 @@ class DatagraphProcessor extends AudioWorkletProcessor {
   async init({
     wasmBytes,
     nodeDataSharedArrayBuffer,
+    latestValueSharedArrayBuffer,
   }: CommandPayload<"init">): Promise<CommandResult<"init">> {
     datagraph.initSync({ module: wasmBytes });
     this.graph = datagraph.createGraph();
     this.outputNodeId = this.graph.add(datagraph.createPassthrough());
-    this.subscriptionWriter = new NodeDataSubscriptionWriter(nodeDataSharedArrayBuffer);
+    this.nodeDataSubscriptionWriter = new NodeDataSubscriptionWriter(nodeDataSharedArrayBuffer);
+    this.latestValueSubscriptionWriter = new LatestValueSubscriptionWriter(
+      latestValueSharedArrayBuffer
+    );
     return { outputNodeId: this.outputNodeId };
   }
 
@@ -92,17 +104,19 @@ class DatagraphProcessor extends AudioWorkletProcessor {
     if (!this.graph || !this.outputNodeId) return true;
 
     const out = outputs[0];
-    for (let c = 0; c < out.length; c++) {
-      const channel = out[c];
-      for (let i = 0; i < channel.length; i++) {
-        this.sample_num++;
-        this.graph.tick(this.sample_num);
-        channel[i] = this.graph.output(this.outputNodeId)[0];
+    const channel0 = out[0];
+    if (!channel0) return true;
 
-        if (c === 0 && this.subscriptionWriter) {
-          this.subscriptionWriter.writeFromGraph(this.graph);
-        }
-      }
+    for (let i = 0; i < channel0.length; i++) {
+      this.sample_num++;
+      this.graph.tick(this.sample_num);
+      channel0[i] = this.graph.portValue(this.outputNodeId, 0, datagraph.PortType.Output) || 0;
+      this.nodeDataSubscriptionWriter?.writeFromGraph(this.graph);
+    }
+    this.latestValueSubscriptionWriter?.writeFromGraph(this.graph);
+
+    for (let c = 1; c < out.length; c++) {
+      out[c].set(channel0);
     }
     return true;
   }

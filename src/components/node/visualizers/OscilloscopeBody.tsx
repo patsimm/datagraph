@@ -7,7 +7,11 @@ function map(value: number, inMin: number, inMax: number, outMin: number, outMax
 }
 
 export function OscilloscopeBody({ nodeId }: { nodeId: string }) {
-  const { ready, subscribeNode, unsubscribeNode } = useDatagraph();
+  const {
+    ready,
+    subscribeNodeData: subscribeNode,
+    unsubscribeNodeData: unsubscribeNode,
+  } = useDatagraph();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const maxValue = useRef(0);
   const minValue = useRef(0);

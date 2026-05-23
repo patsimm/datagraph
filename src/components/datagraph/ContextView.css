@@ -30,7 +30,19 @@
 
     & .contextview__nodeid {
       color: color-mix(in srgb, var(--contextview-color-bg) 40%, var(--color-text-dark));
+      font-family: "DM Mono", monospace;
       font-size: 0.8rem;
     }
+  }
+
+  & h2 {
+    font-size: 1.25rem;
+    margin: 0;
+  }
+
+  & .contextview__section {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
   }
 }

@@ -27,14 +27,14 @@ export function PortConnectionEdge({
   const recalculatePosition = useCallback(() => {
     const fromPortElem = getNodePortElement(
       portKey({
-        node: from,
+        nodeId: from,
         port: fromPort,
         portType: "out",
       })
     );
     const toPortElem = getNodePortElement(
       portKey({
-        node: to,
+        nodeId: to,
         port: toPort,
         portType: "in",
       })

@@ -1,3 +1,5 @@
+import { arePortsEqual, PortInfo, toDatagraphPortType } from "../components/node/node-utils";
+
 import * as datagraph from "@patsimm/datagraph-core";
 
 export const BUFFER_SIZE = 2048; // samples per node
@@ -8,70 +10,67 @@ export function createNodeDataBuffer(): SharedArrayBuffer {
   return new SharedArrayBuffer(MAX_SUBSCRIPTION_COUNT * STRIDE * Float32Array.BYTES_PER_ELEMENT);
 }
 
-export function writeNodeData(sab: SharedArrayBuffer, index: number, data: Float32Array) {
-  const view = new Float32Array(sab);
-  const base = index * STRIDE;
-  view.set(data, base + 1); // write samples after the flag
-  view[base] = 1; // mark as updated
-}
-
-export function readNodeData(sab: SharedArrayBuffer, index: number): Float32Array | null {
-  const view = new Float32Array(sab);
-  const base = index * STRIDE;
-  if (view[base] === 0) return null;
-  view[base] = 0; // clear flag
-  return view.slice(base + 1, base + STRIDE);
-}
-
 export class NodeDataSubscriptionWriter {
-  subscriptions: { nodeId: string; port: number; index: number }[] = [];
+  subscriptions: { port: PortInfo; index: number; refCount: number }[] = [];
   nodeDataBuffer: SharedArrayBuffer;
-  nodeDataAccumulators: Float32Array[] = [...new Array(MAX_SUBSCRIPTION_COUNT)].map(
+  private view: Float32Array;
+  private freeList: number[] = Array.from({ length: MAX_SUBSCRIPTION_COUNT }, (_, i) => i);
+  nodeDataAccumulators: Float32Array[] = Array.from(
+    { length: MAX_SUBSCRIPTION_COUNT },
     () => new Float32Array(BUFFER_SIZE)
   );
   nodeDataAccumulatorIndex = 0;
 
   constructor(nodeDataBuffer: SharedArrayBuffer) {
     this.nodeDataBuffer = nodeDataBuffer;
+    this.view = new Float32Array(nodeDataBuffer);
   }
 
-  subscribe(nodeId: string): number | undefined {
-    const freeIndex = [...new Array(MAX_SUBSCRIPTION_COUNT).keys()].find(
-      (i) => !this.subscriptions.some((subscription) => subscription.index === i)
-    );
+  subscribe(port: PortInfo): number | undefined {
+    const existing = this.subscriptions.find((s) => arePortsEqual(s.port, port));
+    if (existing) {
+      existing.refCount++;
+      return existing.index;
+    }
 
+    const freeIndex = this.freeList.pop();
     if (freeIndex === undefined) {
       console.warn("Max subscription count reached, cannot subscribe to node data");
       return undefined;
     }
 
-    this.subscriptions = [...this.subscriptions, { nodeId, port: 0, index: freeIndex }];
+    this.subscriptions.push({ port, index: freeIndex, refCount: 1 });
     return freeIndex;
   }
 
-  unsubscribe(nodeId: string): boolean {
-    const subscription = this.subscriptions.find((s) => s.nodeId === nodeId);
-    if (!subscription) {
-      return false;
+  unsubscribe(port: PortInfo): boolean {
+    const idx = this.subscriptions.findIndex((s) => arePortsEqual(s.port, port));
+    if (idx === -1) return false;
+    const subscription = this.subscriptions[idx];
+    subscription.refCount--;
+    if (subscription.refCount === 0) {
+      this.freeList.push(subscription.index);
+      this.subscriptions.splice(idx, 1);
+      this.nodeDataAccumulators[subscription.index].fill(0);
     }
-    this.subscriptions = this.subscriptions.filter((s) => s.nodeId !== nodeId);
-    this.nodeDataAccumulators[subscription.index] = new Float32Array(BUFFER_SIZE); // clear accumulator
     return true;
   }
 
   writeFromGraph(graph: datagraph.Graph) {
     for (const subscription of this.subscriptions) {
       this.nodeDataAccumulators[subscription.index][this.nodeDataAccumulatorIndex] =
-        graph.output(subscription.nodeId)[subscription.port] || 0;
+        graph.portValue(
+          subscription.port.nodeId,
+          subscription.port.port,
+          toDatagraphPortType(subscription.port.portType)
+        ) || 0;
     }
     this.nodeDataAccumulatorIndex++;
     if (this.nodeDataAccumulatorIndex >= BUFFER_SIZE) {
       for (const subscription of this.subscriptions) {
-        writeNodeData(
-          this.nodeDataBuffer,
-          subscription.index,
-          this.nodeDataAccumulators[subscription.index]
-        );
+        const base = subscription.index * STRIDE;
+        this.view.set(this.nodeDataAccumulators[subscription.index], base + 1);
+        this.view[base] = 1;
       }
       this.nodeDataAccumulatorIndex = 0;
     }
@@ -79,29 +78,59 @@ export class NodeDataSubscriptionWriter {
 }
 
 export class NodeDataSubscriptionReader {
-  subscriptionRafs: Map<string, number> = new Map();
+  private view: Float32Array;
+  private readBuffers: Float32Array[];
+  private indexRafs: Map<
+    number,
+    { rafId: number; callbacks: Map<string, (data: Float32Array) => void> }
+  > = new Map();
 
-  constructor(public nodeDataBuffer: SharedArrayBuffer) {}
+  constructor(public nodeDataBuffer: SharedArrayBuffer) {
+    this.view = new Float32Array(nodeDataBuffer);
+    this.readBuffers = Array.from(
+      { length: MAX_SUBSCRIPTION_COUNT },
+      () => new Float32Array(BUFFER_SIZE)
+    );
+  }
 
   addSubscription(
     nodeId: string,
     subscriptionIndex: number,
     callback: (data: Float32Array) => void
   ) {
+    const existing = this.indexRafs.get(subscriptionIndex);
+    if (existing) {
+      existing.callbacks.set(nodeId, callback);
+      return;
+    }
+
+    const callbacks = new Map([[nodeId, callback]]);
+    const entry = { rafId: 0, callbacks };
+    this.indexRafs.set(subscriptionIndex, entry);
+
     const poll = () => {
-      const data = readNodeData(this.nodeDataBuffer, subscriptionIndex);
-      if (data) callback(data);
-      const rafId = requestAnimationFrame(poll);
-      this.subscriptionRafs.set(nodeId, rafId);
+      const base = subscriptionIndex * STRIDE;
+      if (this.view[base] !== 0) {
+        this.view[base] = 0;
+        const buf = this.readBuffers[subscriptionIndex];
+        buf.set(this.view.subarray(base + 1, base + STRIDE));
+        entry.callbacks.forEach((cb) => cb(buf));
+      }
+      entry.rafId = requestAnimationFrame(poll);
     };
-    const rafId = requestAnimationFrame(poll);
-    this.subscriptionRafs.set(nodeId, rafId);
+    entry.rafId = requestAnimationFrame(poll);
   }
 
   removeSubscription(nodeId: string) {
-    const rafId = this.subscriptionRafs.get(nodeId);
-    if (rafId === undefined) return false;
-    cancelAnimationFrame(rafId);
-    return this.subscriptionRafs.delete(nodeId);
+    for (const [index, entry] of this.indexRafs) {
+      if (!entry.callbacks.has(nodeId)) continue;
+      entry.callbacks.delete(nodeId);
+      if (entry.callbacks.size === 0) {
+        cancelAnimationFrame(entry.rafId);
+        this.indexRafs.delete(index);
+      }
+      return true;
+    }
+    return false;
   }
 }
