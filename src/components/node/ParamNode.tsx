@@ -14,7 +14,7 @@ export function ParamNode({ nodeId, config, ...nodeProps }: ParamNodeProps) {
       nodeId={nodeId}
       label={
         <>
-          {nodeProps.kind.split(":")[1]} <span className="node__value">: {value}</span>
+          {nodeProps.kind.split(":")[1]} <div className="node__value">: {value}</div>
         </>
       }
       {...nodeProps}

@@ -96,6 +96,15 @@
         display: flex;
         flex-direction: row;
         gap: var(--node-padding);
+
+        & .node__label {
+          text-overflow: ellipsis;
+          text-wrap: nowrap;
+          overflow: hidden;
+          display: flex;
+          flex-direction: row;
+          gap: 0.25rem;
+        }
       }
 
       & .node__body {

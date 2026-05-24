@@ -12,7 +12,10 @@
   }
 
   & .node__value {
+    text-overflow: ellipsis;
+    text-wrap: nowrap;
     color: color-mix(in srgb, var(--node-color-bg) 30%, var(--color-gray-dark));
+    overflow: hidden;
   }
 
   & .node__body {
@@ -57,12 +60,18 @@
     }
 
     & input[type="number"] {
-      background-color: rgb(0 0 0 / 10%);
       width: 100%;
-      border: none;
-      color: inherit;
-      font-family: "DM Mono", monospace;
-      font-size: inherit;
+      text-align: right;
+      padding: 0 0.25rem;
+
+      /* Firefox */
+      appearance: textfield;
+
+      &::-webkit-outer-spin-button,
+      &::-webkit-inner-spin-button {
+        appearance: none;
+        margin: 0;
+      }
     }
   }
 }
