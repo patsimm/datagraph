@@ -26,7 +26,6 @@ class DatagraphProcessor extends AudioWorkletProcessor {
   nodeDataSubscriptionWriter: NodeDataSubscriptionWriter | null = null;
   latestValueSubscriptionWriter: LatestValueSubscriptionWriter | null = null;
   params: Map<string, datagraph.Param> = new Map();
-  sample_num = 0;
 
   constructor() {
     super();
@@ -108,8 +107,7 @@ class DatagraphProcessor extends AudioWorkletProcessor {
     if (!channel0) return true;
 
     for (let i = 0; i < channel0.length; i++) {
-      this.sample_num++;
-      this.graph.tick(this.sample_num);
+      this.graph.tick();
       channel0[i] = this.graph.portValue(this.outputNodeId, 0, datagraph.PortType.Output) || 0;
       this.nodeDataSubscriptionWriter?.writeFromGraph(this.graph);
     }

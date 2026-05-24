@@ -9,7 +9,10 @@ import {
   DatagraphAudioWorkletMessage,
   DatagraphAudioWorkletResponse,
 } from "./datagraph-audio-worklet-message";
-import { createLatestValueBuffer, LatestValueSubscriptionReader } from "./latest-value-subscription";
+import {
+  createLatestValueBuffer,
+  LatestValueSubscriptionReader,
+} from "./latest-value-subscription";
 import { createNodeDataBuffer, NodeDataSubscriptionReader } from "./node-data-subscription";
 
 import wasmUrl from "@patsimm/datagraph-core/pkg/datagraph_bg.wasm?url";
@@ -30,7 +33,9 @@ export class DatagraphAudioWorkletNode extends AudioWorkletNode {
     super(context, name);
 
     this.nodeDataSubscriptionReader = new NodeDataSubscriptionReader(createNodeDataBuffer());
-    this.latestValueSubscriptionReader = new LatestValueSubscriptionReader(createLatestValueBuffer());
+    this.latestValueSubscriptionReader = new LatestValueSubscriptionReader(
+      createLatestValueBuffer()
+    );
 
     this.port.onmessage = (e: MessageEvent) => {
       const response = e.data as DatagraphAudioWorkletResponse<CommandType>;
@@ -145,5 +150,9 @@ export class DatagraphAudioWorkletNode extends AudioWorkletNode {
 
   readLatestValue(port: PortInfo): number | undefined {
     return this.latestValueSubscriptionReader.read(port);
+  }
+
+  async setDefaultInputValue(nodeId: string, port: number, value: number) {
+    return await this.sendCommand("set_default_input_value", { nodeId, port, value });
   }
 }

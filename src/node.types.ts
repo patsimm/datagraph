@@ -4,18 +4,25 @@ import { Unit } from "./unit-conversion";
 
 export type DistributiveOmit<T, K extends PropertyKey> = T extends unknown ? Omit<T, K> : never;
 
-export type NodePort = {
-  name: string;
-  connectedTo: PortInfo[];
-};
+export type NodePort =
+  | {
+      type: "in";
+      name: string;
+      connectedTo: PortInfo[];
+      defaultValue: number;
+    }
+  | { type: "out"; name: string; connectedTo: PortInfo[] };
+
+export type NodeInputPort = Extract<NodePort, { type: "in" }>;
+export type NodeOutputPort = Extract<NodePort, { type: "out" }>;
 
 export type NodeBase<T extends string, C = undefined, S = undefined> = {
   kind: T;
   nodeId: string;
   x: number;
   y: number;
-  inputPorts: NodePort[];
-  outputPorts: NodePort[];
+  inputPorts: NodeInputPort[];
+  outputPorts: NodeOutputPort[];
   rustNodeType: string;
   settings: S;
   config: C;

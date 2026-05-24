@@ -97,6 +97,7 @@ export const commandHandlers = {
       nodeType: info.nodeType,
       inputNames: info.inputNames as string[],
       outputNames: info.outputNames as string[],
+      defaultInputValues: [...info.defaultInputValues] as number[],
     };
   },
   remove_node: async (context: GraphContext, { nodeId }: { nodeId: string }) => {
@@ -147,7 +148,14 @@ export const commandHandlers = {
       nodeType: info.nodeType,
       inputNames: info.inputNames as string[],
       outputNames: info.outputNames as string[],
+      defaultInputValues: [...info.defaultInputValues] as number[],
     };
+  },
+  set_default_input_value: async (
+    context: GraphContext,
+    { nodeId, port, value }: { nodeId: string; port: number; value: number }
+  ) => {
+    return context.graph.setDefaultInputValue(nodeId, port, value);
   },
 } as const;
 

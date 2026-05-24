@@ -13,9 +13,11 @@
   cursor: auto;
   pointer-events: auto;
   user-select: auto;
+  overflow-y: scroll;
 
   & .contextview__header {
     & .contextview__title {
+      margin: 0;
       font-size: 1.25rem;
       font-weight: bold;
     }
@@ -37,6 +39,11 @@
 
   & h2 {
     font-size: 1.25rem;
+    margin: 0;
+  }
+
+  & h3 {
+    font-size: 1rem;
     margin: 0;
   }
 
