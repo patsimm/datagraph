@@ -8,9 +8,12 @@
   --color-text-light: #fff;
   --color-text-dark: #000;
   --color-background: var(--color-gray-light);
+  --color-surface: var(--color-background);
+  --color-text: var(--color-text-dark);
+  --color-text-disabled: color-mix(in srgb, var(--color-text) 50%, var(--color-surface));
 
   background: var(--color-background);
-  color: var(--color-text-dark);
+  color: var(--color-text);
   font-family:
     "Inclusive Sans",
     -apple-system,
@@ -31,13 +34,31 @@ body,
 
 input,
 select,
-textarea {
-  --input-background: oklch(from var(--color-gray-dark) l c h / 40%);
+textarea,
+.datafield {
+  --input-color-background: color-mix(in srgb, var(--color-gray-dark) 70%, var(--color-surface));
+  --input-color-background-disabled: color-mix(
+    in srgb,
+    var(--color-gray-dark) 40%,
+    var(--color-surface)
+  );
+}
 
-  background-color: var(--input-background);
+input,
+select,
+textarea {
+  background: var(--input-color-background);
   border: none;
-  color: var(--color-text-light);
+  color: var(--color-text);
+  caret-color: var(--color-text);
   font-family: "DM mono", monospace;
   font-size: inherit;
   border-radius: 0.125rem;
+  height: 1.25rem;
+  padding: 0 0.25rem;
+
+  &:disabled {
+    background-color: var(--input-color-background-disabled);
+    color: var(--color-text-disabled);
+  }
 }

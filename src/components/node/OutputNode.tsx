@@ -33,7 +33,15 @@ export function OutputNode(props: OutputNodeProps) {
 
   const inputPorts = useMemo(() => {
     const connectedTo = edges.filter((e) => e.to.nodeId === props.nodeId).map((e) => e.from);
-    return [{ type: "in" as const, name: "input", connectedTo, defaultValue: 0 }];
+    return [
+      {
+        type: "in" as const,
+        name: "input",
+        connectedTo,
+        defaultValue: 0,
+        isDefaultModified: false,
+      },
+    ];
   }, [edges, props.nodeId]);
 
   return (

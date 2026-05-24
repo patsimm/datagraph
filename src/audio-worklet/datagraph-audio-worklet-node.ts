@@ -155,4 +155,8 @@ export class DatagraphAudioWorkletNode extends AudioWorkletNode {
   async setDefaultInputValue(nodeId: string, port: number, value: number) {
     return await this.sendCommand("set_default_input_value", { nodeId, port, value });
   }
+
+  async resetDefaultInputValue(nodeId: string, port: number) {
+    return await this.sendCommand("reset_default_input_value", { nodeId, port });
+  }
 }

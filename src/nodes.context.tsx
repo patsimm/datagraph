@@ -29,6 +29,7 @@ function useAllNodes() {
     nodeInfo,
     setParam: setParamInGraph,
     setDefaultInputValue: setDefaultInputValueInGraph,
+    resetDefaultInputValue: resetDefaultInputValueInGraph,
   } = useDatagraph();
   const [nodes, setNodes] = useState<{ [nodeId: string]: AnyNodeState }>({});
 
@@ -115,6 +116,7 @@ function useAllNodes() {
               name,
               connectedTo: [],
               defaultValue: 0,
+              isDefaultModified: false,
             })),
             outputPorts: ["output"].map((name) => ({
               type: "out",
@@ -142,6 +144,7 @@ function useAllNodes() {
               name,
               connectedTo: [],
               defaultValue: info.defaultInputValues[index] ?? 0,
+              isDefaultModified: false,
             })),
             outputPorts: info.outputNames.map((name) => ({
               type: "out",
@@ -217,12 +220,29 @@ function useAllNodes() {
         [nodeId]: {
           ...prev[nodeId],
           inputPorts: prev[nodeId].inputPorts.map((p, i) =>
-            i === port ? { ...p, defaultValue: value } : p
+            i === port ? { ...p, defaultValue: value, isDefaultModified: true } : p
           ),
         },
       }));
     },
     [ready, setDefaultInputValueInGraph]
+  );
+
+  const resetDefaultInputValue = useCallback(
+    async (nodeId: string, port: number) => {
+      if (!ready) return;
+      await resetDefaultInputValueInGraph(nodeId, port);
+      setNodes((prev) => ({
+        ...prev,
+        [nodeId]: {
+          ...prev[nodeId],
+          inputPorts: prev[nodeId].inputPorts.map((p, i) =>
+            i === port ? { ...p, defaultValue: 0, isDefaultModified: false } : p
+          ),
+        },
+      }));
+    },
+    [ready, resetDefaultInputValueInGraph]
   );
 
   return {
@@ -234,6 +254,7 @@ function useAllNodes() {
     getNode,
     setParamValue,
     setDefaultInputValue,
+    resetDefaultInputValue,
   };
 }
 
@@ -255,6 +276,7 @@ const nodesContext = createContext<{
     updateNodeSettings: (current: NodeState<T>["settings"]) => NodeState<T>["settings"]
   ) => Promise<void>;
   setDefaultInputValue: (nodeId: string, port: number, value: number) => Promise<void>;
+  resetDefaultInputValue: (nodeId: string, port: number) => Promise<void>;
 }>({
   nodes: {},
   addNode: async () => {
@@ -278,6 +300,9 @@ const nodesContext = createContext<{
   setDefaultInputValue: async () => {
     throw new Error("Nodes context not initialized yet");
   },
+  resetDefaultInputValue: async () => {
+    throw new Error("Nodes context not initialized yet");
+  },
 });
 
 export function NodesProvider({ children }: { children: React.ReactNode }) {
@@ -290,6 +315,7 @@ export function NodesProvider({ children }: { children: React.ReactNode }) {
     setParamValue,
     updateNodeSettings,
     setDefaultInputValue,
+    resetDefaultInputValue,
   } = useAllNodes();
 
   return (
@@ -303,6 +329,7 @@ export function NodesProvider({ children }: { children: React.ReactNode }) {
         setParamValue,
         updateNodeSettings,
         setDefaultInputValue,
+        resetDefaultInputValue,
       }}
     >
       {children}

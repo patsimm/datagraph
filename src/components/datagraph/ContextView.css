@@ -1,19 +1,22 @@
 .contextview {
   --contextview-color-bg: var(--color-primary);
-  --contextview-color-fg: var(--color-text-light);
+  --color-text: var(--color-text-light);
+  --color-text-alternative: var(--color-text-dark);
+  --color-text-disabled: color-mix(in srgb, var(--color-text) 50%, var(--color-surface));
+  --color-surface: var(--contextview-color-bg);
 
   padding: 0.5rem;
   width: 100%;
   height: 100%;
-  background-color: var(--contextview-color-bg);
-  color: var(--contextview-color-fg);
+  background-color: var(--color-surface);
+  color: var(--color-text);
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
   cursor: auto;
   pointer-events: auto;
   user-select: auto;
-  overflow-y: scroll;
+  overflow-y: auto;
 
   & .contextview__header {
     & .contextview__title {
@@ -23,7 +26,7 @@
     }
 
     & .contextview__classpath {
-      color: color-mix(in srgb, var(--contextview-color-fg) 70%, var(--contextview-color-bg));
+      color: color-mix(in srgb, var(--color-text) 70%, var(--color-surface));
     }
 
     & .contextview__classname {
@@ -31,20 +34,28 @@
     }
 
     & .contextview__nodeid {
-      color: color-mix(in srgb, var(--contextview-color-bg) 40%, var(--color-text-dark));
+      color: color-mix(in srgb, var(--color-surface) 40%, var(--color-text-alternative));
       font-family: "DM Mono", monospace;
       font-size: 0.8rem;
     }
   }
 
   & h2 {
-    font-size: 1.25rem;
-    margin: 0;
+    text-transform: uppercase;
+    font-weight: 600;
+    font-size: 1rem;
+    margin-bottom: 0;
+    margin-top: 0.75rem;
   }
 
   & h3 {
-    font-size: 1rem;
+    font-size: 0.8rem;
     margin: 0;
+    margin-bottom: -0.25rem;
+    text-transform: uppercase;
+    width: 100%;
+    text-align: right;
+    color: color-mix(in srgb, var(--color-text-alternative) 40%, var(--color-surface));
   }
 
   & .contextview__section {

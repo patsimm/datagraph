@@ -72,6 +72,7 @@ export function Node({
               portName={port.name}
               portKey={portKey({ nodeId: nodeId, port: i, portType: "in" })}
               connected={port.connectedTo.length > 0}
+              hasCustomDefault={port.type === "in" && port.isDefaultModified}
               onPortConnectionInitiated={onPortConnectionInitiated}
               onPortConnectionCompleted={onPortConnectionCompleted}
             />
@@ -91,7 +92,6 @@ export function Node({
         </div>
         <div className="node__content">
           <div className="node__head">
-            <div className="node__icon">🔘</div>
             <div className="node__label">{label || kind}</div>
           </div>
           {children && <div className="node__body">{children}</div>}
@@ -105,6 +105,7 @@ export type PortProps = {
   portKey: string;
   portName: string;
   connected: boolean;
+  hasCustomDefault?: boolean;
   onPortConnectionInitiated?: (startPort: PortInfo) => void;
   onPortConnectionCompleted?: (startPort: PortInfo, endPort: PortInfo) => void;
 };
@@ -113,6 +114,7 @@ function Port({
   portKey,
   portName,
   connected,
+  hasCustomDefault,
   onPortConnectionInitiated,
   onPortConnectionCompleted,
 }: PortProps) {
@@ -154,7 +156,10 @@ function Port({
     <div
       ref={ref}
       data-port={portKey}
-      className={classNames("node__port", { "node__port--connected": connected })}
+      className={classNames("node__port", {
+        "node__port--connected": connected,
+        "node__port--has-custom-default": hasCustomDefault,
+      })}
       title={portName}
     ></div>
   );

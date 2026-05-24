@@ -10,6 +10,7 @@ export type NodePort =
       name: string;
       connectedTo: PortInfo[];
       defaultValue: number;
+      isDefaultModified: boolean;
     }
   | { type: "out"; name: string; connectedTo: PortInfo[] };
 

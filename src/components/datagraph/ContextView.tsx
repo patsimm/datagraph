@@ -9,7 +9,7 @@ import { useCallback } from "react";
 
 export function ContextView() {
   const { getSelectedNode } = useSelection();
-  const { getNode, updateNodeSettings, setDefaultInputValue } = useNodes();
+  const { getNode, updateNodeSettings, setDefaultInputValue, resetDefaultInputValue } = useNodes();
 
   const node = getSelectedNode();
 
@@ -49,6 +49,7 @@ export function ContextView() {
           </div>
           <NodePortsSettings
             onDefaultValueChange={(port, value) => setDefaultInputValue(node.nodeId, port, value)}
+            onDefaultValueReset={(port) => resetDefaultInputValue(node.nodeId, port)}
             node={node}
           />
           {isParamNodeState(node) && (

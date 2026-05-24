@@ -1,3 +1,57 @@
-.node-ports-settings__absent-text {
-  color: rgb(255 255 255 / 70%);
+.node-ports-settings {
+  h2 {
+    margin-bottom: -1rem;
+  }
+
+  &.node-ports-settings--empty {
+    h2 {
+      margin-bottom: -0.125rem;
+    }
+  }
+
+  .node-ports-settings__absent-text {
+    color: var(--color-text-disabled);
+  }
+
+  .node-ports-settings__default-field {
+    height: 100%;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    color: var(--color-text);
+
+    &.node-ports-settings__default-field--unmodified {
+      & > input {
+        color: var(--color-text-disabled);
+      }
+    }
+  }
+
+  .node-ports-settings__reset-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: currentcolor;
+    font-size: 14px;
+    padding: 0;
+    line-height: var(--datafield-height);
+    height: 100%;
+    vertical-align: center;
+
+    &:hover {
+      opacity: 1;
+    }
+
+    &:disabled {
+      cursor: not-allowed;
+      color: var(--color-text-disabled);
+    }
+
+    & .node-ports-settings__reset-btn-icon {
+      height: 100%;
+      width: unset;
+      aspect-ratio: 1;
+      margin-right: 0.25rem;
+    }
+  }
 }

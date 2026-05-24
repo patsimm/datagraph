@@ -157,6 +157,12 @@ export const commandHandlers = {
   ) => {
     return context.graph.setDefaultInputValue(nodeId, port, value);
   },
+  reset_default_input_value: async (
+    context: GraphContext,
+    { nodeId, port }: { nodeId: string; port: number }
+  ) => {
+    context.graph.setDefaultInputValue(nodeId, port, 0);
+  },
 } as const;
 
 export type CommandHandlers = typeof commandHandlers;

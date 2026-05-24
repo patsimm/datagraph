@@ -6,13 +6,20 @@ import "./NodePortsSettings.css";
 import { NumberInput } from "../NumberInput";
 
 import { Fragment, useMemo } from "react";
+import { IconArrowBackUp } from "@tabler/icons-react";
+import classNames from "classnames";
 
 export type NodeInputViewProps = {
   node: AnyNodeState;
   onDefaultValueChange: (port: number, value: number) => void;
+  onDefaultValueReset: (port: number) => void;
 };
 
-export function NodePortsSettings({ node, onDefaultValueChange }: NodeInputViewProps) {
+export function NodePortsSettings({
+  node,
+  onDefaultValueChange,
+  onDefaultValueReset,
+}: NodeInputViewProps) {
   const ports = useMemo(
     () => [
       ...Array.from({ length: node.inputPorts.length }, (_, i) => ({
@@ -30,13 +37,13 @@ export function NodePortsSettings({ node, onDefaultValueChange }: NodeInputViewP
   );
   const values = useLatestPortValues(ports);
 
-  const handleDefaultValueInputChange = (port: number, value: number) => {
-    onDefaultValueChange(port, value);
-  };
-
   return (
     <>
-      <div className="contextview__section">
+      <div
+        className={classNames("node-ports-settings contextview__section", {
+          "node-ports-settings--empty": node.inputPorts.length === 0,
+        })}
+      >
         <h2>Inputs</h2>
         {node.inputPorts.map((port, i) => (
           <Fragment key={portKey({ nodeId: node.nodeId, port: i, portType: "in" })}>
@@ -44,33 +51,48 @@ export function NodePortsSettings({ node, onDefaultValueChange }: NodeInputViewP
             <DataField
               label="default"
               value={
-                <NumberInput
-                  value={node.inputPorts[i].defaultValue}
-                  onChange={(value) => handleDefaultValueInputChange(i, value)}
-                />
+                <div
+                  className={classNames("node-ports-settings__default-field", {
+                    "node-ports-settings__default-field--unmodified": !port.isDefaultModified,
+                  })}
+                >
+                  <NumberInput
+                    value={port.defaultValue}
+                    onChange={(value) => onDefaultValueChange(i, value)}
+                  />
+                  <button
+                    className="node-ports-settings__reset-btn"
+                    onClick={() => onDefaultValueReset(i)}
+                    title="Reset to default"
+                    disabled={!port.isDefaultModified}
+                  >
+                    <IconArrowBackUp className="node-ports-settings__reset-btn-icon" />
+                  </button>
+                </div>
               }
             />
-            <DataField label="current" value={values[i].toFixed(4)} />
+            <DataField label="live" value={values[i].toFixed(4)} />
           </Fragment>
         ))}
         {node.inputPorts.length === 0 && (
           <div className="node-ports-settings__absent-text">No input ports</div>
         )}
       </div>
-      <div className="contextview__section">
+      <div
+        className={classNames("node-ports-settings contextview__section", {
+          "node-ports-settings--empty": node.outputPorts.length === 0,
+        })}
+      >
         <h2>Outputs</h2>
-        <div>
-          {node.outputPorts.map((port, i) => (
-            <DataField
-              key={portKey({ nodeId: node.nodeId, port: i, portType: "out" })}
-              label={port.name}
-              value={values[node.inputPorts.length + i].toFixed(4)}
-            />
-          ))}
-          {node.outputPorts.length === 0 && (
-            <div className="node-ports-settings__absent-text">No output ports</div>
-          )}
-        </div>
+        {node.outputPorts.map((port, i) => (
+          <Fragment key={portKey({ nodeId: node.nodeId, port: i, portType: "out" })}>
+            <h3>{port.name}</h3>
+            <DataField label="live" value={values[node.inputPorts.length + i].toFixed(4)} />
+          </Fragment>
+        ))}
+        {node.outputPorts.length === 0 && (
+          <div className="node-ports-settings__absent-text">No output ports</div>
+        )}
       </div>
     </>
   );

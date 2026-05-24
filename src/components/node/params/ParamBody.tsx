@@ -26,5 +26,5 @@ export function ParamBody({
     }
   })();
 
-  return <div className="node__body">{Component}</div>;
+  return Component;
 }

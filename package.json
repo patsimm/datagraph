@@ -18,6 +18,8 @@
   },
   "dependencies": {
     "@patsimm/datagraph-core": "0.3.0",
+    "@tabler/icons-react": "^3.44.0",
+    "@tabler/icons-webfont": "^3.44.0",
     "classnames": "^2.5.1",
     "modern-normalize": "^3.0.1",
     "react": "^19.2.6",

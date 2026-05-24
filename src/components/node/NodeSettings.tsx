@@ -63,7 +63,6 @@ function SliderParamNodeSettings(props: NodeSettingsComponentProps<"param:slider
         value={
           <select
             name="unit"
-            id="pet-select"
             value={props.settings.unit}
             onChange={(ev) => props.onChange("unit", ev.target.value as Unit)}
           >

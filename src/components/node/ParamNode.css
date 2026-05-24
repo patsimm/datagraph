@@ -14,7 +14,7 @@
   & .node__value {
     text-overflow: ellipsis;
     text-wrap: nowrap;
-    color: color-mix(in srgb, var(--node-color-bg) 30%, var(--color-gray-dark));
+    color: color-mix(in srgb, var(--color-surface) 30%, var(--color-gray-dark));
     overflow: hidden;
   }
 
@@ -27,8 +27,6 @@
 
     & input {
       --input-accent-color: var(--color-accent);
-
-      color: var(--color-text-light);
 
       &:hover {
         --datagraph-input-accent-color: color-mix(

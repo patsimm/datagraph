@@ -72,6 +72,7 @@ export const useDatagraph = () => {
           readLatestValue: getNode().readLatestValue.bind(getNode()),
           nodeInfo: getNode().nodeInfo.bind(getNode()),
           setDefaultInputValue: getNode().setDefaultInputValue.bind(getNode()),
+          resetDefaultInputValue: getNode().resetDefaultInputValue.bind(getNode()),
         }
       : { ready: false as const, start: initialize };
   }, [getNode, initialize, ready]);
