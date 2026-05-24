@@ -110,13 +110,22 @@ function useAllNodes() {
           [nodeId]: {
             nodeId,
             kind,
-            inputPorts: ["input"].map((name) => ({ name, connectedTo: [] })),
-            outputPorts: ["output"].map((name) => ({ name, connectedTo: [] })),
+            inputPorts: ["input"].map((name) => ({
+              type: "in",
+              name,
+              connectedTo: [],
+              defaultValue: 0,
+            })),
+            outputPorts: ["output"].map((name) => ({
+              type: "out",
+              name,
+              connectedTo: [],
+            })),
             rustNodeType: info.nodeType,
             ...position,
             settings: undefined,
             config: undefined,
-          } as unknown as AnyNodeState,
+          } as AnyNodeState,
         }));
       } else {
         const info = await addNodeToGraph({
