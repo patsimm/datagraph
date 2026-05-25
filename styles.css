@@ -7,7 +7,7 @@
   --color-accent: #ff9f19;
   --color-text-light: #fff;
   --color-text-dark: #000;
-  --color-background: var(--color-gray-light);
+  --color-background: color-mix(in srgb, var(--color-gray-light) 90%, var(--color-gray-dark));
   --color-surface: var(--color-background);
   --color-text: var(--color-text-dark);
   --color-text-disabled: color-mix(in srgb, var(--color-text) 50%, var(--color-surface));
@@ -30,6 +30,11 @@ body,
   padding: 0;
   width: 100%;
   height: 100%;
+}
+
+body.dragging,
+body.dragging * {
+  cursor: grabbing !important;
 }
 
 input,

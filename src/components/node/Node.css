@@ -8,19 +8,19 @@
   --node-input-ports: 0;
   --node-output-ports: 0;
   --node-port-size: 10px;
-  --node-port-hover-target-extend: 1rem;
+  --node-port-hover-target-extend: 0.5rem;
 
   position: absolute;
   background: var(--color-surface);
   color: var(--color-text);
   border-radius: var(--node-border-radius);
-  font-size: 12px;
+  font-size: 0.8rem;
   cursor: grab;
   z-index: 2;
   transform: translate(-50%, -50%);
   min-width: calc(
     max(var(--node-input-ports), var(--node-output-ports)) *
-      calc(var(--node-port-size) + var(--node-port-hover-target-extend))
+      calc(var(--node-port-size) + calc(var(--node-port-hover-target-extend) * 2))
   );
 
   @for $i from 0 to 16 {
@@ -31,6 +31,10 @@
     &[data-output-ports="$i"] {
       --node-output-ports: $i;
     }
+  }
+
+  &.node--dragging {
+    cursor: grabbing;
   }
 
   & .node__wrapper {
@@ -56,14 +60,14 @@
     & .node__content {
       display: flex;
       flex-direction: column;
-      padding: var(--node-padding);
+      padding: calc(var(--node-padding) + 0.125rem) var(--node-padding);
       gap: var(--node-padding);
 
       & .node__head {
         display: flex;
         flex-direction: row;
         gap: var(--node-padding);
-        padding: 0.125rem 0;
+        padding: 0;
 
         & .node__label {
           text-overflow: ellipsis;
@@ -88,6 +92,6 @@
 
   &.node--selected {
     outline: 2px solid color-mix(in srgb, var(--color-accent) 70%, var(--color-gray-light));
-    outline-offset: 1px;
+    outline-offset: -1px;
   }
 }

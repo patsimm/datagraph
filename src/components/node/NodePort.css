@@ -27,9 +27,8 @@
   & .node-port__hover-target {
     position: absolute;
     background: transparent;
-    width: calc(var(--node-port-size) + var(--node-port-hover-target-extend));
-    height: calc(var(--node-port-size) + var(--node-port-hover-target-extend));
-    transform: translate(-50%, -50%);
+    width: calc(var(--node-port-size) + calc(var(--node-port-hover-target-extend) * 2));
+    height: calc(var(--node-port-size) + calc(var(--node-port-hover-target-extend) * 1.5));
 
     &:hover,
     &.node__port--drag-over {
@@ -49,12 +48,20 @@
     .node-port__indicator::after {
       background: var(--node-port-color-output);
     }
+
+    .node-port__hover-target {
+      transform: translate(-50%, -33%);
+    }
   }
 
   &.node-port--input {
     .node-port__indicator::after {
       bottom: 0;
       background: var(--node-port-color-input);
+    }
+
+    .node-port__hover-target {
+      transform: translate(-50%, -66%);
     }
 
     &.node-port--has-custom-default .node-port__indicator::before {

@@ -153,6 +153,10 @@ export class DatagraphAudioWorkletNode extends AudioWorkletNode {
   }
 
   async setDefaultInputValue(nodeId: string, port: number, value: number) {
+    if (Number.isNaN(value) || !Number.isFinite(value)) {
+      console.error(`Invalid default input value ${value} for node ${nodeId} port ${port}`);
+      return;
+    }
     return await this.sendCommand("set_default_input_value", { nodeId, port, value });
   }
 

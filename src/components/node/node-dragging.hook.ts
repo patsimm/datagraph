@@ -45,6 +45,7 @@ export function useNodeDragging(nodeId: string) {
 
       nodeElem.setPointerCapture(event.pointerId);
       nodeElem.addEventListener("pointermove", handlePointerMove);
+      nodeElem.classList.add("node--dragging");
     },
     [handlePointerMove]
   );
@@ -55,6 +56,7 @@ export function useNodeDragging(nodeId: string) {
 
       const elem = event.currentTarget as HTMLElement;
       elem.removeEventListener("pointermove", handlePointerMove);
+      elem.classList.remove("node--dragging");
 
       const didMove =
         event.clientX !== draggingStateRef.current.startDragX ||

@@ -5,7 +5,7 @@
 
   &.node-ports-settings--empty {
     h2 {
-      margin-bottom: -0.125rem;
+      margin-bottom: calc(var(--contextview-padding) / -6);
     }
   }
 
@@ -17,7 +17,7 @@
     height: 100%;
     display: flex;
     align-items: center;
-    gap: 0.25rem;
+    gap: calc(var(--contextview-padding) / 3);
     color: var(--color-text);
 
     &.node-ports-settings__default-field--unmodified {
@@ -51,7 +51,7 @@
       height: 100%;
       width: unset;
       aspect-ratio: 1;
-      margin-right: 0.25rem;
+      margin-right: calc(var(--contextview-padding) / 3);
     }
   }
 }

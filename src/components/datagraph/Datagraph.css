@@ -3,7 +3,7 @@
   position: relative;
   width: 100%;
   height: 100%;
-  cursor: pointer;
+  cursor: grab;
   display: grid;
   grid-template-columns: 1fr minmax(0, 400px);
   grid-template-rows: auto 1fr;

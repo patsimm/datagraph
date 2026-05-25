@@ -53,14 +53,19 @@ export function NodePort({
 
   useEffect(() => {
     if (!ref.current) return;
-    ref.current.addEventListener(
-      PortConnectionInitiatedEvent.EVENT_NAME,
-      handlePortConnectionInitiated
-    );
-    ref.current.addEventListener(
-      PortConnectionCompletedEvent.EVENT_NAME,
-      handlePortConnectionCompleted
-    );
+    const elem = ref.current;
+    elem.addEventListener(PortConnectionInitiatedEvent.EVENT_NAME, handlePortConnectionInitiated);
+    elem.addEventListener(PortConnectionCompletedEvent.EVENT_NAME, handlePortConnectionCompleted);
+    return () => {
+      elem.removeEventListener(
+        PortConnectionInitiatedEvent.EVENT_NAME,
+        handlePortConnectionInitiated
+      );
+      elem.removeEventListener(
+        PortConnectionCompletedEvent.EVENT_NAME,
+        handlePortConnectionCompleted
+      );
+    };
   }, [handlePortConnectionCompleted, handlePortConnectionInitiated]);
 
   return (
