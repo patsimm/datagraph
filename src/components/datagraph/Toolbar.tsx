@@ -8,7 +8,13 @@ import { getNodeElement } from "../node/node-utils";
 import { useSelection } from "../../selection.context";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { IconDeviceFloppy, IconFileUpload, IconSquarePlus } from "@tabler/icons-react";
+import {
+  IconDeviceFloppy,
+  IconFileUpload,
+  IconPlayerPause,
+  IconPlayerPlay,
+  IconSquarePlus,
+} from "@tabler/icons-react";
 import classNames from "classnames";
 
 export type ToolbarProps = {
@@ -18,7 +24,8 @@ export type ToolbarProps = {
 export function Toolbar({ outputNode }: ToolbarProps) {
   const { saveGraph, loadGraph } = useGraphPersistence(outputNode);
   const [newNodeMenuOpen, setNewNodeMenuOpen] = useState(false);
-  const { ready, nodeTypes } = useDatagraph();
+  const datagraph = useDatagraph();
+  const { ready, nodeTypes } = datagraph;
   const { addNode, updateNodeState } = useNodes();
   const { handleNodeSelected } = useSelection();
 
@@ -84,6 +91,24 @@ export function Toolbar({ outputNode }: ToolbarProps) {
   return (
     <div role="toolbar" className="toolbar">
       <div role="group" className="toolbar__section">
+        {" "}
+        {ready && (
+          <button
+            className={classNames("toolbar__button", {
+              "toolbar__button--play": datagraph.audioContextState !== "running",
+            })}
+            onClick={
+              datagraph.audioContextState === "running" ? datagraph.suspend : datagraph.resume
+            }
+          >
+            {datagraph.audioContextState === "running" ? (
+              <IconPlayerPause stroke={1.25} className="toolbar__button-icon" />
+            ) : (
+              <IconPlayerPlay stroke={1.25} className="toolbar__button-icon" />
+            )}
+          </button>
+        )}
+        <div className="toolbar__divider" />
         <div
           ref={menuTriggerRef}
           className={classNames("toolbar__menu-trigger", {

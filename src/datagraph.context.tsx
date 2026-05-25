@@ -7,21 +7,27 @@ import { createContext, useCallback, useContext, useMemo, useState } from "react
 export type DatagraphContext = {
   ready: boolean;
   nodeTypes: string[];
+  audioContextState: AudioContextState | null;
   initialize: () => Promise<{
     workletNode: DatagraphAudioWorkletNode;
     outputNode: NodeInfo;
     nodeTypes: string[];
   }>;
   getNode: () => DatagraphAudioWorkletNode;
+  getAudioContext: () => AudioContext;
 };
 
 const datagraphContext = createContext<DatagraphContext>({
   ready: false,
   nodeTypes: [],
+  audioContextState: null,
   initialize: () => {
     throw new Error("Datagraph node not initialized yet");
   },
   getNode: (): DatagraphAudioWorkletNode => {
+    throw new Error("Datagraph node not initialized yet");
+  },
+  getAudioContext: (): AudioContext => {
     throw new Error("Datagraph node not initialized yet");
   },
 });
@@ -37,11 +43,17 @@ async function initializeDatagraphAudioWorkletNode() {
 
 export function DatagraphProvider({ children }: { children: React.ReactNode }) {
   const [node, setNode] = useState<DatagraphAudioWorkletNode | null>(null);
+  const [audioContext, setAudioContext] = useState<AudioContext | null>(null);
+  const [audioContextState, setAudioContextState] = useState<AudioContextState | null>(null);
   const [nodeTypes, setNodeTypes] = useState<string[]>([]);
 
   const initialize = useCallback(async () => {
     const { workletNode, outputNode, nodeTypes } = await initializeDatagraphAudioWorkletNode();
+    const ctx = workletNode.context as AudioContext;
+    ctx.addEventListener("statechange", () => setAudioContextState(ctx.state));
     setNode(workletNode);
+    setAudioContext(ctx);
+    setAudioContextState(ctx.state);
     setNodeTypes(nodeTypes);
     return { workletNode, outputNode, nodeTypes };
   }, []);
@@ -50,25 +62,37 @@ export function DatagraphProvider({ children }: { children: React.ReactNode }) {
     if (!node) {
       throw new Error("Datagraph node not initialized yet");
     }
-
     return node;
   }, [node]);
 
+  const getAudioContext = useCallback(() => {
+    if (!audioContext) {
+      throw new Error("Datagraph node not initialized yet");
+    }
+    return audioContext;
+  }, [audioContext]);
+
   return (
-    <datagraphContext.Provider value={{ getNode, initialize, ready: !!node, nodeTypes }}>
+    <datagraphContext.Provider
+      value={{ getNode, getAudioContext, initialize, ready: !!node, nodeTypes, audioContextState }}
+    >
       {children}
     </datagraphContext.Provider>
   );
 }
 
 export const useDatagraph = () => {
-  const { getNode, ready, initialize, nodeTypes } = useContext(datagraphContext);
+  const { getNode, getAudioContext, ready, initialize, nodeTypes, audioContextState } =
+    useContext(datagraphContext);
 
   return useMemo(() => {
     return ready
       ? {
           ready: true as const,
           nodeTypes,
+          audioContextState,
+          suspend: () => getAudioContext().suspend(),
+          resume: () => getAudioContext().resume(),
           addParam: getNode().addParam.bind(getNode()),
           setParam: getNode().setParam.bind(getNode()),
           addNode: getNode().addNode.bind(getNode()),
@@ -85,5 +109,5 @@ export const useDatagraph = () => {
           resetDefaultInputValue: getNode().resetDefaultInputValue.bind(getNode()),
         }
       : { ready: false as const, start: initialize };
-  }, [getNode, initialize, nodeTypes, ready]);
+  }, [getNode, getAudioContext, initialize, nodeTypes, audioContextState, ready]);
 };

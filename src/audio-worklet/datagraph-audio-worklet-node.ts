@@ -28,6 +28,7 @@ export class DatagraphAudioWorkletNode extends AudioWorkletNode {
   > = new Map();
   nodeDataSubscriptionReader: NodeDataSubscriptionReader;
   latestValueSubscriptionReader: LatestValueSubscriptionReader;
+  wasStartedBefore = false;
 
   constructor(context: BaseAudioContext, name: string) {
     super(context, name);
@@ -56,9 +57,17 @@ export class DatagraphAudioWorkletNode extends AudioWorkletNode {
     payload: CommandPayload<T>
   ): Promise<CommandResult<T>> {
     const context = this.context instanceof AudioContext ? this.context : undefined;
-    if (context && context.state === "suspended" && navigator.userActivation.isActive) {
+    if (
+      context &&
+      context.state === "suspended" &&
+      navigator.userActivation.isActive &&
+      !this.wasStartedBefore
+    ) {
       console.log("First user activation detected, resuming audio context 🔊");
       context?.resume();
+    }
+    if (context?.state === "running") {
+      this.wasStartedBefore = true;
     }
 
     return new Promise<CommandResult<T>>((resolve, reject) => {
