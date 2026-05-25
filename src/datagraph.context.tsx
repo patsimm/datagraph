@@ -1,12 +1,17 @@
 import processorUrl from "./audio-worklet/datagraph-audio-worklet-processor.ts?worker&url";
 import { DatagraphAudioWorkletNode } from "./audio-worklet/datagraph-audio-worklet-node";
+import { NodeInfo } from "./audio-worklet/datagraph-audio-worklet-commands";
 
 import { createContext, useCallback, useContext, useMemo, useState } from "react";
 
 export type DatagraphContext = {
   ready: boolean;
   nodeTypes: string[];
-  initialize: () => Promise<{ workletNode: DatagraphAudioWorkletNode; outputNodeId: string; nodeTypes: string[] }>;
+  initialize: () => Promise<{
+    workletNode: DatagraphAudioWorkletNode;
+    outputNode: NodeInfo;
+    nodeTypes: string[];
+  }>;
   getNode: () => DatagraphAudioWorkletNode;
 };
 
@@ -26,8 +31,8 @@ async function initializeDatagraphAudioWorkletNode() {
   await audioContext.audioWorklet.addModule(processorUrl);
   const workletNode = new DatagraphAudioWorkletNode(audioContext, "datagraph-processor");
   workletNode.connect(audioContext.destination);
-  const { outputNodeId, nodeTypes } = await workletNode.initialize();
-  return { workletNode, outputNodeId, nodeTypes };
+  const { outputNode, nodeTypes } = await workletNode.initialize();
+  return { workletNode, outputNode, nodeTypes };
 }
 
 export function DatagraphProvider({ children }: { children: React.ReactNode }) {
@@ -35,10 +40,10 @@ export function DatagraphProvider({ children }: { children: React.ReactNode }) {
   const [nodeTypes, setNodeTypes] = useState<string[]>([]);
 
   const initialize = useCallback(async () => {
-    const { workletNode, outputNodeId, nodeTypes } = await initializeDatagraphAudioWorkletNode();
+    const { workletNode, outputNode, nodeTypes } = await initializeDatagraphAudioWorkletNode();
     setNode(workletNode);
     setNodeTypes(nodeTypes);
-    return { workletNode, outputNodeId, nodeTypes };
+    return { workletNode, outputNode, nodeTypes };
   }, []);
 
   const getNode = useCallback(() => {

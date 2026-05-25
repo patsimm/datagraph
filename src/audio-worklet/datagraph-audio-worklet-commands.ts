@@ -10,9 +10,11 @@ export type NodeSpecKind = AnyNodeSpec["kind"];
 export const PASSTHROUGH_TYPENAME = "datagraph::nodes::passthrough::Passthrough";
 
 export type NodeInfo = {
+  nodeId: string;
   inputNames: string[];
   outputNames: string[];
   nodeType: string;
+  defaultInputValues: number[];
 };
 
 export type GraphContext = {
@@ -29,7 +31,7 @@ export const commandHandlers = {
   add_param: async (context: GraphContext, { value }: { value: number }) => {
     return context.graph.addParam(value);
   },
-  add_node: async (context: GraphContext, { node }: { node: AnyNodeSpec }) => {
+  add_node: async (context: GraphContext, { node }: { node: AnyNodeSpec }): Promise<NodeInfo> => {
     const graphNode = datagraph.createNode(node.typename, context.sampleRate);
     if (!graphNode) throw new Error(`Unknown node type: ${node.typename}`);
     const nodeId = context.graph.add(graphNode);
@@ -81,7 +83,7 @@ export const commandHandlers = {
   latest_value_subscription_index: async (context: GraphContext, port: PortInfo) => {
     return context.latestValueSubscriptionIndex(port);
   },
-  node_info: async (context: GraphContext, { nodeId }: { nodeId: string }) => {
+  node_info: async (context: GraphContext, { nodeId }: { nodeId: string }): Promise<NodeInfo> => {
     const info = context.graph.nodeInfo(nodeId);
     return {
       nodeId,
@@ -126,7 +128,7 @@ export type CommandResult<T extends CommandType> = T extends keyof CommandHandle
     ? R
     : never
   : T extends "init"
-    ? { outputNodeId: string; nodeTypes: string[] }
+    ? { outputNode: NodeInfo; nodeTypes: string[] }
     : never;
 
 export type CommandHandler<T extends keyof CommandHandlers> = (

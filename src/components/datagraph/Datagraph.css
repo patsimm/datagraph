@@ -4,14 +4,21 @@
   width: 100%;
   height: 100%;
   cursor: pointer;
-  display: flex;
-  flex-direction: row;
+  display: grid;
+  grid-template-columns: 1fr minmax(0, 400px);
+  grid-template-rows: auto 1fr;
 
-  & .datagraph__canvas {
-    flex: 1;
+  .toolbar {
+    grid-column: 1 / -2;
   }
 
-  & .datagraph__context-view {
-    flex-basis: min(30%, 400px);
+  .datagraph__canvas {
+    grid-column: 1 / 2;
+    grid-row: 2 / -1;
+  }
+
+  .contextview {
+    grid-column: 2 / -1;
+    grid-row: 1 / -1;
   }
 }

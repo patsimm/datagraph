@@ -90,14 +90,22 @@ class DatagraphProcessor extends AudioWorkletProcessor {
   }: CommandPayload<"init">): Promise<CommandResult<"init">> {
     datagraph.initSync({ module: wasmBytes });
     this.graph = datagraph.createGraph(sampleRate);
-    this.outputNodeId = this.graph.add(
-      datagraph.createNode(PASSTHROUGH_TYPENAME, sampleRate)!
-    );
+    this.outputNodeId = this.graph.add(datagraph.createNode(PASSTHROUGH_TYPENAME, sampleRate)!);
+    const outputInfo = this.graph.nodeInfo(this.outputNodeId);
     this.nodeDataSubscriptionWriter = new NodeDataSubscriptionWriter(nodeDataSharedArrayBuffer);
     this.latestValueSubscriptionWriter = new LatestValueSubscriptionWriter(
       latestValueSharedArrayBuffer
     );
-    return { outputNodeId: this.outputNodeId, nodeTypes: datagraph.nodeTypes() as string[] };
+    return {
+      outputNode: {
+        nodeId: this.outputNodeId,
+        nodeType: outputInfo.nodeType,
+        defaultInputValues: [...outputInfo.defaultInputValues] as number[],
+        inputNames: outputInfo.inputNames as string[],
+        outputNames: outputInfo.outputNames as string[],
+      },
+      nodeTypes: datagraph.nodeTypes() as string[],
+    };
   }
 
   process(_inputs: Float32Array[][], outputs: Float32Array[][]): boolean {

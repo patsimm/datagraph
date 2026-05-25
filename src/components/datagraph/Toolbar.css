@@ -1,0 +1,40 @@
+.toolbar {
+  --toolbar-color-bg: color-mix(in srgb, var(--color-gray-dark) 80%, var(--color-primary));
+  --toolbar-padding: 0.5rem;
+  --color-text: var(--color-text-light);
+  --color-text-alternative: var(--color-text-dark);
+  --color-text-disabled: color-mix(in srgb, var(--color-text) 50%, var(--color-surface));
+  --color-surface: var(--toolbar-color-bg);
+
+  width: 100%;
+  background-color: var(--toolbar-color-bg);
+  color: var(--color-text);
+  top: 0;
+  left: 0;
+  z-index: 10;
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--toolbar-padding);
+  cursor: default;
+  padding: var(--toolbar-padding);
+
+  .toolbar__button {
+    width: 2.5rem;
+    height: 2.5rem;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-radius: 0;
+    background: var(--color-primary);
+    border: none;
+    color: inherit;
+
+    &:hover {
+      background: color-mix(in srgb, var(--color-primary) 80%, var(--color-surface));
+    }
+
+    &:active {
+      background: color-mix(in srgb, var(--color-primary) 60%, var(--color-surface));
+    }
+  }
+}

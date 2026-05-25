@@ -1,28 +1,20 @@
 import { NodeInfo } from "../../audio-worklet/datagraph-audio-worklet-commands";
-import { useDatagraph } from "../../datagraph.context";
 import { usePortConnections } from "../../edges.context";
 import { NodePortState } from "../../node.types";
-import { Node, NodeProps } from "./Node";
+import { Node } from "./Node";
 import { PortInfo } from "./node-utils";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo } from "react";
 
-export type OutputNodeProps = Omit<
-  NodeProps,
-  "rustNodeType" | "inputPorts" | "outputPorts" | "kind" | "onPortConnectionCompleted"
->;
-
+export type OutputNodeProps = {
+  node: NodeInfo;
+  x: number;
+  y: number;
+};
 const OUTPUT_PORTS: NodePortState[] = [];
 
-export function OutputNode(props: OutputNodeProps) {
-  const [info, setInfo] = useState<NodeInfo | null>(null);
+export function OutputNode({ node, x, y }: OutputNodeProps) {
   const { edges, connect } = usePortConnections();
-  const { ready, nodeInfo } = useDatagraph();
-
-  useEffect(() => {
-    if (!ready) return;
-    nodeInfo(props.nodeId).then(setInfo);
-  }, [nodeInfo, props.nodeId, ready]);
 
   const handleOutputConnectionCompleted = useCallback(
     async (port1: PortInfo, port2: PortInfo) => {
@@ -32,7 +24,7 @@ export function OutputNode(props: OutputNodeProps) {
   );
 
   const inputPorts = useMemo(() => {
-    const connectedTo = edges.filter((e) => e.to.nodeId === props.nodeId).map((e) => e.from);
+    const connectedTo = edges.filter((e) => e.to.nodeId === node.nodeId).map((e) => e.from);
     return [
       {
         type: "in" as const,
@@ -42,18 +34,19 @@ export function OutputNode(props: OutputNodeProps) {
         isDefaultModified: false,
       },
     ];
-  }, [edges, props.nodeId]);
+  }, [edges, node.nodeId]);
 
   return (
-    info && (
-      <Node
-        kind="output"
-        inputPorts={inputPorts}
-        outputPorts={OUTPUT_PORTS}
-        onPortConnectionCompleted={handleOutputConnectionCompleted}
-        rustNodeType={info.nodeType}
-        {...props}
-      ></Node>
-    )
+    <Node
+      kind="output"
+      inputPorts={inputPorts}
+      outputPorts={OUTPUT_PORTS}
+      onPortConnectionCompleted={handleOutputConnectionCompleted}
+      rustNodeType={node.nodeType}
+      x={x}
+      y={y}
+      label="speaker"
+      nodeId={node.nodeId}
+    ></Node>
   );
 }

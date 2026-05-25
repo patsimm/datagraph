@@ -13,6 +13,8 @@ import { usePortConnections } from "../../edges.context";
 import { ScrollDragging, ScrollDraggingHandle } from "../scroll-dragging/ScrollDragging";
 import { PortConnectionEdge } from "../edge/PortConnectionEdge";
 import { Edge } from "../edge/Edge";
+import { NodeInfo } from "../../audio-worklet/datagraph-audio-worklet-commands";
+import { Toolbar } from "./Toolbar";
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
 
@@ -23,7 +25,7 @@ export function Datagraph() {
   const { ready } = datagraph;
   const nodeTypes = datagraph.ready ? datagraph.nodeTypes : [];
   const { addNode, removeNode } = useNodes();
-  const [outputNode, setOutputNode] = useState<string | null>(null);
+  const [outputNode, setOutputNode] = useState<NodeInfo | null>(null);
   const [menu, setMenu] = useState<{ x: number; y: number } | null>(null);
   const { edges, disconnectPorts, disconnectNodes } = usePortConnections();
   const { handleNodeSelected } = useSelection();
@@ -57,8 +59,8 @@ export function Datagraph() {
 
   useEffect(() => {
     if (ready) return;
-    datagraph.start().then(({ outputNodeId }) => {
-      setOutputNode(outputNodeId);
+    datagraph.start().then(({ outputNode }) => {
+      setOutputNode(outputNode);
     });
   }, [ready, datagraph]);
 
@@ -89,9 +91,9 @@ export function Datagraph() {
       config: NodeState<T>["config"],
       settings: NodeState<T>["settings"]
     ) => {
-      const nodeId = await addNode(kind, position, config, settings);
+      const nodeInfo = await addNode(kind, position, config, settings);
       setMenu(null);
-      handleNodeSelected(nodeId);
+      handleNodeSelected(nodeInfo?.nodeId ?? null);
     },
     [addNode, handleNodeSelected]
   );
@@ -141,7 +143,12 @@ export function Datagraph() {
             <button
               key={typename}
               onClick={() =>
-                handleClickAdd("datagraph", getCanvasPosition(menu.x, menu.y), { typename }, undefined)
+                handleClickAdd(
+                  "datagraph",
+                  getCanvasPosition(menu.x, menu.y),
+                  { typename },
+                  undefined
+                )
               }
             >
               {typename.split("::").at(-1)}
@@ -209,7 +216,8 @@ export function Datagraph() {
           </button>
         </ContextMenu>
       )}
-
+      {outputNode && <Toolbar outputNode={outputNode} />}
+      <ContextView />
       <div className="datagraph__canvas" onClick={handleClick}>
         <ScrollDragging ref={scrollDraggingRef}>
           {ghostPosition && <Edge ghost {...ghostPosition} />}
@@ -225,11 +233,8 @@ export function Datagraph() {
             />
           ))}
           <Nodes onNodeClick={handleNodeClick} />
-          {outputNode && <OutputNode label="speaker" nodeId={outputNode} x={200} y={500} />}
+          {outputNode && <OutputNode node={outputNode} x={200} y={500} />}
         </ScrollDragging>
-      </div>
-      <div className="datagraph__context-view">
-        <ContextView />
       </div>
     </div>
   );

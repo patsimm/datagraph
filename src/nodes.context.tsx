@@ -9,7 +9,7 @@ import {
   type NodeKind,
   type NodeState,
 } from "./node.types";
-import { PASSTHROUGH_TYPENAME } from "./audio-worklet/datagraph-audio-worklet-commands";
+import { NodeInfo, PASSTHROUGH_TYPENAME } from "./audio-worklet/datagraph-audio-worklet-commands";
 import { convertToCv } from "./unit-conversion";
 
 import { useState, useCallback, createContext, useContext } from "react";
@@ -75,17 +75,20 @@ function useAllNodes() {
       settings: NodeState<T>["settings"]
     ) => {
       if (!ready) return null;
-      let nodeId: string;
       if (isParamKind(kind)) {
         const typedConfig = config as NodeState<"param:slider" | "param:button">["config"];
-        nodeId = await addParamToGraph(typedConfig.value);
-        const { nodeType } = await nodeInfo(nodeId);
+        const typedSettings = settings as AnyParamNodeState["settings"];
+        const initialCvValue = typedSettings?.unit
+          ? convertToCv(typedConfig.value, typedSettings.unit)
+          : typedConfig.value;
+        const nodeId = await addParamToGraph(initialCvValue);
+        const info = await nodeInfo(nodeId);
         setNodes((prev) => ({
           ...prev,
           [nodeId]: {
             nodeId,
             kind,
-            rustNodeType: nodeType,
+            rustNodeType: info.nodeType,
             inputPorts: [],
             outputPorts: ["output"]
               .map((name) => name)
@@ -103,13 +106,13 @@ function useAllNodes() {
             },
           } as AnyNodeState,
         }));
+        return info;
       } else if (isVisualizerKind(kind)) {
         const info = await addNodeToGraph({ kind: "datagraph", typename: PASSTHROUGH_TYPENAME });
-        nodeId = info.nodeId;
         setNodes((prev) => ({
           ...prev,
-          [nodeId]: {
-            nodeId,
+          [info.nodeId]: {
+            nodeId: info.nodeId,
             kind,
             inputPorts: ["input"].map((name) => ({
               type: "in",
@@ -129,16 +132,16 @@ function useAllNodes() {
             config: undefined,
           } as AnyNodeState,
         }));
+        return info;
       } else {
         const info = await addNodeToGraph({
           kind: "datagraph",
           typename: (config as { typename: string }).typename,
         });
-        nodeId = info.nodeId;
         setNodes((prev) => ({
           ...prev,
           [info.nodeId]: {
-            nodeId,
+            nodeId: info.nodeId,
             inputPorts: info.inputNames.map((name, index) => ({
               type: "in",
               name,
@@ -158,8 +161,8 @@ function useAllNodes() {
             ...position,
           } as AnyNodeState,
         }));
+        return info;
       }
-      return nodeId;
     },
     [addNodeToGraph, addParamToGraph, nodeInfo, ready]
   );
@@ -265,7 +268,7 @@ const nodesContext = createContext<{
     position: { x: number; y: number },
     config: NodeState<T>["config"],
     settings: NodeState<T>["settings"]
-  ) => Promise<string | null>;
+  ) => Promise<NodeInfo | null>;
   removeNode: (nodeId: string) => Promise<void>;
   updateNodeState: (nodeId: string, update: (current: AnyNodeState) => AnyNodeState) => void;
   getNode: (nodeId: string) => AnyNodeState | undefined;
