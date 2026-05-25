@@ -19,7 +19,9 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 export function Datagraph() {
   const ref = useRef<HTMLDivElement>(null);
   const scrollDraggingRef = useRef<ScrollDraggingHandle>(null);
-  const { ready, start } = useDatagraph();
+  const datagraph = useDatagraph();
+  const { ready } = datagraph;
+  const nodeTypes = datagraph.ready ? datagraph.nodeTypes : [];
   const { addNode, removeNode } = useNodes();
   const [outputNode, setOutputNode] = useState<string | null>(null);
   const [menu, setMenu] = useState<{ x: number; y: number } | null>(null);
@@ -55,10 +57,10 @@ export function Datagraph() {
 
   useEffect(() => {
     if (ready) return;
-    start().then(({ outputNodeId }) => {
+    datagraph.start().then(({ outputNodeId }) => {
       setOutputNode(outputNodeId);
     });
-  }, [ready, start]);
+  }, [ready, datagraph]);
 
   const getCanvasPosition = useCallback((screenX: number, screenY: number) => {
     const canvas = document.querySelector(".scroll-dragging__content") as HTMLElement;
@@ -135,81 +137,16 @@ export function Datagraph() {
       {menu && (
         <ContextMenu x={menu.x} y={menu.y} onClose={handleCloseContextMenu}>
           <div className="contextmenu__title">add Node</div>
-          <button
-            onClick={() =>
-              handleClickAdd("sin", getCanvasPosition(menu.x, menu.y), undefined, undefined)
-            }
-          >
-            sin
-          </button>
-          <button
-            onClick={() =>
-              handleClickAdd("saw", getCanvasPosition(menu.x, menu.y), undefined, undefined)
-            }
-          >
-            saw
-          </button>
-          <button
-            onClick={() =>
-              handleClickAdd("square", getCanvasPosition(menu.x, menu.y), undefined, undefined)
-            }
-          >
-            square
-          </button>
-          <button
-            onClick={() =>
-              handleClickAdd("multiply", getCanvasPosition(menu.x, menu.y), undefined, undefined)
-            }
-          >
-            multiply
-          </button>
-          <button
-            onClick={() =>
-              handleClickAdd("add", getCanvasPosition(menu.x, menu.y), undefined, undefined)
-            }
-          >
-            add
-          </button>
-          <button
-            onClick={() =>
-              handleClickAdd("delay", getCanvasPosition(menu.x, menu.y), undefined, undefined)
-            }
-          >
-            delay
-          </button>
-          <button
-            onClick={() =>
-              handleClickAdd("one-pole", getCanvasPosition(menu.x, menu.y), undefined, undefined)
-            }
-          >
-            one-pole lowpass
-          </button>
-          <button
-            onClick={() =>
-              handleClickAdd(
-                "adsr",
-                getCanvasPosition(menu.x, menu.y),
-                { attack: 0.1, decay: 0.1, sustain: 0.8, release: 0.1 },
-                undefined
-              )
-            }
-          >
-            adsr
-          </button>
-          <button
-            onClick={() =>
-              handleClickAdd("sequencer", getCanvasPosition(menu.x, menu.y), undefined, undefined)
-            }
-          >
-            sequencer
-          </button>
-          <button
-            onClick={() =>
-              handleClickAdd("passthrough", getCanvasPosition(menu.x, menu.y), undefined, undefined)
-            }
-          >
-            passthrough
-          </button>
+          {nodeTypes.map((typename) => (
+            <button
+              key={typename}
+              onClick={() =>
+                handleClickAdd("datagraph", getCanvasPosition(menu.x, menu.y), { typename }, undefined)
+              }
+            >
+              {typename.split("::").at(-1)}
+            </button>
+          ))}
           <button
             onClick={() =>
               handleClickAdd(

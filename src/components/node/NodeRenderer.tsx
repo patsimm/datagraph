@@ -26,7 +26,7 @@ export const NodeRenderer = React.memo(function NodeRenderer({
     <Node
       {...node}
       {...interactionProps}
-      label={node.kind}
+      label={node.config?.typename?.split("::").at(-1) ?? node.kind}
       inputPorts={node.inputPorts ?? []}
       outputPorts={node.outputPorts ?? []}
     />

@@ -1,7 +1,7 @@
 import { NodeInfo } from "../../audio-worklet/datagraph-audio-worklet-commands";
 import { useDatagraph } from "../../datagraph.context";
 import { usePortConnections } from "../../edges.context";
-import { NodePort } from "../../node.types";
+import { NodePortState } from "../../node.types";
 import { Node, NodeProps } from "./Node";
 import { PortInfo } from "./node-utils";
 
@@ -12,7 +12,7 @@ export type OutputNodeProps = Omit<
   "rustNodeType" | "inputPorts" | "outputPorts" | "kind" | "onPortConnectionCompleted"
 >;
 
-const OUTPUT_PORTS: NodePort[] = [];
+const OUTPUT_PORTS: NodePortState[] = [];
 
 export function OutputNode(props: OutputNodeProps) {
   const [info, setInfo] = useState<NodeInfo | null>(null);

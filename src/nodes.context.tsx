@@ -9,7 +9,7 @@ import {
   type NodeKind,
   type NodeState,
 } from "./node.types";
-import type { AnyNodeSpec } from "./audio-worklet/datagraph-audio-worklet-commands";
+import { PASSTHROUGH_TYPENAME } from "./audio-worklet/datagraph-audio-worklet-commands";
 import { convertToCv } from "./unit-conversion";
 
 import { useState, useCallback, createContext, useContext } from "react";
@@ -104,7 +104,7 @@ function useAllNodes() {
           } as AnyNodeState,
         }));
       } else if (isVisualizerKind(kind)) {
-        const info = await addNodeToGraph({ kind: "passthrough" });
+        const info = await addNodeToGraph({ kind: "datagraph", typename: PASSTHROUGH_TYPENAME });
         nodeId = info.nodeId;
         setNodes((prev) => ({
           ...prev,
@@ -131,9 +131,9 @@ function useAllNodes() {
         }));
       } else {
         const info = await addNodeToGraph({
-          kind,
-          ...(config ?? {}),
-        } as AnyNodeSpec);
+          kind: "datagraph",
+          typename: (config as { typename: string }).typename,
+        });
         nodeId = info.nodeId;
         setNodes((prev) => ({
           ...prev,

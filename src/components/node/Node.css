@@ -1,70 +1,41 @@
 .node {
   --node-color-bg: var(--color-primary);
   --node-padding: 0.325rem;
-  --node-port-size: 10px;
-  --half-node-port-size: calc(var(--node-port-size) / 2);
-  --half-port-cutout-size: calc(var(--half-node-port-size) - 1px);
-  --port-cutout: radial-gradient(
-    circle at 50% 0px,
-    rgb(0 0 0 / 0%) 0,
-    rgb(0 0 0 / 0%) var(--half-port-cutout-size),
-    var(--node-color-bg) calc(var(--half-port-cutout-size) + 0.25px)
-  );
+  --node-border-radius: 0.075rem;
   --color-surface: var(--node-color-bg);
   --color-text: var(--color-text-light);
   --color-disabled: color-mix(in srgb, var(--color-text) 50%, var(--color-surface));
+  --node-input-ports: 0;
+  --node-output-ports: 0;
+  --node-port-size: 10px;
+  --node-port-hover-target-extend: 1rem;
 
   position: absolute;
   background: var(--color-surface);
   color: var(--color-text);
-  border-radius: 3px;
+  border-radius: var(--node-border-radius);
   font-size: 12px;
   cursor: grab;
   z-index: 2;
+  transform: translate(-50%, -50%);
+  min-width: calc(
+    max(var(--node-input-ports), var(--node-output-ports)) *
+      calc(var(--node-port-size) + var(--node-port-hover-target-extend))
+  );
 
-  @for $i from 1 to 8 {
+  @for $i from 0 to 16 {
     &[data-input-ports="$i"] {
-      @mixin port-cutout $i;
+      --node-input-ports: $i;
+    }
+
+    &[data-output-ports="$i"] {
+      --node-output-ports: $i;
     }
   }
 
   & .node__wrapper {
     position: relative;
-    width: 100%;
-    height: 100%;
     pointer-events: none;
-
-    & .node__port {
-      position: relative;
-      width: var(--node-port-size);
-      height: var(--node-port-size);
-      border-radius: 50%;
-      pointer-events: auto;
-
-      &:hover,
-      &.node__port--drag-over {
-        background: color-mix(in srgb, var(--color-surface) 80%, var(--color-gray-light));
-        outline: 2px solid color-mix(in srgb, var(--color-surface) 80%, var(--color-gray-light));
-        cursor: pointer;
-      }
-
-      &.node__port--connected {
-        background: color-mix(in srgb, var(--color-surface) 80%, var(--color-gray-dark));
-      }
-
-      &.node__port--has-custom-default::after {
-        content: "";
-        position: absolute;
-        width: 4px;
-        height: 4px;
-        border-radius: 50%;
-        background: var(--color-surface);
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        pointer-events: none;
-      }
-    }
 
     & .node__ports {
       position: absolute;
@@ -75,31 +46,10 @@
 
       &.node__ports--input {
         top: 0;
-
-        & .node__port {
-          transform: translateY(-50%);
-
-          &:not(.node__port--connected) {
-            background: transparent;
-          }
-
-          &:hover,
-          &.node__port--drag-over {
-            background: var(--color-background);
-          }
-        }
       }
 
       &.node__ports--output {
         bottom: 0;
-
-        & .node__port {
-          transform: translateY(-50%);
-
-          &:not(.node__port--connected) {
-            background: color-mix(in srgb, var(--color-surface) 80%, var(--color-gray-dark));
-          }
-        }
       }
     }
 
@@ -113,6 +63,7 @@
         display: flex;
         flex-direction: row;
         gap: var(--node-padding);
+        padding: 0.125rem 0;
 
         & .node__label {
           text-overflow: ellipsis;

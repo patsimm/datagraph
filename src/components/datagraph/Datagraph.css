@@ -12,6 +12,6 @@
   }
 
   & .datagraph__context-view {
-    flex-basis: 300px;
+    flex-basis: min(30%, 400px);
   }
 }

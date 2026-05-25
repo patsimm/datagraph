@@ -31,6 +31,11 @@ export function parseError(error: unknown[]) {
         toNodeType: error[5],
         toPort: error[6],
       };
+    case datagraph.DatagraphError.NotAParameter:
+      return {
+        type: "NotAParameter" as const,
+        nodeId: error[1],
+      };
   }
 }
 

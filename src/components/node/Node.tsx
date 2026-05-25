@@ -1,14 +1,11 @@
-import { parsePortKey, PortInfo, portKey } from "./node-utils";
+import { portKey } from "./node-utils";
 import "./Node.css";
-import type { NodePort, NodeInteractionProps } from "../../node.types";
-import {
-  PortConnectionCompletedEvent,
-  PortConnectionInitiatedEvent,
-} from "../datagraph/connection-events";
+import type { NodePortState, NodeInteractionProps } from "../../node.types";
 import { useNodeDragging } from "./node-dragging.hook";
+import { NodePort } from "./NodePort";
 
 import classNames from "classnames";
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback } from "react";
 
 export type NodeProps = {
   kind: string;
@@ -16,8 +13,8 @@ export type NodeProps = {
   nodeId: string;
   x: number;
   y: number;
-  inputPorts: NodePort[];
-  outputPorts: NodePort[];
+  inputPorts: NodePortState[];
+  outputPorts: NodePortState[];
   rustNodeType: string;
 } & NodeInteractionProps;
 
@@ -67,10 +64,12 @@ export function Node({
       <div className="node__wrapper">
         <div className={"node__ports node__ports--input"}>
           {inputPorts.map((port, i) => (
-            <Port
+            <NodePort
               key={portKey({ nodeId: nodeId, port: i, portType: "in" })}
               portName={port.name}
-              portKey={portKey({ nodeId: nodeId, port: i, portType: "in" })}
+              nodeId={nodeId}
+              port={i}
+              portType="in"
               connected={port.connectedTo.length > 0}
               hasCustomDefault={port.type === "in" && port.isDefaultModified}
               onPortConnectionInitiated={onPortConnectionInitiated}
@@ -80,10 +79,12 @@ export function Node({
         </div>
         <div className="node__ports node__ports--output">
           {outputPorts.map((port, i) => (
-            <Port
+            <NodePort
               key={portKey({ nodeId: nodeId, port: i, portType: "out" })}
               portName={port.name}
-              portKey={portKey({ nodeId: nodeId, port: i, portType: "out" })}
+              nodeId={nodeId}
+              port={i}
+              portType="out"
               connected={port.connectedTo.length > 0}
               onPortConnectionInitiated={onPortConnectionInitiated}
               onPortConnectionCompleted={onPortConnectionCompleted}
@@ -98,69 +99,5 @@ export function Node({
         </div>
       </div>
     </div>
-  );
-}
-
-export type PortProps = {
-  portKey: string;
-  portName: string;
-  connected: boolean;
-  hasCustomDefault?: boolean;
-  onPortConnectionInitiated?: (startPort: PortInfo) => void;
-  onPortConnectionCompleted?: (startPort: PortInfo, endPort: PortInfo) => void;
-};
-
-function Port({
-  portKey,
-  portName,
-  connected,
-  hasCustomDefault,
-  onPortConnectionInitiated,
-  onPortConnectionCompleted,
-}: PortProps) {
-  const ref = useRef<HTMLDivElement>(null);
-
-  const handlePortConnectionInitiated = useCallback(
-    (ev: Event) => {
-      if (ev instanceof PortConnectionInitiatedEvent) {
-        onPortConnectionInitiated?.(parsePortKey(ev.detail.startPortKey));
-      }
-    },
-    [onPortConnectionInitiated]
-  );
-  const handlePortConnectionCompleted = useCallback(
-    (ev: Event) => {
-      if (ev instanceof PortConnectionCompletedEvent) {
-        onPortConnectionCompleted?.(
-          parsePortKey(ev.detail.startPortKey),
-          parsePortKey(ev.detail.endPortKey)
-        );
-      }
-    },
-    [onPortConnectionCompleted]
-  );
-
-  useEffect(() => {
-    if (!ref.current) return;
-    ref.current.addEventListener(
-      PortConnectionInitiatedEvent.EVENT_NAME,
-      handlePortConnectionInitiated
-    );
-    ref.current.addEventListener(
-      PortConnectionCompletedEvent.EVENT_NAME,
-      handlePortConnectionCompleted
-    );
-  }, [handlePortConnectionCompleted, handlePortConnectionInitiated]);
-
-  return (
-    <div
-      ref={ref}
-      data-port={portKey}
-      className={classNames("node__port", {
-        "node__port--connected": connected,
-        "node__port--has-custom-default": hasCustomDefault,
-      })}
-      title={portName}
-    ></div>
   );
 }

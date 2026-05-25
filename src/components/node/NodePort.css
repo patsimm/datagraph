@@ -1,0 +1,92 @@
+.node-port {
+  --node-port-border-radius: var(--node-borer-radius);
+  --node-port-color-connected: color-mix(in srgb, var(--color-surface) 80%, var(--color-gray-dark));
+  --node-port-color-input: color-mix(in srgb, var(--color-surface) 30%, var(--color-gray-light));
+  --node-port-color-output: color-mix(in srgb, var(--color-surface) 30%, var(--color-gray-dark));
+
+  position: relative;
+  pointer-events: auto;
+
+  & .node-port__indicator {
+    position: absolute;
+    height: calc(var(--node-port-size) / 2);
+    width: calc(var(--node-port-size));
+    overflow: hidden;
+    transform: translateX(-50%);
+
+    &::after {
+      position: absolute;
+      width: var(--node-port-size);
+      height: var(--node-port-size);
+      background: var(--color-surface);
+      border-radius: var(--node-port-border-radius);
+      content: "";
+    }
+  }
+
+  & .node-port__hover-target {
+    position: absolute;
+    background: transparent;
+    width: calc(var(--node-port-size) + var(--node-port-hover-target-extend));
+    height: calc(var(--node-port-size) + var(--node-port-hover-target-extend));
+    transform: translate(-50%, -50%);
+
+    &:hover,
+    &.node__port--drag-over {
+      cursor: pointer;
+    }
+  }
+
+  &.node-port--output .node-port__indicator {
+    bottom: 0;
+
+    &::after {
+      top: 0;
+    }
+  }
+
+  &.node-port--output {
+    .node-port__indicator::after {
+      background: var(--node-port-color-output);
+    }
+  }
+
+  &.node-port--input {
+    .node-port__indicator::after {
+      bottom: 0;
+      background: var(--node-port-color-input);
+    }
+
+    &.node-port--has-custom-default .node-port__indicator::before {
+      position: absolute;
+      top: 0;
+      left: 50%;
+      z-index: 1;
+      border-radius: var(--node-port-border-radius);
+      transform: translate(-50%, -50%);
+      content: "";
+      width: calc(var(--node-port-size) / 2);
+      height: calc(var(--node-port-size) / 2);
+      background: var(--node-port-color-connected);
+    }
+  }
+
+  &.node-port--connected .node-port__indicator {
+    overflow: visible;
+
+    &::after {
+      background: var(--node-port-color-connected);
+    }
+  }
+
+  .node-port__indicator:has(
+    + .node-port__hover-target:hover,
+    + .node-port__hover-target.node__port--dragging
+  ) {
+    overflow: visible;
+
+    &::after {
+      outline: 2px solid color-mix(in srgb, var(--color-surface) 80%, var(--color-gray-light));
+    }
+  }
+}

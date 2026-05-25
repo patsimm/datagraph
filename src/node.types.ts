@@ -4,7 +4,7 @@ import { Unit } from "./unit-conversion";
 
 export type DistributiveOmit<T, K extends PropertyKey> = T extends unknown ? Omit<T, K> : never;
 
-export type NodePort =
+export type NodePortState =
   | {
       type: "in";
       name: string;
@@ -14,16 +14,16 @@ export type NodePort =
     }
   | { type: "out"; name: string; connectedTo: PortInfo[] };
 
-export type NodeInputPort = Extract<NodePort, { type: "in" }>;
-export type NodeOutputPort = Extract<NodePort, { type: "out" }>;
+export type NodeInputPortState = Extract<NodePortState, { type: "in" }>;
+export type NodeOutputPortState = Extract<NodePortState, { type: "out" }>;
 
-export type NodeBase<T extends string, C = undefined, S = undefined> = {
+export type NodeStateBase<T extends string, C = undefined, S = undefined> = {
   kind: T;
   nodeId: string;
   x: number;
   y: number;
-  inputPorts: NodeInputPort[];
-  outputPorts: NodeOutputPort[];
+  inputPorts: NodeInputPortState[];
+  outputPorts: NodeOutputPortState[];
   rustNodeType: string;
   settings: S;
   config: C;
@@ -32,10 +32,10 @@ export type NodeBase<T extends string, C = undefined, S = undefined> = {
 type EmptyToUndefined<T> = keyof T extends never ? undefined : T;
 
 export type AnyAudioNodeState = {
-  [S in AnyNodeSpec as S["kind"]]: NodeBase<S["kind"], EmptyToUndefined<Omit<S, "kind">>>;
+  [S in AnyNodeSpec as S["kind"]]: NodeStateBase<S["kind"], EmptyToUndefined<Omit<S, "kind">>>;
 }[AnyNodeSpec["kind"]];
 
-export type ParamNodeBase<T extends string, S> = NodeBase<
+export type ParamNodeBase<T extends string, S> = NodeStateBase<
   T,
   {
     value: number;
@@ -70,8 +70,8 @@ export type ParamNodeState<T extends AnyParamNodeState["kind"]> = Extract<
 
 export type ParamKind = AnyParamNodeState["kind"];
 
-export type OscilloscopeVisualizerNodeState = NodeBase<"visualizer:oscilloscope">;
-export type InspectVisualizerNodeState = NodeBase<"visualizer:inspect">;
+export type OscilloscopeVisualizerNodeState = NodeStateBase<"visualizer:oscilloscope">;
+export type InspectVisualizerNodeState = NodeStateBase<"visualizer:inspect">;
 export type AnyVisualizerNodeState = OscilloscopeVisualizerNodeState | InspectVisualizerNodeState;
 
 export type VisualizerKind = AnyVisualizerNodeState["kind"];

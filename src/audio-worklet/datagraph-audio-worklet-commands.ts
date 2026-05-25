@@ -1,27 +1,13 @@
 import { PortInfo } from "../components/node/node-utils";
 
-import { Graph, Param } from "@patsimm/datagraph-core";
+import { Graph } from "@patsimm/datagraph-core";
 import * as datagraph from "@patsimm/datagraph-core";
 
-export type AnyNodeSpec =
-  | { kind: "sin" }
-  | { kind: "saw" }
-  | { kind: "square" }
-  | {
-      kind: "adsr";
-      attack: number;
-      decay: number;
-      sustain: number;
-      release: number;
-    }
-  | { kind: "multiply" }
-  | { kind: "add" }
-  | { kind: "delay" }
-  | { kind: "one-pole" }
-  | { kind: "passthrough" }
-  | { kind: "sequencer" };
+export type AnyNodeSpec = { kind: "datagraph"; typename: string };
 
 export type NodeSpecKind = AnyNodeSpec["kind"];
+
+export const PASSTHROUGH_TYPENAME = "datagraph::nodes::passthrough::Passthrough";
 
 export type NodeInfo = {
   inputNames: string[];
@@ -31,7 +17,6 @@ export type NodeInfo = {
 
 export type GraphContext = {
   graph: Graph;
-  params: Map<string, Param>;
   sampleRate: number;
   subscribePortData: (port: PortInfo) => number | undefined;
   unsubscribePortData: (port: PortInfo) => boolean;
@@ -42,51 +27,11 @@ export type GraphContext = {
 
 export const commandHandlers = {
   add_param: async (context: GraphContext, { value }: { value: number }) => {
-    const param = datagraph.createParam(value);
-    const nodeId = context.graph.addParam(param);
-    context.params.set(nodeId, param);
-    return nodeId;
+    return context.graph.addParam(value);
   },
   add_node: async (context: GraphContext, { node }: { node: AnyNodeSpec }) => {
-    let graphNode: datagraph.GraphNode;
-    switch (node.kind) {
-      case "sin":
-        graphNode = datagraph.createSin(context.sampleRate);
-        break;
-      case "saw":
-        graphNode = datagraph.createSaw(context.sampleRate);
-        break;
-      case "square":
-        graphNode = datagraph.createSquare(context.sampleRate);
-        break;
-      case "adsr":
-        graphNode = datagraph.createADSR(
-          context.sampleRate,
-          node.attack,
-          node.decay,
-          node.sustain,
-          node.release
-        );
-        break;
-      case "multiply":
-        graphNode = datagraph.createMultiply();
-        break;
-      case "add":
-        graphNode = datagraph.createAdd();
-        break;
-      case "delay":
-        graphNode = datagraph.createDelay();
-        break;
-      case "one-pole":
-        graphNode = datagraph.createOnePoleLowPass(BigInt(50), context.sampleRate);
-        break;
-      case "passthrough":
-        graphNode = datagraph.createPassthrough();
-        break;
-      case "sequencer":
-        graphNode = datagraph.createSequencer();
-        break;
-    }
+    const graphNode = datagraph.createNode(node.typename, context.sampleRate);
+    if (!graphNode) throw new Error(`Unknown node type: ${node.typename}`);
     const nodeId = context.graph.add(graphNode);
     const info = context.graph.nodeInfo(nodeId);
     if (!info) {
@@ -102,17 +47,12 @@ export const commandHandlers = {
   },
   remove_node: async (context: GraphContext, { nodeId }: { nodeId: string }) => {
     context.graph.remove(nodeId);
-    if (context.params.has(nodeId)) {
-      const param = context.params.get(nodeId)!;
-      context.params.delete(nodeId);
-      param.free();
-    }
   },
   set_param: async (
     context: GraphContext,
     { nodeId, value }: { nodeId: string; value: number }
   ) => {
-    context.params.get(nodeId)!.set(value);
+    context.graph.setParamValue(nodeId, value);
   },
   connect: async (
     context: GraphContext,
@@ -186,7 +126,7 @@ export type CommandResult<T extends CommandType> = T extends keyof CommandHandle
     ? R
     : never
   : T extends "init"
-    ? { outputNodeId: string }
+    ? { outputNodeId: string; nodeTypes: string[] }
     : never;
 
 export type CommandHandler<T extends keyof CommandHandlers> = (

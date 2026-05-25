@@ -39,14 +39,34 @@ export function usePortConnecting({
       setPosition({ fromX: startPosX, fromY: startPosY, toX: x, toY: y });
 
       const elemUnderCursor = document.elementFromPoint(event.clientX, event.clientY);
+      const portKeyUnderCursor =
+        elemUnderCursor instanceof HTMLElement ? getNodePortKeyFromElement(elemUnderCursor) : null;
+      if (portKeyUnderCursor === draggingStateRef.current.dragStartPort) return;
+
       const portUnderCursor =
-        elemUnderCursor instanceof HTMLElement && getNodePortKeyFromElement(elemUnderCursor)
-          ? elemUnderCursor
-          : null;
+        elemUnderCursor instanceof HTMLElement && portKeyUnderCursor ? elemUnderCursor : null;
+      const portPositionUnderCursor = portUnderCursor?.getBoundingClientRect();
+      const xUnderCursor =
+        portPositionUnderCursor &&
+        portPositionUnderCursor.left +
+          0.5 * portPositionUnderCursor.width -
+          containerElem.getBoundingClientRect().left;
+      const yUnderCursor =
+        portPositionUnderCursor &&
+        portPositionUnderCursor.top +
+          0.5 * portPositionUnderCursor.height -
+          containerElem.getBoundingClientRect().top;
+
+      setPosition({
+        fromX: startPosX,
+        fromY: startPosY,
+        toX: xUnderCursor ?? x,
+        toY: yUnderCursor ?? y,
+      });
 
       if (portUnderCursor !== hoveredPortRef.current) {
-        hoveredPortRef.current?.classList.remove("node__port--drag-over");
-        portUnderCursor?.classList.add("node__port--drag-over");
+        hoveredPortRef.current?.classList.remove("node__port--dragging");
+        portUnderCursor?.classList.add("node__port--dragging");
         hoveredPortRef.current = portUnderCursor;
       }
     },
@@ -84,6 +104,7 @@ export function usePortConnecting({
       elem.setPointerCapture(event.pointerId);
       elem.addEventListener("pointermove", handlePointerMove);
 
+      portelem.classList.add("node__port--dragging");
       portelem.dispatchEvent(new PortConnectionInitiatedEvent(portKey));
       return true;
     },
@@ -97,10 +118,12 @@ export function usePortConnecting({
       const elem = event.currentTarget as HTMLElement;
       elem.removeEventListener("pointermove", handlePointerMove);
 
-      hoveredPortRef.current?.classList.remove("node__port--drag-over");
+      hoveredPortRef.current?.classList.remove("node__port--dragging");
       hoveredPortRef.current = null;
 
       const startPortKey = draggingStateRef.current.dragStartPort;
+      const startPortElem = getNodePortElement(startPortKey);
+      startPortElem.classList.remove("node__port--dragging");
       draggingStateRef.current = null;
 
       const suppressClick = (e: MouseEvent) => {

@@ -17,6 +17,7 @@ import {
 import { NodeDataSubscriptionWriter } from "./node-data-subscription";
 import { LatestValueSubscriptionWriter } from "./latest-value-subscription";
 import { PortInfo } from "../components/node/node-utils";
+import { PASSTHROUGH_TYPENAME } from "./datagraph-audio-worklet-commands";
 
 import * as datagraph from "@patsimm/datagraph-core";
 
@@ -25,7 +26,6 @@ class DatagraphProcessor extends AudioWorkletProcessor {
   outputNodeId: string | null = null;
   nodeDataSubscriptionWriter: NodeDataSubscriptionWriter | null = null;
   latestValueSubscriptionWriter: LatestValueSubscriptionWriter | null = null;
-  params: Map<string, datagraph.Param> = new Map();
 
   constructor() {
     super();
@@ -65,7 +65,6 @@ class DatagraphProcessor extends AudioWorkletProcessor {
     }
     const context: GraphContext = {
       graph: this.graph,
-      params: this.params,
       sampleRate,
       subscribePortData: (port: PortInfo) => this.nodeDataSubscriptionWriter!.subscribe(port),
       unsubscribePortData: (port: PortInfo) => this.nodeDataSubscriptionWriter!.unsubscribe(port),
@@ -90,13 +89,15 @@ class DatagraphProcessor extends AudioWorkletProcessor {
     latestValueSharedArrayBuffer,
   }: CommandPayload<"init">): Promise<CommandResult<"init">> {
     datagraph.initSync({ module: wasmBytes });
-    this.graph = datagraph.createGraph();
-    this.outputNodeId = this.graph.add(datagraph.createPassthrough());
+    this.graph = datagraph.createGraph(sampleRate);
+    this.outputNodeId = this.graph.add(
+      datagraph.createNode(PASSTHROUGH_TYPENAME, sampleRate)!
+    );
     this.nodeDataSubscriptionWriter = new NodeDataSubscriptionWriter(nodeDataSharedArrayBuffer);
     this.latestValueSubscriptionWriter = new LatestValueSubscriptionWriter(
       latestValueSharedArrayBuffer
     );
-    return { outputNodeId: this.outputNodeId };
+    return { outputNodeId: this.outputNodeId, nodeTypes: datagraph.nodeTypes() as string[] };
   }
 
   process(_inputs: Float32Array[][], outputs: Float32Array[][]): boolean {
