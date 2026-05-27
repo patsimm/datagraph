@@ -36,6 +36,11 @@ export function parseError(error: unknown[]) {
         type: "NotAParameter" as const,
         nodeId: error[1],
       };
+    case datagraph.DatagraphError.InvalidNodeId:
+      return {
+        type: "InvalidNodeId" as const,
+        nodeId: error[1],
+      };
   }
 }
 

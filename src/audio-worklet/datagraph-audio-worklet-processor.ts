@@ -16,7 +16,7 @@ import {
 } from "./datagraph-audio-worklet-message";
 import { NodeDataSubscriptionWriter } from "./node-data-subscription";
 import { LatestValueSubscriptionWriter } from "./latest-value-subscription";
-import { PortInfo } from "../components/node/node-utils";
+import { PortInfo, portKey } from "../components/node/node-utils";
 import { PASSTHROUGH_TYPENAME } from "./datagraph-audio-worklet-commands";
 
 import * as datagraph from "@patsimm/datagraph-core";
@@ -115,16 +115,24 @@ class DatagraphProcessor extends AudioWorkletProcessor {
     const channel0 = out[0];
     if (!channel0) return true;
 
-    for (let i = 0; i < channel0.length; i++) {
-      this.graph.tick();
-      channel0[i] = this.graph.portValue(this.outputNodeId, 0, datagraph.PortType.Output) || 0;
-      this.nodeDataSubscriptionWriter?.writeFromGraph(this.graph);
-    }
+    const subscribedPortList = this.nodeDataSubscriptionWriter?.subscribedPorts() ?? [];
+    const portKeys: string[] = [
+      portKey({ nodeId: this.outputNodeId, port: 0, portType: "out" }),
+      ...subscribedPortList.map(portKey),
+    ];
+    const buffers: Float32Array[] = [
+      channel0,
+      ...subscribedPortList.map(() => new Float32Array(channel0.length)),
+    ];
+
+    this.graph.processBatch(portKeys, buffers);
+    this.nodeDataSubscriptionWriter?.writeBatch(portKeys, buffers);
     this.latestValueSubscriptionWriter?.writeFromGraph(this.graph);
 
     for (let c = 1; c < out.length; c++) {
       out[c].set(channel0);
     }
+
     return true;
   }
 }

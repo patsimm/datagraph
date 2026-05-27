@@ -7,7 +7,7 @@ export type AnyNodeSpec = { kind: "datagraph"; typename: string };
 
 export type NodeSpecKind = AnyNodeSpec["kind"];
 
-export const PASSTHROUGH_TYPENAME = "datagraph::nodes::passthrough::Passthrough";
+export const PASSTHROUGH_TYPENAME = "datagraph::nodes::math::Passthrough";
 
 export type NodeInfo = {
   nodeId: string;

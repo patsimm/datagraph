@@ -1,6 +1,4 @@
-import { arePortsEqual, PortInfo, toDatagraphPortType } from "../components/node/node-utils";
-
-import * as datagraph from "@patsimm/datagraph-core";
+import { arePortsEqual, PortInfo, portKey } from "../components/node/node-utils";
 
 export const BUFFER_SIZE = 2048; // samples per node
 export const MAX_SUBSCRIPTION_COUNT = 8; // max nodes to monitor
@@ -56,16 +54,20 @@ export class NodeDataSubscriptionWriter {
     return true;
   }
 
-  writeFromGraph(graph: datagraph.Graph) {
+  subscribedPorts() {
+    return this.subscriptions.map((s) => s.port);
+  }
+
+  writeBatch(portKeys: string[], buffers: Float32Array[]) {
+    if (this.subscriptions.length === 0) return;
     for (const subscription of this.subscriptions) {
-      this.nodeDataAccumulators[subscription.index][this.nodeDataAccumulatorIndex] =
-        graph.portValue(
-          subscription.port.nodeId,
-          subscription.port.port,
-          toDatagraphPortType(subscription.port.portType)
-        ) || 0;
+      const idx = portKeys.indexOf(portKey(subscription.port));
+      if (idx !== -1) {
+        this.nodeDataAccumulators[subscription.index].set(buffers[idx], this.nodeDataAccumulatorIndex);
+      }
     }
-    this.nodeDataAccumulatorIndex++;
+    const batchSize = buffers[0]?.length ?? 0;
+    this.nodeDataAccumulatorIndex += batchSize;
     if (this.nodeDataAccumulatorIndex >= BUFFER_SIZE) {
       for (const subscription of this.subscriptions) {
         const base = subscription.index * STRIDE;
