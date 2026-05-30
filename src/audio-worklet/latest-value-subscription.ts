@@ -27,7 +27,7 @@ export class LatestValueSubscription {
       console.warn("Max subscription count reached, cannot subscribe to latest value");
       return undefined;
     }
-    this.audioGraph.subscribeLatestValue(port.nodeId, port.port, port.portType, index);
+    this.audioGraph.sendCommand({ SubscribeLatestValue: { port: key, index } });
     this.subscriptions.set(key, { index, refCount: 1 });
     return index;
   }
@@ -38,7 +38,7 @@ export class LatestValueSubscription {
     if (!entry) return false;
     entry.refCount--;
     if (entry.refCount === 0) {
-      this.audioGraph.unsubscribeLatestValue(entry.index);
+      this.audioGraph.sendCommand({ UnsubscribeLatestValue: { index: entry.index } });
       this.freeList.push(entry.index);
       this.subscriptions.delete(key);
     }

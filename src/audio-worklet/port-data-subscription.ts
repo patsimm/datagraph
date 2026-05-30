@@ -40,7 +40,7 @@ export class PortDataSubscriptionReader {
       return;
     }
     this.portDataSubscriptions.set(key, { index: slotIndex, refCount: 1 });
-    this.audioGraph.subscribeNodeData(port.nodeId, port.port, port.portType, slotIndex);
+    this.audioGraph.sendCommand({ SubscribeNodeData: { port: key, index: slotIndex } });
     return slotIndex;
   }
 
@@ -51,7 +51,7 @@ export class PortDataSubscriptionReader {
 
     existing.refCount--;
     if (existing.refCount === 0) {
-      this.audioGraph.unsubscribeNodeData(existing.index);
+      this.audioGraph.sendCommand({ UnsubscribeNodeData: { index: existing.index } });
       this.portDataSubscriptions.delete(key);
     }
 

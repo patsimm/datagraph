@@ -9,6 +9,13 @@ import { LatestValueSubscription } from "./latest-value-subscription";
 import { PortDataSubscriptionReader } from "./port-data-subscription";
 
 import * as datagraph from "@patsimm/datagraph-core";
+import { GraphCommand } from "@patsimm/datagraph-core";
+
+function generateId(): string {
+  return Array.from(crypto.getRandomValues(new Uint8Array(4)))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+}
 
 export class AudioGraphWrapper {
   private audioGraph: datagraph.AudioGraph;
@@ -45,16 +52,20 @@ export class AudioGraphWrapper {
     this.listeners.get(type)?.delete(handler);
   }
 
+  sendCommand(cmd: GraphCommand): void {
+    this.audioGraph.sendCommand(cmd);
+  }
+
   addParam(value: number): void {
-    this.audioGraph.addParam(value);
+    this.audioGraph.sendCommand({ AddParam: { id: generateId(), value } });
   }
 
   addNode(nodeSpec: AnyNodeSpec): void {
-    this.audioGraph.add(nodeSpec.typename);
+    this.audioGraph.sendCommand({ AddNode: { id: generateId(), typename: nodeSpec.typename } });
   }
 
   removeNode(nodeId: string): void {
-    this.audioGraph.remove(nodeId);
+    this.audioGraph.sendCommand({ RemoveNode: nodeId });
   }
 
   setParam(nodeId: string, value: number): void {
@@ -62,15 +73,19 @@ export class AudioGraphWrapper {
       console.error(`Invalid parameter value ${value} for node ${nodeId}`);
       return;
     }
-    this.audioGraph.setParamValue(nodeId, value);
+    this.audioGraph.sendCommand({ SetParamValue: { id: nodeId, value } });
   }
 
   addConnection(from: string, fromPort: number, to: string, toPort: number): void {
-    this.audioGraph.connect(from, fromPort, to, toPort);
+    this.audioGraph.sendCommand({
+      Connect: { from, from_port: fromPort, to, to_port: toPort },
+    });
   }
 
   removeConnection(from: string, fromPort: number, to: string, toPort: number): void {
-    this.audioGraph.disconnect(from, fromPort, to, toPort);
+    this.audioGraph.sendCommand({
+      Disconnect: { from, from_port: fromPort, to, to_port: toPort },
+    });
   }
 
   addPortDataSubscription(port: PortInfo): boolean {
@@ -112,10 +127,10 @@ export class AudioGraphWrapper {
       console.error(`Invalid default input value ${value} for node ${nodeId} port ${port}`);
       return;
     }
-    this.audioGraph.setDefaultInputValue(nodeId, port, value);
+    this.audioGraph.sendCommand({ SetDefaultInputValue: { id: nodeId, port, value } });
   }
 
   resetDefaultInputValue(nodeId: string, port: number): void {
-    this.audioGraph.setDefaultInputValue(nodeId, port, 0);
+    this.audioGraph.sendCommand({ SetDefaultInputValue: { id: nodeId, port, value: 0 } });
   }
 }
