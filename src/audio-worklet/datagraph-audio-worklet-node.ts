@@ -1,175 +1,121 @@
 import { PortInfo, portKey } from "../components/node/node-utils";
 import {
-  CommandPayload,
-  CommandResult,
-  CommandType,
   AnyNodeSpec,
+  GraphEvent,
+  GraphEventHandler,
+  GraphEventType,
 } from "./datagraph-audio-worklet-commands";
-import {
-  DatagraphAudioWorkletMessage,
-  DatagraphAudioWorkletResponse,
-} from "./datagraph-audio-worklet-message";
-import {
-  createLatestValueBuffer,
-  LatestValueSubscriptionReader,
-} from "./latest-value-subscription";
-import { createNodeDataBuffer, NodeDataSubscriptionReader } from "./node-data-subscription";
+import { LatestValueSubscription } from "./latest-value-subscription";
+import { PortDataSubscriptionReader } from "./port-data-subscription";
 
-import wasmUrl from "@patsimm/datagraph-core/pkg/datagraph_bg.wasm?url";
+import * as datagraph from "@patsimm/datagraph-core";
 
-export class DatagraphAudioWorkletNode extends AudioWorkletNode {
-  _pending: Map<
-    string,
-    {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      resolve: (value: any) => void;
-      reject: (err: unknown) => void;
-    }
-  > = new Map();
-  nodeDataSubscriptionReader: NodeDataSubscriptionReader;
-  latestValueSubscriptionReader: LatestValueSubscriptionReader;
-  wasStartedBefore = false;
+export class AudioGraphWrapper {
+  private audioGraph: datagraph.AudioGraph;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private listeners: Map<string, Set<(event: any) => void>> = new Map();
+  private nodeDataReader: PortDataSubscriptionReader;
 
-  constructor(context: BaseAudioContext, name: string) {
-    super(context, name);
+  latestValueSubscription: LatestValueSubscription;
 
-    this.nodeDataSubscriptionReader = new NodeDataSubscriptionReader(createNodeDataBuffer());
-    this.latestValueSubscriptionReader = new LatestValueSubscriptionReader(
-      createLatestValueBuffer()
-    );
+  constructor(audioGraph: datagraph.AudioGraph) {
+    this.audioGraph = audioGraph;
+    this.nodeDataReader = new PortDataSubscriptionReader(audioGraph);
+    this.latestValueSubscription = new LatestValueSubscription(audioGraph);
 
-    this.port.onmessage = (e: MessageEvent) => {
-      const response = e.data as DatagraphAudioWorkletResponse<CommandType>;
-      const promise = this._pending.get(response.id);
-      if (promise) {
-        if (response.status === "ok") {
-          promise.resolve(response.result);
-        } else if (response.status === "error") {
-          promise.reject(response.error);
-        }
-        this._pending.delete(response.id);
+    this.audioGraph.workletNode.port.onmessage = (e: MessageEvent<GraphEvent>) => {
+      const event = e.data;
+      const handlers = this.listeners.get(event.type);
+      if (handlers) {
+        for (const handler of handlers) handler(event);
       }
     };
   }
 
-  private sendCommand<T extends CommandType>(
-    type: T,
-    payload: CommandPayload<T>
-  ): Promise<CommandResult<T>> {
-    const context = this.context instanceof AudioContext ? this.context : undefined;
-    if (
-      context &&
-      context.state === "suspended" &&
-      navigator.userActivation.isActive &&
-      !this.wasStartedBefore
-    ) {
-      console.log("First user activation detected, resuming audio context 🔊");
-      context?.resume();
+  on<T extends GraphEventType>(type: T, handler: GraphEventHandler<T>): void {
+    let handlers = this.listeners.get(type);
+    if (!handlers) {
+      handlers = new Set();
+      this.listeners.set(type, handlers);
     }
-    if (context?.state === "running") {
-      this.wasStartedBefore = true;
-    }
-
-    return new Promise<CommandResult<T>>((resolve, reject) => {
-      const id = crypto.randomUUID();
-      const message: DatagraphAudioWorkletMessage<T> = {
-        id,
-        command: { type, payload },
-      };
-      this._pending.set(id, { resolve, reject });
-      this.port.postMessage(message);
-    });
+    handlers.add(handler);
   }
 
-  async initialize() {
-    const wasmBytes = await fetch(wasmUrl).then((r) => r.arrayBuffer());
-    return await this.sendCommand("init", {
-      wasmBytes,
-      nodeDataSharedArrayBuffer: this.nodeDataSubscriptionReader.nodeDataBuffer,
-      latestValueSharedArrayBuffer: this.latestValueSubscriptionReader.nodeDataBuffer,
-    });
+  off<T extends GraphEventType>(type: T, handler: GraphEventHandler<T>): void {
+    this.listeners.get(type)?.delete(handler);
   }
 
-  async addParam(value: number) {
-    return await this.sendCommand("add_param", { value });
+  addParam(value: number): void {
+    this.audioGraph.addParam(value);
   }
 
-  async addNode(nodeSpec: AnyNodeSpec) {
-    return await this.sendCommand("add_node", { node: nodeSpec });
+  addNode(nodeSpec: AnyNodeSpec): void {
+    this.audioGraph.add(nodeSpec.typename);
   }
 
-  async removeNode(nodeId: string) {
-    await this.removeNodeDataSubscription(nodeId);
-    await this.sendCommand("remove_node", { nodeId });
+  removeNode(nodeId: string): void {
+    this.audioGraph.remove(nodeId);
   }
 
-  async setParam(nodeId: string, value: number) {
+  setParam(nodeId: string, value: number): void {
     if (Number.isNaN(value) || !Number.isFinite(value)) {
       console.error(`Invalid parameter value ${value} for node ${nodeId}`);
       return;
     }
-    await this.sendCommand("set_param", { nodeId, value });
+    this.audioGraph.setParamValue(nodeId, value);
   }
 
-  async addConnection(from: string, fromPort: number, to: string, toPort: number) {
-    await this.sendCommand("connect", { from, fromPort, to, toPort });
+  addConnection(from: string, fromPort: number, to: string, toPort: number): void {
+    this.audioGraph.connect(from, fromPort, to, toPort);
   }
 
-  async removeConnection(from: string, fromPort: number, to: string, toPort: number) {
-    await this.sendCommand("disconnect", { from, fromPort, to, toPort });
+  removeConnection(from: string, fromPort: number, to: string, toPort: number): void {
+    this.audioGraph.disconnect(from, fromPort, to, toPort);
   }
 
-  async nodeInfo(nodeId: string) {
-    return await this.sendCommand("node_info", { nodeId });
-  }
-
-  async addNodeDataSubscription(nodeId: string, callback: (data: Float32Array) => void) {
-    const subscriptionIndex = await this.sendCommand("subscribe_data", {
-      nodeId,
-      port: 0,
-      portType: "out",
-    });
-    if (subscriptionIndex === undefined) {
-      console.warn(`Failed to subscribe to node data for node ${nodeId}`);
+  addPortDataSubscription(port: PortInfo): boolean {
+    const index = this.nodeDataReader.subscribe(port);
+    if (index === undefined) {
+      console.warn(`Failed to subscribe to node data for port ${portKey(port)}`);
       return false;
     }
-    this.nodeDataSubscriptionReader.addSubscription(nodeId, subscriptionIndex, callback);
     return true;
   }
 
-  async removeNodeDataSubscription(nodeId: string) {
-    if (!this.nodeDataSubscriptionReader.removeSubscription(nodeId)) return false;
-    return await this.sendCommand("unsubscribe_data", { nodeId, port: 0, portType: "out" });
+  removePortDataSubscription(port: PortInfo): boolean {
+    return this.nodeDataReader.unsubscribe(port);
   }
 
-  async addLatestValueSubscription(port: PortInfo) {
-    const subscriptionIndex = await this.sendCommand("subscribe_latest_value", port);
-    if (subscriptionIndex === undefined) {
+  readPortData(port: PortInfo) {
+    return this.nodeDataReader.read(port);
+  }
+
+  addLatestValueSubscription(port: PortInfo): boolean {
+    const index = this.latestValueSubscription.subscribe(port);
+    if (index === undefined) {
       console.warn(`Failed to subscribe to latest value for port ${portKey(port)}`);
       return false;
     }
-    this.latestValueSubscriptionReader.register(port, subscriptionIndex);
     return true;
   }
 
-  async removeLatestValueSubscription(port: PortInfo) {
-    if (!this.latestValueSubscriptionReader.unregister(port)) return false;
-    return await this.sendCommand("unsubscribe_latest_value", port);
+  removeLatestValueSubscription(port: PortInfo): boolean {
+    return this.latestValueSubscription.unsubscribe(port);
   }
 
   readLatestValue(port: PortInfo): number | undefined {
-    return this.latestValueSubscriptionReader.read(port);
+    return this.latestValueSubscription.read(port);
   }
 
-  async setDefaultInputValue(nodeId: string, port: number, value: number) {
+  setDefaultInputValue(nodeId: string, port: number, value: number): void {
     if (Number.isNaN(value) || !Number.isFinite(value)) {
       console.error(`Invalid default input value ${value} for node ${nodeId} port ${port}`);
       return;
     }
-    return await this.sendCommand("set_default_input_value", { nodeId, port, value });
+    this.audioGraph.setDefaultInputValue(nodeId, port, value);
   }
 
-  async resetDefaultInputValue(nodeId: string, port: number) {
-    return await this.sendCommand("reset_default_input_value", { nodeId, port });
+  resetDefaultInputValue(nodeId: string, port: number): void {
+    this.audioGraph.setDefaultInputValue(nodeId, port, 0);
   }
 }

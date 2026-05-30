@@ -1,22 +1,19 @@
-import { useDatagraph } from "../../../datagraph.context";
+import { PortInfo } from "../node-utils";
+import { usePortData } from "../port-data.hook";
 
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useMemo, useRef } from "react";
 
 function map(value: number, inMin: number, inMax: number, outMin: number, outMax: number) {
   return ((value - inMin) * (outMax - outMin)) / (inMax - inMin) + outMin;
 }
 
 export function OscilloscopeBody({ nodeId }: { nodeId: string }) {
-  const {
-    ready,
-    subscribeNodeData: subscribeNode,
-    unsubscribeNodeData: unsubscribeNode,
-  } = useDatagraph();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const maxValue = useRef(0);
   const minValue = useRef(0);
+  const port = useMemo<PortInfo>(() => ({ nodeId, port: 0, portType: "in" }), [nodeId]);
 
-  const handleData = useCallback((data: Float32Array) => {
+  const handleChange = useCallback((data: number[]) => {
     if (!canvasRef.current) return;
     const ctx = canvasRef.current.getContext("2d")!;
     ctx.fillStyle = "white";
@@ -56,13 +53,7 @@ export function OscilloscopeBody({ nodeId }: { nodeId: string }) {
     ctx.stroke();
   }, []);
 
-  useEffect(() => {
-    if (!ready) return;
-    subscribeNode(nodeId, handleData);
-    return () => {
-      unsubscribeNode(nodeId);
-    };
-  }, [handleData, nodeId, ready, subscribeNode, unsubscribeNode]);
+  usePortData(port, handleChange);
 
   return <canvas className="datagraph-node__vis-canvas" ref={canvasRef} />;
 }

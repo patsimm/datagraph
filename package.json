@@ -17,7 +17,7 @@
     "format:check": "prettier --check src"
   },
   "dependencies": {
-    "@patsimm/datagraph-core": "0.7.0",
+    "@patsimm/datagraph-core": "0.8.0",
     "@tabler/icons-react": "^3.44.0",
     "@tabler/icons-webfont": "^3.44.0",
     "classnames": "^2.5.1",

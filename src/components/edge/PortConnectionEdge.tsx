@@ -3,6 +3,7 @@ import { getNodeElement, getNodePortElement, portKey } from "../node/node-utils"
 import { Edge } from "./Edge";
 
 import { useCallback, useEffect, useState } from "react";
+import { flushSync } from "react-dom";
 
 export type EdgeProps = {
   from: string;
@@ -61,15 +62,13 @@ export function PortConnectionEdge({
       containerElem.getBoundingClientRect().top +
       0.5 * toPortElem.getBoundingClientRect().height;
 
-    requestAnimationFrame(() =>
-      setPosition({ fromX: fromPosX, fromY: fromPosY, toX: toPosX, toY: toPosY })
-    );
+    setPosition({ fromX: fromPosX, fromY: fromPosY, toX: toPosX, toY: toPosY });
   }, [containerRef, from, fromPort, to, toPort]);
 
   useEffect(() => {
     const fromElem = getNodeElement(from);
     const toElem = getNodeElement(to);
-    const observer = new MutationObserver(recalculatePosition);
+    const observer = new MutationObserver(() => flushSync(recalculatePosition));
     observer.observe(fromElem, {
       attributes: true,
       attributeFilter: ["style", "class"],

@@ -1,14 +1,18 @@
-import { PortInfo } from "./components/node/node-utils";
+import { parsePortKey, PortInfo } from "./components/node/node-utils";
 import { useDatagraph } from "./datagraph.context";
 import { useNodes } from "./nodes.context";
+import {
+  ConnectedEvent,
+  DisconnectedEvent,
+} from "./audio-worklet/datagraph-audio-worklet-commands";
 
-import { createContext, useState, useCallback, useContext } from "react";
+import { createContext, useState, useCallback, useEffect, useContext } from "react";
 
 const edgesContext = createContext<{
   edges: { from: PortInfo; to: PortInfo }[];
-  connect: (from: PortInfo, to: PortInfo) => Promise<void>;
-  disconnectPorts: (port: [PortInfo, PortInfo]) => Promise<void>;
-  disconnectNodes: (...nodeIds: string[]) => Promise<void>;
+  connect: (from: PortInfo, to: PortInfo) => void;
+  disconnectPorts: (port: [PortInfo, PortInfo]) => void;
+  disconnectNodes: (...nodeIds: string[]) => void;
 }>({
   edges: [],
   connect: () => {
@@ -27,22 +31,29 @@ function useEdgesList() {
     ready,
     addConnection: addDatagraphConnection,
     removeConnection: removeDatagraphConnection,
+    on,
+    off,
   } = useDatagraph();
   const { updateNodeState } = useNodes();
-  const [edges, setConnection] = useState<{ from: PortInfo; to: PortInfo }[]>([]);
+  const [edges, setEdges] = useState<{ from: PortInfo; to: PortInfo }[]>([]);
 
-  const connect = useCallback(
-    async (port1: PortInfo, port2: PortInfo) => {
-      if (!ready) return;
-      if (port1.portType === port2.portType) {
-        throw new Error(`Cannot connect ${port1.portType} to ${port2.portType}`);
-      }
-      const from = port1.portType === "out" ? port1 : port2;
-      const to = port1.portType === "in" ? port1 : port2;
+  useEffect(() => {
+    if (!ready) return;
 
-      await addDatagraphConnection(from.nodeId, from.port, to.nodeId, to.port);
-      setConnection((edges) => [...edges, { from, to }]);
-
+    const handleConnected = ({ fromPort, toPort }: ConnectedEvent) => {
+      const parsedFromKey = parsePortKey(fromPort.portkey);
+      const parsedToKey = parsePortKey(toPort.portkey);
+      const from: PortInfo = {
+        nodeId: parsedFromKey.nodeId,
+        port: parsedFromKey.port,
+        portType: parsedFromKey.portType,
+      };
+      const to: PortInfo = {
+        nodeId: parsedToKey.nodeId,
+        port: parsedToKey.port,
+        portType: parsedToKey.portType,
+      };
+      setEdges((prev) => [...prev, { from, to }]);
       updateNodeState(from.nodeId, (current) => ({
         ...current,
         outputPorts: current.outputPorts.map((p, i) =>
@@ -55,65 +66,78 @@ function useEdgesList() {
           i === to.port ? { ...p, connectedTo: [...p.connectedTo, from] } : p
         ),
       }));
-    },
-    [addDatagraphConnection, ready, updateNodeState]
-  );
+    };
 
-  const removeConnection = useCallback(
-    async (connection: { from: PortInfo; to: PortInfo }) => {
-      if (!ready) return;
-      await removeDatagraphConnection(
-        connection.from.nodeId,
-        connection.from.port,
-        connection.to.nodeId,
-        connection.to.port
+    const handleDisconnected = ({ fromPort, toPort }: DisconnectedEvent) => {
+      const parsedFromKey = parsePortKey(fromPort.portkey);
+      const parsedToKey = parsePortKey(toPort.portkey);
+      const fromId = parsedFromKey.nodeId;
+      const fromPortIndex = parsedFromKey.port;
+      const toId = parsedToKey.nodeId;
+      const toPortIndex = parsedToKey.port;
+      setEdges((prev) =>
+        prev.filter(
+          (e) =>
+            !(
+              e.from.nodeId === fromId &&
+              e.from.port === fromPortIndex &&
+              e.to.nodeId === toId &&
+              e.to.port === toPortIndex
+            )
+        )
       );
-      setConnection((edges) =>
-        edges.filter((e) => e.from !== connection.from || e.to !== connection.to)
-      );
-
-      updateNodeState(connection.from.nodeId, (current) => ({
+      updateNodeState(fromId, (current) => ({
         ...current,
         outputPorts: current.outputPorts.map((p, i) =>
-          i === connection.from.port
+          i === fromPortIndex
             ? {
                 ...p,
                 connectedTo: p.connectedTo.filter(
-                  (c) =>
-                    !(
-                      c.nodeId === connection.to.nodeId &&
-                      c.port === connection.to.port &&
-                      c.portType === connection.to.portType
-                    )
+                  (c) => !(c.nodeId === toId && c.port === toPortIndex && c.portType === "in")
                 ),
               }
             : p
         ),
       }));
-      updateNodeState(connection.to.nodeId, (current) => ({
+      updateNodeState(toId, (current) => ({
         ...current,
         inputPorts: current.inputPorts.map((p, i) =>
-          i === connection.to.port
+          i === toPortIndex
             ? {
                 ...p,
                 connectedTo: p.connectedTo.filter(
-                  (c) =>
-                    !(
-                      c.nodeId === connection.from.nodeId &&
-                      c.port === connection.from.port &&
-                      c.portType === connection.from.portType
-                    )
+                  (c) => !(c.nodeId === fromId && c.port === fromPortIndex && c.portType === "out")
                 ),
               }
             : p
         ),
       }));
+    };
+
+    on("connected", handleConnected);
+    on("disconnected", handleDisconnected);
+    return () => {
+      off("connected", handleConnected);
+      off("disconnected", handleDisconnected);
+    };
+  }, [ready, on, off, updateNodeState]);
+
+  const connect = useCallback(
+    (port1: PortInfo, port2: PortInfo) => {
+      if (!ready) return;
+      if (port1.portType === port2.portType) {
+        throw new Error(`Cannot connect ${port1.portType} to ${port2.portType}`);
+      }
+      const from = port1.portType === "out" ? port1 : port2;
+      const to = port1.portType === "in" ? port1 : port2;
+      addDatagraphConnection(from.nodeId, from.port, to.nodeId, to.port);
     },
-    [ready, removeDatagraphConnection, updateNodeState]
+    [addDatagraphConnection, ready]
   );
 
   const disconnectPorts = useCallback(
-    async (port: [PortInfo, PortInfo]) => {
+    (port: [PortInfo, PortInfo]) => {
+      if (!ready) return;
       const fromPort = port.find((p) => p.portType === "out");
       const toPort = port.find((p) => p.portType === "in");
       if (!fromPort || !toPort) return;
@@ -122,39 +146,42 @@ function useEdgesList() {
         (edge) =>
           edge.from.nodeId === fromPort.nodeId &&
           edge.from.port === fromPort.port &&
-          edge.from.portType === fromPort.portType &&
           edge.to.nodeId === toPort.nodeId &&
-          edge.to.port === toPort.port &&
-          edge.to.portType === toPort.portType
+          edge.to.port === toPort.port
       );
       for (const connection of connectionsToRemove) {
-        await removeConnection(connection);
+        removeDatagraphConnection(
+          connection.from.nodeId,
+          connection.from.port,
+          connection.to.nodeId,
+          connection.to.port
+        );
       }
     },
-    [edges, removeConnection]
+    [edges, removeDatagraphConnection, ready]
   );
 
   const disconnectNodes = useCallback(
-    async (...nodeIds: string[]) => {
+    (...nodeIds: string[]) => {
+      if (!ready) return;
       const connectionsToRemove = edges.filter(
         (edge) =>
-          (edge.from.nodeId && nodeIds.some((id) => id === edge.from.nodeId)) ||
-          (edge.to.nodeId && nodeIds.some((id) => id === edge.to.nodeId))
+          nodeIds.some((id) => id === edge.from.nodeId) ||
+          nodeIds.some((id) => id === edge.to.nodeId)
       );
-
       for (const connection of connectionsToRemove) {
-        removeConnection(connection);
+        removeDatagraphConnection(
+          connection.from.nodeId,
+          connection.from.port,
+          connection.to.nodeId,
+          connection.to.port
+        );
       }
     },
-    [edges, removeConnection]
+    [edges, removeDatagraphConnection, ready]
   );
 
-  return {
-    edges,
-    connect,
-    disconnectPorts,
-    disconnectNodes,
-  };
+  return { edges, connect, disconnectPorts, disconnectNodes };
 }
 
 export function EdgesProvider({ children }: { children: React.ReactNode }) {

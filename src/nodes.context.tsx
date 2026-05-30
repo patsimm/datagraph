@@ -9,10 +9,15 @@ import {
   type NodeKind,
   type NodeState,
 } from "./node.types";
-import { NodeInfo, PASSTHROUGH_TYPENAME } from "./audio-worklet/datagraph-audio-worklet-commands";
+import {
+  NodeInfo,
+  PASSTHROUGH_TYPENAME,
+  NodeAddedEvent,
+  NodeRemovedEvent,
+} from "./audio-worklet/datagraph-audio-worklet-commands";
 import { convertToCv } from "./unit-conversion";
 
-import { useState, useCallback, createContext, useContext } from "react";
+import { useState, useCallback, useEffect, useRef, createContext, useContext } from "react";
 
 export type {
   AnyNodeState,
@@ -20,18 +25,112 @@ export type {
   AnyParamNodeConfig as AnyParamConfig,
 } from "./node.types";
 
+type PendingCreation = {
+  kind: NodeKind;
+  position: { x: number; y: number };
+  config: unknown;
+  settings: unknown;
+  resolve: (info: NodeInfo) => void;
+};
+
+function buildNodeState(info: NodeInfo, pending: PendingCreation): AnyNodeState {
+  const { kind, position, config, settings } = pending;
+  if (isParamKind(kind)) {
+    const typedConfig = config as { value: number };
+    return {
+      nodeId: info.nodeId,
+      kind,
+      rustNodeType: info.nodeType,
+      inputPorts: [],
+      outputPorts: [{ type: "out", name: "output", connectedTo: [] }],
+      ...position,
+      config: { value: typedConfig.value },
+      settings,
+    } as AnyNodeState;
+  } else if (isVisualizerKind(kind)) {
+    return {
+      nodeId: info.nodeId,
+      kind,
+      inputPorts: [
+        { type: "in", name: "input", connectedTo: [], defaultValue: 0, isDefaultModified: false },
+      ],
+      outputPorts: [{ type: "out", name: "output", connectedTo: [] }],
+      rustNodeType: info.nodeType,
+      ...position,
+      settings: undefined,
+      config: undefined,
+    } as AnyNodeState;
+  } else {
+    return {
+      nodeId: info.nodeId,
+      inputPorts: info.inputNames.map((name, index) => ({
+        type: "in",
+        name,
+        connectedTo: [],
+        defaultValue: info.defaultInputValues[index] ?? 0,
+        isDefaultModified: false,
+      })),
+      outputPorts: info.outputNames.map((name) => ({
+        type: "out",
+        name,
+        connectedTo: [],
+      })),
+      kind,
+      rustNodeType: info.nodeType,
+      config,
+      settings: undefined,
+      ...position,
+    } as AnyNodeState;
+  }
+}
+
 function useAllNodes() {
   const {
     ready,
     addNode: addNodeToGraph,
     addParam: addParamToGraph,
     removeNode: removeNodeFromGraph,
-    nodeInfo,
     setParam: setParamInGraph,
     setDefaultInputValue: setDefaultInputValueInGraph,
     resetDefaultInputValue: resetDefaultInputValueInGraph,
+    on,
+    off,
   } = useDatagraph();
   const [nodes, setNodes] = useState<{ [nodeId: string]: AnyNodeState }>({});
+  const pendingCreations = useRef<PendingCreation[]>([]);
+
+  useEffect(() => {
+    if (!ready) return;
+
+    const handleNodeAdded = ({ nodeInfo }: NodeAddedEvent) => {
+      const pending = pendingCreations.current.shift();
+      if (!pending) return;
+      const info: NodeInfo = {
+        nodeId: nodeInfo.nodeId,
+        nodeType: nodeInfo.nodeType,
+        inputNames: nodeInfo.inputNames as string[],
+        outputNames: nodeInfo.outputNames as string[],
+        defaultInputValues: [...nodeInfo.defaultInputValues] as number[],
+      };
+      setNodes((prev) => ({ ...prev, [info.nodeId]: buildNodeState(info, pending) }));
+      pending.resolve(info);
+    };
+
+    const handleNodeRemoved = ({ nodeInfo }: NodeRemovedEvent) => {
+      setNodes((prev) => {
+        const next = { ...prev };
+        delete next[nodeInfo.nodeId];
+        return next;
+      });
+    };
+
+    on("nodeAdded", handleNodeAdded);
+    on("nodeRemoved", handleNodeRemoved);
+    return () => {
+      off("nodeAdded", handleNodeAdded);
+      off("nodeRemoved", handleNodeRemoved);
+    };
+  }, [ready, on, off]);
 
   const updateNodeState = useCallback(
     (nodeId: string, update: (current: AnyNodeState) => AnyNodeState) => {
@@ -54,7 +153,7 @@ function useAllNodes() {
       }
       const unit = node.settings.unit;
       if (!unit) return;
-      await setParamInGraph(nodeId, convertToCv(value, unit));
+      setParamInGraph(nodeId, convertToCv(value, unit));
       updateNodeState(
         nodeId,
         (current) =>
@@ -68,114 +167,39 @@ function useAllNodes() {
   );
 
   const addNode = useCallback(
-    async <T extends NodeKind>(
+    <T extends NodeKind>(
       kind: T,
       position: { x: number; y: number },
       config: NodeState<T>["config"],
       settings: NodeState<T>["settings"]
-    ) => {
-      if (!ready) return null;
-      if (isParamKind(kind)) {
-        const typedConfig = config as NodeState<"param:slider" | "param:button">["config"];
-        const typedSettings = settings as AnyParamNodeState["settings"];
-        const initialCvValue = typedSettings?.unit
-          ? convertToCv(typedConfig.value, typedSettings.unit)
-          : typedConfig.value;
-        const nodeId = await addParamToGraph(initialCvValue);
-        const info = await nodeInfo(nodeId);
-        setNodes((prev) => ({
-          ...prev,
-          [nodeId]: {
-            nodeId,
-            kind,
-            rustNodeType: info.nodeType,
-            inputPorts: [],
-            outputPorts: ["output"]
-              .map((name) => name)
-              .map((name) => ({
-                type: "out",
-                name,
-                connectedTo: [],
-              })),
-            ...position,
-            config: {
-              value: typedConfig.value,
-            },
-            settings: {
-              ...settings,
-            },
-          } as AnyNodeState,
-        }));
-        return info;
-      } else if (isVisualizerKind(kind)) {
-        const info = await addNodeToGraph({ kind: "datagraph", typename: PASSTHROUGH_TYPENAME });
-        setNodes((prev) => ({
-          ...prev,
-          [info.nodeId]: {
-            nodeId: info.nodeId,
-            kind,
-            inputPorts: ["input"].map((name) => ({
-              type: "in",
-              name,
-              connectedTo: [],
-              defaultValue: 0,
-              isDefaultModified: false,
-            })),
-            outputPorts: ["output"].map((name) => ({
-              type: "out",
-              name,
-              connectedTo: [],
-            })),
-            rustNodeType: info.nodeType,
-            ...position,
-            settings: undefined,
-            config: undefined,
-          } as AnyNodeState,
-        }));
-        return info;
-      } else {
-        const info = await addNodeToGraph({
-          kind: "datagraph",
-          typename: (config as { typename: string }).typename,
-        });
-        setNodes((prev) => ({
-          ...prev,
-          [info.nodeId]: {
-            nodeId: info.nodeId,
-            inputPorts: info.inputNames.map((name, index) => ({
-              type: "in",
-              name,
-              connectedTo: [],
-              defaultValue: info.defaultInputValues[index] ?? 0,
-              isDefaultModified: false,
-            })),
-            outputPorts: info.outputNames.map((name) => ({
-              type: "out",
-              name,
-              connectedTo: [],
-            })),
-            kind,
-            rustNodeType: info.nodeType,
-            config,
-            settings: undefined,
-            ...position,
-          } as AnyNodeState,
-        }));
-        return info;
-      }
+    ): Promise<NodeInfo | null> => {
+      if (!ready) return Promise.resolve(null);
+      return new Promise((resolve) => {
+        pendingCreations.current.push({ kind, position, config, settings, resolve });
+        if (isParamKind(kind)) {
+          const typedConfig = config as NodeState<"param:slider" | "param:button">["config"];
+          const typedSettings = settings as AnyParamNodeState["settings"];
+          const cvValue = typedSettings?.unit
+            ? convertToCv(typedConfig.value, typedSettings.unit)
+            : typedConfig.value;
+          addParamToGraph(cvValue);
+        } else if (isVisualizerKind(kind)) {
+          addNodeToGraph({ kind: "datagraph", typename: PASSTHROUGH_TYPENAME });
+        } else {
+          addNodeToGraph({
+            kind: "datagraph",
+            typename: (config as { typename: string }).typename,
+          });
+        }
+      });
     },
-    [addNodeToGraph, addParamToGraph, nodeInfo, ready]
+    [ready, addNodeToGraph, addParamToGraph]
   );
 
   const removeNode = useCallback(
-    async (nodeId: string) => {
+    (nodeId: string) => {
       if (!ready) return;
-      await removeNodeFromGraph(nodeId);
-      setNodes((prev) => {
-        const next = { ...prev };
-        delete next[nodeId];
-        return next;
-      });
+      removeNodeFromGraph(nodeId);
     },
     [ready, removeNodeFromGraph]
   );
@@ -207,17 +231,17 @@ function useAllNodes() {
           }) as AnyNodeState
       );
       if (isParamKind(kind) && isParamNodeState(node)) {
-        const pramSetings = updatedSettings as AnyParamNodeState["settings"];
-        await setParamInGraph(nodeId, convertToCv(node.config.value, pramSetings.unit));
+        const paramSettings = updatedSettings as AnyParamNodeState["settings"];
+        setParamInGraph(nodeId, convertToCv(node.config.value, paramSettings.unit));
       }
     },
     [nodes, ready, setParamInGraph, updateNodeState]
   );
 
   const setDefaultInputValue = useCallback(
-    async (nodeId: string, port: number, value: number) => {
+    (nodeId: string, port: number, value: number) => {
       if (!ready) return;
-      await setDefaultInputValueInGraph(nodeId, port, value);
+      setDefaultInputValueInGraph(nodeId, port, value);
       setNodes((prev) => ({
         ...prev,
         [nodeId]: {
@@ -232,9 +256,9 @@ function useAllNodes() {
   );
 
   const resetDefaultInputValue = useCallback(
-    async (nodeId: string, port: number) => {
+    (nodeId: string, port: number) => {
       if (!ready) return;
-      await resetDefaultInputValueInGraph(nodeId, port);
+      resetDefaultInputValueInGraph(nodeId, port);
       setNodes((prev) => ({
         ...prev,
         [nodeId]: {
@@ -269,7 +293,7 @@ const nodesContext = createContext<{
     config: NodeState<T>["config"],
     settings: NodeState<T>["settings"]
   ) => Promise<NodeInfo | null>;
-  removeNode: (nodeId: string) => Promise<void>;
+  removeNode: (nodeId: string) => void;
   updateNodeState: (nodeId: string, update: (current: AnyNodeState) => AnyNodeState) => void;
   getNode: (nodeId: string) => AnyNodeState | undefined;
   setParamValue: (nodeId: string, value: number) => Promise<void>;
@@ -278,14 +302,14 @@ const nodesContext = createContext<{
     nodeId: string,
     updateNodeSettings: (current: NodeState<T>["settings"]) => NodeState<T>["settings"]
   ) => Promise<void>;
-  setDefaultInputValue: (nodeId: string, port: number, value: number) => Promise<void>;
-  resetDefaultInputValue: (nodeId: string, port: number) => Promise<void>;
+  setDefaultInputValue: (nodeId: string, port: number, value: number) => void;
+  resetDefaultInputValue: (nodeId: string, port: number) => void;
 }>({
   nodes: {},
   addNode: async () => {
     throw new Error("Nodes context not initialized yet");
   },
-  removeNode: async () => {
+  removeNode: () => {
     throw new Error("Nodes context not initialized yet");
   },
   updateNodeState: () => {
@@ -300,10 +324,10 @@ const nodesContext = createContext<{
   updateNodeSettings: async () => {
     throw new Error("Nodes context not initialized yet");
   },
-  setDefaultInputValue: async () => {
+  setDefaultInputValue: () => {
     throw new Error("Nodes context not initialized yet");
   },
-  resetDefaultInputValue: async () => {
+  resetDefaultInputValue: () => {
     throw new Error("Nodes context not initialized yet");
   },
 });

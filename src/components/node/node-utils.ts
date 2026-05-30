@@ -3,26 +3,13 @@ import * as datagraph from "@patsimm/datagraph-core";
 export type PortInfo = {
   nodeId: string;
   port: number;
-  portType: "in" | "out";
+  portType: datagraph.PortType;
 };
-
-export type PortType = PortInfo["portType"];
 
 export function arePortsEqual(portA: PortInfo, portB: PortInfo) {
   return (
     portA.nodeId === portB.nodeId && portA.port === portB.port && portA.portType === portB.portType
   );
-}
-
-export function toDatagraphPortType(port: PortType): datagraph.PortType {
-  switch (port) {
-    case "in":
-      return datagraph.PortType.Input;
-    case "out":
-      return datagraph.PortType.Output;
-    default:
-      throw new Error(`Invalid port type: ${port}`);
-  }
 }
 
 export function portKey({ nodeId, port, portType }: PortInfo) {
@@ -32,7 +19,8 @@ export function portKey({ nodeId, port, portType }: PortInfo) {
 export function parsePortKey(key: string): PortInfo {
   const [node, port] = key.split("[");
   const [portType, portIndex] = port.split("]")[0].split(":");
-  return { nodeId: node, port: parseInt(portIndex), portType: portType as "in" | "out" };
+  if (portType !== "in" && portType !== "out") throw new Error(`Unknown portType: ${portType}`);
+  return { nodeId: node, port: parseInt(portIndex), portType: portType as datagraph.PortType };
 }
 
 export function getNodeElement(nodeKey: string) {
