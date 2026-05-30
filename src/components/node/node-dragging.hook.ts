@@ -1,4 +1,5 @@
 import { useNodes } from "../../nodes.context";
+import { usePanZoomCanvas } from "../canvas/PanZoomCanvas";
 import { getNodeElement } from "./node-utils";
 
 import React, { useRef, useCallback } from "react";
@@ -11,6 +12,7 @@ type NodeDraggingState = {
 };
 
 export function useNodeDragging(nodeId: string) {
+  const panZoom = usePanZoomCanvas();
   const { updateNodeState, getNode } = useNodes();
   const draggingStateRef = useRef<NodeDraggingState | null>(null);
 
@@ -18,14 +20,16 @@ export function useNodeDragging(nodeId: string) {
     (event: PointerEvent) => {
       if (!draggingStateRef.current) return;
       const draggingNodeElem = getNodeElement(nodeId);
+
+      const canvasPos = panZoom.clientToCanvasPos(event);
       const x =
-        event.clientX - draggingStateRef.current.startDragX + draggingStateRef.current.startLeft;
+        canvasPos.x - draggingStateRef.current.startDragX + draggingStateRef.current.startLeft;
       const y =
-        event.clientY - draggingStateRef.current.startDragY + draggingStateRef.current.startTop;
+        canvasPos.y - draggingStateRef.current.startDragY + draggingStateRef.current.startTop;
       draggingNodeElem.style.left = `${x}px`;
       draggingNodeElem.style.top = `${y}px`;
     },
-    [nodeId]
+    [nodeId, panZoom]
   );
 
   const handlePointerDown = useCallback(
@@ -35,10 +39,12 @@ export function useNodeDragging(nodeId: string) {
 
       event.stopPropagation();
 
+      const { x: startDragX, y: startDragY } = panZoom.clientToCanvasPos(event);
+
       const nodeElem = event.currentTarget as HTMLElement;
       draggingStateRef.current = {
-        startDragX: event.clientX,
-        startDragY: event.clientY,
+        startDragX,
+        startDragY,
         startLeft: parseFloat(nodeElem.style.left) || 0,
         startTop: parseFloat(nodeElem.style.top) || 0,
       };
@@ -47,7 +53,7 @@ export function useNodeDragging(nodeId: string) {
       nodeElem.addEventListener("pointermove", handlePointerMove);
       nodeElem.classList.add("node--dragging");
     },
-    [handlePointerMove]
+    [handlePointerMove, panZoom]
   );
 
   const handlePointerUp = useCallback(

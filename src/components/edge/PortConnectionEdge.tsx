@@ -1,6 +1,7 @@
 import "./Edge.css";
 import { getNodeElement, getNodePortElement, portKey } from "../node/node-utils";
 import { Edge } from "./Edge";
+import { usePanZoomCanvas } from "../canvas/PanZoomCanvas";
 
 import { useCallback, useEffect, useState } from "react";
 import { flushSync } from "react-dom";
@@ -10,22 +11,14 @@ export type EdgeProps = {
   fromPort: number;
   to: string;
   toPort: number;
-  containerRef: React.RefObject<Pick<HTMLElement, "getBoundingClientRect"> | null>;
   onClick?: (ev: React.MouseEvent<SVGLineElement>) => void;
   ghost?: boolean;
 };
 
-export function PortConnectionEdge({
-  containerRef,
-  from,
-  fromPort,
-  to,
-  toPort,
-  onClick,
-}: EdgeProps) {
-  const [position, setPosition] = useState({ fromX: 0, fromY: 0, toX: 0, toY: 0 });
+export function PortConnectionEdge({ from, fromPort, to, toPort, onClick }: EdgeProps) {
+  const panZoom = usePanZoomCanvas();
 
-  const recalculatePosition = useCallback(() => {
+  const calculatePortPosition = useCallback(() => {
     const fromPortElem = getNodePortElement(
       portKey({
         nodeId: from,
@@ -41,29 +34,30 @@ export function PortConnectionEdge({
       })
     );
 
-    const containerElem = containerRef.current;
-    if (!containerElem) return;
+    const { x: fromX, y: fromY } = panZoom.clientToCanvasPos({
+      clientX:
+        fromPortElem.getBoundingClientRect().left +
+        0.5 * fromPortElem.getBoundingClientRect().width,
+      clientY:
+        fromPortElem.getBoundingClientRect().top +
+        0.5 * fromPortElem.getBoundingClientRect().height,
+    });
 
-    const fromPosX =
-      fromPortElem.getBoundingClientRect().left -
-      containerElem.getBoundingClientRect().left +
-      0.5 * fromPortElem.getBoundingClientRect().width;
-    const fromPosY =
-      fromPortElem.getBoundingClientRect().top -
-      containerElem.getBoundingClientRect().top +
-      0.5 * fromPortElem.getBoundingClientRect().height;
+    const { x: toX, y: toY } = panZoom.clientToCanvasPos({
+      clientX:
+        toPortElem.getBoundingClientRect().left + 0.5 * toPortElem.getBoundingClientRect().width,
+      clientY:
+        toPortElem.getBoundingClientRect().top + 0.5 * toPortElem.getBoundingClientRect().height,
+    });
 
-    const toPosX =
-      toPortElem.getBoundingClientRect().left -
-      containerElem.getBoundingClientRect().left +
-      0.5 * toPortElem.getBoundingClientRect().width;
-    const toPosY =
-      toPortElem.getBoundingClientRect().top -
-      containerElem.getBoundingClientRect().top +
-      0.5 * toPortElem.getBoundingClientRect().height;
+    return { fromX, fromY, toX, toY };
+  }, [from, fromPort, panZoom, to, toPort]);
 
-    setPosition({ fromX: fromPosX, fromY: fromPosY, toX: toPosX, toY: toPosY });
-  }, [containerRef, from, fromPort, to, toPort]);
+  const [position, setPosition] = useState(calculatePortPosition);
+
+  const recalculatePosition = useCallback(() => {
+    setPosition(calculatePortPosition());
+  }, [calculatePortPosition]);
 
   useEffect(() => {
     const fromElem = getNodeElement(from);
@@ -80,7 +74,6 @@ export function PortConnectionEdge({
       subtree: false,
     });
 
-    recalculatePosition();
     return () => {
       observer.disconnect();
     };

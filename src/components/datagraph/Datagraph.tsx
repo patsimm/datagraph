@@ -8,42 +8,31 @@ import { useSelection } from "../../selection.context";
 import { useNodes } from "../../nodes.context";
 import { Nodes } from "./Nodes";
 import { usePortConnections } from "../../edges.context";
-import { ScrollDragging, ScrollDraggingHandle } from "../scroll-dragging/ScrollDragging";
+import { PanZoomCanvas } from "../canvas/PanZoomCanvas";
 import { PortConnectionEdge } from "../edge/PortConnectionEdge";
 import { Edge } from "../edge/Edge";
 import { NodeInfo } from "../../audio-worklet/datagraph-audio-worklet-commands";
 import { Toolbar } from "./Toolbar";
 
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useImperativeHandle, useRef, useState } from "react";
 
 export function Datagraph() {
   const ref = useRef<HTMLDivElement>(null);
-  const scrollDraggingRef = useRef<ScrollDraggingHandle>(null);
   const datagraph = useDatagraph();
   const { ready } = datagraph;
   const { removeNode } = useNodes();
   const [outputNode, setOutputNode] = useState<NodeInfo | null>(null);
-  const { edges, disconnectPorts, disconnectNodes } = usePortConnections();
+  const { disconnectPorts, disconnectNodes } = usePortConnections();
   const { handleNodeSelected } = useSelection();
-  const {
-    handlePointerDown: portConnectPointerDown,
-    handlePointerUp: portConnectPointerUp,
-    position: ghostPosition,
-  } = usePortConnecting({ containerRef: scrollDraggingRef });
+  const edgesHandleRef = useRef<EdgesHandle>(null);
 
-  const handlePointerDown = useCallback(
-    (e: React.PointerEvent) => {
-      portConnectPointerDown(e);
-    },
-    [portConnectPointerDown]
-  );
+  const handlePointerDown = useCallback((e: React.PointerEvent) => {
+    edgesHandleRef.current?.portConnectPointerDown(e);
+  }, []);
 
-  const handlePointerUp = useCallback(
-    (e: React.PointerEvent) => {
-      portConnectPointerUp(e);
-    },
-    [portConnectPointerUp]
-  );
+  const handlePointerUp = useCallback((e: React.PointerEvent) => {
+    edgesHandleRef.current?.portConnectPointerUp(e);
+  }, []);
 
   const handleEdgeClick = useCallback(
     (edge: { from: PortInfo; to: PortInfo }, ev: React.MouseEvent) => {
@@ -95,23 +84,52 @@ export function Datagraph() {
       {outputNode && <Toolbar outputNode={outputNode} />}
       <ContextView />
       <div className="datagraph__canvas">
-        <ScrollDragging ref={scrollDraggingRef}>
-          {ghostPosition && <Edge ghost {...ghostPosition} />}
-          {edges.map((edge) => (
-            <PortConnectionEdge
-              containerRef={scrollDraggingRef}
-              key={`${portKey(edge.from)}->${portKey(edge.to)}`}
-              from={edge.from.nodeId}
-              fromPort={edge.from.port}
-              to={edge.to.nodeId}
-              toPort={edge.to.port}
-              onClick={(ev) => handleEdgeClick(edge, ev)}
-            />
-          ))}
+        <PanZoomCanvas>
           <Nodes onNodeClick={handleNodeClick} />
+          <Edges ref={edgesHandleRef} onEdgeClick={handleEdgeClick} />
           {outputNode && <OutputNode node={outputNode} x={200} y={500} />}
-        </ScrollDragging>
+        </PanZoomCanvas>
       </div>
     </div>
+  );
+}
+
+type EdgesHandle = {
+  portConnectPointerDown: (e: React.PointerEvent) => void;
+  portConnectPointerUp: (e: React.PointerEvent) => void;
+};
+
+type EdgesProps = {
+  onEdgeClick: (edge: { from: PortInfo; to: PortInfo }, ev: React.MouseEvent) => void;
+  ref: React.Ref<EdgesHandle>;
+};
+
+function Edges({ ref, onEdgeClick }: EdgesProps) {
+  const {
+    handlePointerDown: portConnectPointerDown,
+    handlePointerUp: portConnectPointerUp,
+    position: ghostPosition,
+  } = usePortConnecting();
+  const { edges } = usePortConnections();
+
+  useImperativeHandle(ref, () => ({
+    portConnectPointerDown,
+    portConnectPointerUp,
+  }));
+
+  return (
+    <>
+      {ghostPosition && <Edge ghost {...ghostPosition} />}
+      {edges.map((edge) => (
+        <PortConnectionEdge
+          key={`${portKey(edge.from)}->${portKey(edge.to)}`}
+          from={edge.from.nodeId}
+          fromPort={edge.from.port}
+          to={edge.to.nodeId}
+          toPort={edge.to.port}
+          onClick={(ev) => onEdgeClick?.(edge, ev)}
+        />
+      ))}
+    </>
   );
 }
