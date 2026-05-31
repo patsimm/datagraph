@@ -1,12 +1,8 @@
-import {
-  PortConnectionInitiatedEvent,
-  PortConnectionCompletedEvent,
-} from "../edge/connection-events";
-import { PortInfo, parsePortKey, portKey } from "./node-utils";
+import { usePortConnecting } from "../edge/port-connecting.hook";
+import { portKey } from "./node-utils";
 import "./NodePort.css";
 
 import classNames from "classnames";
-import { useRef, useCallback, useEffect } from "react";
 
 export type NodePortProps = {
   nodeId: string;
@@ -15,58 +11,11 @@ export type NodePortProps = {
   portName: string;
   connected: boolean;
   hasCustomDefault?: boolean;
-  onPortConnectionInitiated?: (startPort: PortInfo) => void;
-  onPortConnectionCompleted?: (startPort: PortInfo, endPort: PortInfo) => void;
 };
 
-export function NodePort({
-  nodeId,
-  port,
-  portType,
-  portName,
-  connected,
-  hasCustomDefault,
-  onPortConnectionInitiated,
-  onPortConnectionCompleted,
-}: NodePortProps) {
-  const ref = useRef<HTMLDivElement>(null);
-
-  const handlePortConnectionInitiated = useCallback(
-    (ev: Event) => {
-      if (ev instanceof PortConnectionInitiatedEvent) {
-        onPortConnectionInitiated?.(parsePortKey(ev.detail.startPortKey));
-      }
-    },
-    [onPortConnectionInitiated]
-  );
-  const handlePortConnectionCompleted = useCallback(
-    (ev: Event) => {
-      if (ev instanceof PortConnectionCompletedEvent) {
-        onPortConnectionCompleted?.(
-          parsePortKey(ev.detail.startPortKey),
-          parsePortKey(ev.detail.endPortKey)
-        );
-      }
-    },
-    [onPortConnectionCompleted]
-  );
-
-  useEffect(() => {
-    if (!ref.current) return;
-    const elem = ref.current;
-    elem.addEventListener(PortConnectionInitiatedEvent.EVENT_NAME, handlePortConnectionInitiated);
-    elem.addEventListener(PortConnectionCompletedEvent.EVENT_NAME, handlePortConnectionCompleted);
-    return () => {
-      elem.removeEventListener(
-        PortConnectionInitiatedEvent.EVENT_NAME,
-        handlePortConnectionInitiated
-      );
-      elem.removeEventListener(
-        PortConnectionCompletedEvent.EVENT_NAME,
-        handlePortConnectionCompleted
-      );
-    };
-  }, [handlePortConnectionCompleted, handlePortConnectionInitiated]);
+export function NodePort({ nodeId, port, portType, portName, connected, hasCustomDefault }: NodePortProps) {
+  const key = portKey({ nodeId, port, portType });
+  const { onPointerDown } = usePortConnecting(key);
 
   return (
     <div
@@ -81,8 +30,8 @@ export function NodePort({
       <div
         className="node-port__hover-target"
         title={portName}
-        data-port={portKey({ nodeId, port, portType })}
-        ref={ref}
+        data-port={key}
+        onPointerDown={onPointerDown}
       />
     </div>
   );

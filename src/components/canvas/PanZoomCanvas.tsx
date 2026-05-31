@@ -1,5 +1,6 @@
 import { usePan } from "./pan.hook";
 import "./PanZoomCanvas.css";
+import { ClientPosition, PanZoomCanvasPosition, ClientRect, PanZoomCanvasRect } from "./utils";
 
 import classNames from "classnames";
 import React, {
@@ -12,19 +13,10 @@ import React, {
 } from "react";
 import { flushSync } from "react-dom";
 
-export type ClientPos = {
-  clientX: number;
-  clientY: number;
-};
-
-export type CanvasPos = {
-  canvasX: number;
-  canvasY: number;
-};
-
 export type PanZoomCanvasContext = {
   panByScreenPos: (x: number, y: number) => void;
-  clientToCanvasPos(pos: ClientPos): CanvasPos;
+  clientToCanvasPos(pos: ClientPosition): PanZoomCanvasPosition;
+  clientToCanvasRect(clientRect: ClientRect): PanZoomCanvasRect;
 };
 
 const defaultContextValue: PanZoomCanvasContext = {
@@ -34,19 +26,36 @@ const defaultContextValue: PanZoomCanvasContext = {
   clientToCanvasPos: () => {
     throw new Error("PanZoomCanvasContext not wired");
   },
+  clientToCanvasRect: () => {
+    throw new Error("PanZoomCanvasContext not wired");
+  },
 };
 
 const context = React.createContext<PanZoomCanvasContext>(defaultContextValue);
 
+export type PanZoomCanvasPointerEvent<T extends Element = Element> = PanZoomCanvasPosition &
+  React.PointerEvent<T>;
+
+export type PanZoomCanvasMouseEvent<T extends Element = Element> = PanZoomCanvasPosition &
+  React.MouseEvent<T>;
+
 export type PanZoomCanvasProps = {
   ref: React.Ref<PanZoomCanvasContext>;
   disablePan?: boolean;
+  onPointerDown?: (event: PanZoomCanvasPointerEvent<HTMLDivElement>) => void;
+  onPointerUp?: (event: PanZoomCanvasPointerEvent<HTMLDivElement>) => void;
+  onPointerMove?: (event: PanZoomCanvasPointerEvent<HTMLDivElement>) => void;
+  onClick?: (event: PanZoomCanvasMouseEvent<HTMLDivElement>) => void;
 };
 
 export function PanZoomCanvas({
   ref,
   children,
   disablePan,
+  onPointerDown,
+  onPointerUp,
+  onPointerMove,
+  onClick,
 }: React.PropsWithChildren<PanZoomCanvasProps>) {
   const contentRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -90,6 +99,33 @@ export function PanZoomCanvas({
     };
   }, []);
 
+  const clientToCanvasRect = useCallback(
+    (clientRect: ClientRect) => {
+      return {
+        width: clientRect.width / position.zoom,
+        height: clientRect.height / position.zoom,
+        ...clientToCanvasPos(clientRect),
+      };
+    },
+    [clientToCanvasPos, position.zoom]
+  );
+
+  const makePointerEvent = useCallback(
+    <T extends Element>(ev: React.PointerEvent<T>): PanZoomCanvasPointerEvent<T> => ({
+      ...clientToCanvasPos({ clientX: ev.clientX, clientY: ev.clientY }),
+      ...ev,
+    }),
+    [clientToCanvasPos]
+  );
+
+  const makeMouseEvent = useCallback(
+    <T extends Element>(ev: React.MouseEvent<T>): PanZoomCanvasMouseEvent<T> => ({
+      ...clientToCanvasPos({ clientX: ev.clientX, clientY: ev.clientY }),
+      ...ev,
+    }),
+    [clientToCanvasPos]
+  );
+
   const { containerProps } = usePan({
     disablePan,
     onPanByScreenPos: panByScreenPos,
@@ -121,6 +157,7 @@ export function PanZoomCanvas({
     clientToCanvasPos,
     panByScreenPos,
     isDragHandleElement,
+    clientToCanvasRect,
   }));
 
   return (
@@ -134,7 +171,20 @@ export function PanZoomCanvas({
       data-zoom={position.zoom}
       ref={containerRef}
       onWheel={handleScroll}
-      {...containerProps}
+      onPointerDown={(ev) => {
+        onPointerDown?.(makePointerEvent(ev));
+        if (!ev.defaultPrevented) {
+          containerProps.onPointerDown?.(ev);
+        }
+      }}
+      onPointerUp={(ev) => {
+        onPointerUp?.(makePointerEvent(ev));
+        if (!ev.defaultPrevented) {
+          containerProps.onPointerUp?.(ev);
+        }
+      }}
+      onPointerMove={onPointerMove && ((ev) => onPointerMove(makePointerEvent(ev)))}
+      onClick={onClick && ((ev) => onClick(makeMouseEvent(ev)))}
     >
       <div
         className="panzoomcanvas__content"
@@ -164,6 +214,8 @@ export const PanZoomCanvasProvider = ({
         (canvasHandle.current ?? defaultContextValue).panByScreenPos(...args),
       clientToCanvasPos: (...args) =>
         (canvasHandle.current ?? defaultContextValue).clientToCanvasPos(...args),
+      clientToCanvasRect: (...args) =>
+        (canvasHandle.current ?? defaultContextValue).clientToCanvasRect(...args),
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     []

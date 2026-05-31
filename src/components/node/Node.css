@@ -91,6 +91,10 @@
   }
 
   &.node--selected {
-    outline: 2px solid color-mix(in srgb, var(--color-accent) 70%, var(--color-gray-light));
+    border: 3px solid color-mix(in srgb, var(--color-accent) 70%, var(--color-gray-light));
+  }
+
+  &.node--in-selection-range {
+    border: 3px solid color-mix(in srgb, var(--color-accent) 70%, var(--color-gray-dark));
   }
 }

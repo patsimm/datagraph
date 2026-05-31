@@ -1,18 +1,19 @@
 import { usePanZoomCanvas } from "./PanZoomCanvas";
+import { ClientPosition, PanZoomCanvasPosition } from "./utils";
 
 import React, { useCallback } from "react";
 
 type UseCanvasDraggingProps = {
-  onDragStart?: () => void;
-  onDraggedToCanvasPos: (pos: { canvasX: number; canvasY: number }) => void;
-  onDragEnd?: (pos: { canvasX: number; canvasY: number }, didMove: boolean) => void;
+  onDragStart?: (pos: PanZoomCanvasPosition & ClientPosition) => void;
+  onDragMove: (pos: PanZoomCanvasPosition & ClientPosition) => void;
+  onDragEnd?: (pos: PanZoomCanvasPosition & ClientPosition, didMove: boolean) => void;
   isValidTarget?: (target: EventTarget) => boolean;
 };
 
 const DRAG_START_DELAY_MS = 100;
 
 export function useCanvasDragging({
-  onDraggedToCanvasPos,
+  onDragMove,
   onDragEnd,
   onDragStart,
   isValidTarget = () => true,
@@ -26,14 +27,8 @@ export function useCanvasDragging({
       event.stopPropagation();
 
       const targetElement = event.currentTarget as HTMLElement;
-      const dragOffsetX =
-        event.clientX -
-        targetElement.getBoundingClientRect().left -
-        targetElement.getBoundingClientRect().width * 0.5;
-      const dragOffsetY =
-        event.clientY -
-        targetElement.getBoundingClientRect().top -
-        targetElement.getBoundingClientRect().height * 0.5;
+      const startClientPos = { clientX: event.clientX, clientY: event.clientY };
+      const startPos = { ...startClientPos, ...panZoom.clientToCanvasPos(startClientPos) };
       let didMove = false;
       let dragStartTimeout: number | null = null;
       let didDragStart = false;
@@ -47,13 +42,8 @@ export function useCanvasDragging({
         const elem = event.currentTarget as HTMLElement;
         elem.removeEventListener("pointermove", handlePointerMove);
 
-        onDragEnd?.(
-          panZoom.clientToCanvasPos({
-            clientX: event.clientX - dragOffsetX,
-            clientY: event.clientY - dragOffsetY,
-          }),
-          didMove
-        );
+        const clientPos = { clientX: event.clientX, clientY: event.clientY };
+        onDragEnd?.({ ...clientPos, ...panZoom.clientToCanvasPos(clientPos) }, didMove);
 
         if (!didMove) return;
         const suppressClick = (e: MouseEvent) => {
@@ -64,19 +54,18 @@ export function useCanvasDragging({
       };
 
       const handlePointerMove = (event: PointerEvent) => {
-        const canvasPos = panZoom.clientToCanvasPos({
-          clientX: event.clientX - dragOffsetX,
-          clientY: event.clientY - dragOffsetY,
-        });
-        onDraggedToCanvasPos({ canvasX: canvasPos.canvasX, canvasY: canvasPos.canvasY });
         if (dragStartTimeout) {
           clearTimeout(dragStartTimeout);
           dragStartTimeout = null;
         }
         if (!didDragStart) {
           didDragStart = true;
-          onDragStart?.();
+          onDragStart?.(startPos);
         }
+
+        const clientPos = { clientX: event.clientX, clientY: event.clientY };
+        const canvasPos = panZoom.clientToCanvasPos(clientPos);
+        onDragMove({ ...clientPos, ...canvasPos });
         didMove = true;
       };
 
@@ -85,10 +74,10 @@ export function useCanvasDragging({
       targetElement.addEventListener("pointerup", handlePointerUp, { once: true });
       dragStartTimeout = setTimeout(() => {
         didDragStart = true;
-        onDragStart?.();
+        onDragStart?.(startPos);
       }, DRAG_START_DELAY_MS);
     },
-    [isValidTarget, onDragEnd, onDragStart, onDraggedToCanvasPos, panZoom]
+    [isValidTarget, onDragEnd, onDragStart, onDragMove, panZoom]
   );
 
   return { onPointerDown: handlePointerDown };

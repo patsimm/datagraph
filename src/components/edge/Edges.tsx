@@ -1,33 +1,16 @@
-import { usePortConnecting } from "./port-connecting.hook";
+import { useGhostEdge } from "./ghost-edge.context";
 import { PortConnectionEdge } from "./PortConnectionEdge";
 import { PortInfo, portKey } from "../node/node-utils";
 import { usePortConnections } from "../../edges.context";
 import { Edge } from "./Edge";
 
-import { useImperativeHandle } from "react";
-
-export type EdgesHandle = {
-  portConnectPointerDown: (e: React.PointerEvent) => void;
-  portConnectPointerUp: (e: React.PointerEvent) => void;
-};
-
 export type EdgesProps = {
   onEdgeClick: (edge: { from: PortInfo; to: PortInfo }, ev: React.MouseEvent) => void;
-  ref: React.Ref<EdgesHandle>;
 };
 
-export function Edges({ ref, onEdgeClick }: EdgesProps) {
-  const {
-    handlePointerDown: portConnectPointerDown,
-    handlePointerUp: portConnectPointerUp,
-    position: ghostPosition,
-  } = usePortConnecting();
+export function Edges({ onEdgeClick }: EdgesProps) {
+  const { position: ghostPosition } = useGhostEdge();
   const { edges } = usePortConnections();
-
-  useImperativeHandle(ref, () => ({
-    portConnectPointerDown,
-    portConnectPointerUp,
-  }));
 
   return (
     <>

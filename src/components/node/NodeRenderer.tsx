@@ -1,4 +1,9 @@
-import { isParamNodeState, isVisualizerNodeState, NodeInteractionProps } from "../../node.types";
+import {
+  isOutputNodeState,
+  isParamNodeState,
+  isVisualizerNodeState,
+  NodeInteractionProps,
+} from "../../node.types";
 import { AnyNodeState } from "../../nodes.context";
 import { Node } from "./Node";
 import { ParamNode } from "./ParamNode";
@@ -20,6 +25,22 @@ export const NodeRenderer = React.memo(function NodeRenderer({
 
   if (isVisualizerNodeState(node)) {
     return <VisualizerNode {...node} {...interactionProps} />;
+  }
+
+  if (isOutputNodeState(node)) {
+    return (
+      <Node
+        kind="output"
+        nodeId={node.nodeId}
+        rustNodeType={node.rustNodeType}
+        canvasX={node.canvasX}
+        canvasY={node.canvasY}
+        label="speaker"
+        inputPorts={node.inputPorts}
+        outputPorts={[]}
+        {...interactionProps}
+      />
+    );
   }
 
   return (

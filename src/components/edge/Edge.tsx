@@ -33,7 +33,15 @@ export function Edge({ fromX, fromY, toX, toY, onClick, ghost }: EdgeProps) {
       className={classNames("edge", { "edge--ghost": ghost })}
       ref={edgeRef}
     >
-      <line x1={x1} y1={y1} x2={x2} y2={y2} onClick={onClick} className="edge__line" />
+      <line
+        onPointerDown={(e) => e.stopPropagation()}
+        x1={x1}
+        y1={y1}
+        x2={x2}
+        y2={y2}
+        onClick={onClick}
+        className="edge__line"
+      />
     </svg>
   );
 }

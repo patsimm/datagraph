@@ -48,7 +48,7 @@ export function usePan({
   const handlePointerDown = useCallback(
     (ev: React.PointerEvent<HTMLDivElement>) => {
       if (disablePan) return;
-      if (ev.button !== 0) return;
+      if (ev.button !== 1) return;
       if (!isDragHandleElement(ev.target)) return;
       if (!(ev.target instanceof HTMLElement)) return;
 

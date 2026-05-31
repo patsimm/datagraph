@@ -1,5 +1,5 @@
 import type { AnyNodeSpec } from "./audio-worklet/datagraph-audio-worklet-commands";
-import { CanvasPos } from "./components/canvas/PanZoomCanvas";
+import { PanZoomCanvasPosition } from "./components/canvas/utils";
 import { PortInfo } from "./components/node/node-utils";
 import { Unit } from "./unit-conversion";
 
@@ -26,7 +26,7 @@ export type NodeStateBase<T extends string, C = undefined, S = undefined> = {
   rustNodeType: string;
   settings: S;
   config: C;
-} & CanvasPos;
+} & PanZoomCanvasPosition;
 
 type EmptyToUndefined<T> = keyof T extends never ? undefined : T;
 
@@ -75,6 +75,8 @@ export type AnyVisualizerNodeState = OscilloscopeVisualizerNodeState | InspectVi
 
 export type VisualizerKind = AnyVisualizerNodeState["kind"];
 
+export type OutputNodeState = NodeStateBase<"output">;
+
 export type AnyParamNodeConfig = DistributiveOmit<
   AnyParamNodeState,
   "nodeId" | "rustNodeType" | "inputPorts" | "outputPorts" | "label"
@@ -90,16 +92,21 @@ export type AnyAudioNodeConfig = DistributiveOmit<
   AnyNodeSpec;
 
 export type AnyNodeConfig = AnyParamNodeConfig | AnyVisualizerNodeConfig | AnyAudioNodeConfig;
-export type AnyNodeState = AnyAudioNodeState | AnyParamNodeState | AnyVisualizerNodeState;
+export type AnyNodeState =
+  | AnyAudioNodeState
+  | AnyParamNodeState
+  | AnyVisualizerNodeState
+  | OutputNodeState;
 
 export type NodeInteractionProps = {
+  inSelectionRange?: boolean;
   selected?: boolean;
   onClick?: (nodeId: string, event: React.MouseEvent<HTMLDivElement>) => void;
   onFocus?: (nodeId: string) => void;
   onBlur?: (nodeId: string) => void;
-  onPortConnectionInitiated?: (startPort: PortInfo) => void;
-  onPortConnectionCompleted?: (startPort: PortInfo, endPort: PortInfo) => void;
-  onCanvasPositionChanged: (nodeId: string, canvasPos: CanvasPos) => void;
+  onDragCompleted?: (nodeId: string, canvasPos: PanZoomCanvasPosition) => void;
+  onDragMove?: (nodeId: string, canvasPos: PanZoomCanvasPosition) => void;
+  externalDragOffset?: { dx: number; dy: number };
 };
 
 export type NodeKind = AnyNodeState["kind"];
@@ -119,6 +126,10 @@ export function isVisualizerNodeState(
   nodeState: AnyNodeState
 ): nodeState is AnyVisualizerNodeState {
   return isVisualizerKind(nodeState.kind);
+}
+
+export function isOutputNodeState(nodeState: AnyNodeState): nodeState is OutputNodeState {
+  return nodeState.kind === "output";
 }
 
 export function isNodeStateOfKind<T extends NodeKind>(

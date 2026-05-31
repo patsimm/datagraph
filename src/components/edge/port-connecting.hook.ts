@@ -1,57 +1,58 @@
+import { useCanvasDragging } from "../canvas/canvas-dragging.hook";
 import { usePanZoomCanvas } from "../canvas/PanZoomCanvas";
-import { getNodePortElement, getNodePortKeyFromElement } from "../node/node-utils";
-import { PortConnectionCompletedEvent, PortConnectionInitiatedEvent } from "./connection-events";
+import { ClientPosition, PanZoomCanvasPosition } from "../canvas/utils";
+import { useGhostEdge } from "./ghost-edge.context";
+import { usePortConnections } from "../../edges.context";
+import { getNodePortElement, getNodePortKeyFromElement, parsePortKey } from "../node/node-utils";
 
-import React, { useRef, useCallback } from "react";
+import { useRef, useCallback } from "react";
 
-type DraggingState = {
-  dragStartPort: string;
-  dragStartX: number;
-  dragStartY: number;
-};
-
-export function usePortConnecting() {
+export function usePortConnecting(thisPortKey: string) {
   const panZoom = usePanZoomCanvas();
-  const draggingStateRef = useRef<DraggingState | null>(null);
+  const { setPosition } = useGhostEdge();
+  const { connect } = usePortConnections();
   const hoveredPortRef = useRef<HTMLElement | null>(null);
-  const [position, setPosition] = React.useState<{
-    fromX: number;
-    fromY: number;
-    toX: number;
-    toY: number;
-  } | null>(null);
+  const startCanvasPosRef = useRef<{ fromX: number; fromY: number } | null>(null);
 
-  const handlePointerMove = useCallback(
-    (event: PointerEvent) => {
-      if (!draggingStateRef.current) return;
+  const handleDragStart = useCallback(() => {
+    const portElem = getNodePortElement(thisPortKey);
+    const rect = portElem.getBoundingClientRect();
+    const { canvasX, canvasY } = panZoom.clientToCanvasPos({
+      clientX: rect.left + 0.5 * rect.width,
+      clientY: rect.top + 0.5 * rect.height,
+    });
+    startCanvasPosRef.current = { fromX: canvasX, fromY: canvasY };
+    setPosition({ fromX: canvasX, fromY: canvasY, toX: canvasX, toY: canvasY });
+    portElem.classList.add("node__port--dragging");
+  }, [thisPortKey, panZoom, setPosition]);
 
-      const { canvasX: x, canvasY: y } = panZoom.clientToCanvasPos(event);
-      const startPosX = draggingStateRef.current.dragStartX;
-      const startPosY = draggingStateRef.current.dragStartY;
+  const handleDragMove = useCallback(
+    (pos: PanZoomCanvasPosition & ClientPosition) => {
+      if (!startCanvasPosRef.current) return;
+      const { fromX, fromY } = startCanvasPosRef.current;
 
-      setPosition({ fromX: startPosX, fromY: startPosY, toX: x, toY: y });
-
-      const elemUnderCursor = document.elementFromPoint(event.clientX, event.clientY);
+      const elemUnderCursor = document.elementFromPoint(pos.clientX, pos.clientY);
       const portKeyUnderCursor =
         elemUnderCursor instanceof HTMLElement ? getNodePortKeyFromElement(elemUnderCursor) : null;
-      if (portKeyUnderCursor === draggingStateRef.current.dragStartPort) return;
 
       const portUnderCursor =
-        elemUnderCursor instanceof HTMLElement && portKeyUnderCursor ? elemUnderCursor : null;
-      const portPositionUnderCursor = portUnderCursor?.getBoundingClientRect();
-      const canvasPortPosUnderCursor =
-        portPositionUnderCursor &&
-        panZoom.clientToCanvasPos({
-          clientX: portPositionUnderCursor.left + 0.5 * portPositionUnderCursor.width,
-          clientY: portPositionUnderCursor.top + 0.5 * portPositionUnderCursor.height,
-        });
+        portKeyUnderCursor && portKeyUnderCursor !== thisPortKey
+          ? (elemUnderCursor as HTMLElement)
+          : null;
 
-      setPosition({
-        fromX: startPosX,
-        fromY: startPosY,
-        toX: canvasPortPosUnderCursor?.canvasX ?? x,
-        toY: canvasPortPosUnderCursor?.canvasY ?? y,
-      });
+      let toX = pos.canvasX;
+      let toY = pos.canvasY;
+      if (portUnderCursor) {
+        const rect = portUnderCursor.getBoundingClientRect();
+        const snapped = panZoom.clientToCanvasPos({
+          clientX: rect.left + 0.5 * rect.width,
+          clientY: rect.top + 0.5 * rect.height,
+        });
+        toX = snapped.canvasX;
+        toY = snapped.canvasY;
+      }
+
+      setPosition({ fromX, fromY, toX, toY });
 
       if (portUnderCursor !== hoveredPortRef.current) {
         hoveredPortRef.current?.classList.remove("node__port--dragging");
@@ -59,84 +60,35 @@ export function usePortConnecting() {
         hoveredPortRef.current = portUnderCursor;
       }
     },
-    [panZoom]
+    [thisPortKey, panZoom, setPosition]
   );
 
-  const handlePointerDown = useCallback(
-    (event: React.PointerEvent): boolean => {
-      if (!(event.target instanceof HTMLElement)) return false;
-      const portKey = getNodePortKeyFromElement(event.target);
-      if (!portKey) return false;
-
-      const nodeElem = event.target as HTMLElement;
-      const portelem = getNodePortElement(portKey);
-
-      const startPos = panZoom.clientToCanvasPos({
-        clientX:
-          nodeElem.getBoundingClientRect().left + 0.5 * nodeElem.getBoundingClientRect().width,
-        clientY:
-          nodeElem.getBoundingClientRect().top + 0.5 * nodeElem.getBoundingClientRect().height,
-      });
-
-      draggingStateRef.current = {
-        dragStartPort: portKey,
-        dragStartX: startPos.canvasX,
-        dragStartY: startPos.canvasY,
-      };
-      setPosition({
-        fromX: startPos.canvasX,
-        fromY: startPos.canvasY,
-        toX: startPos.canvasX,
-        toY: startPos.canvasY,
-      });
-
-      const elem = event.currentTarget as HTMLElement;
-      elem.setPointerCapture(event.pointerId);
-      elem.addEventListener("pointermove", handlePointerMove);
-
-      portelem.classList.add("node__port--dragging");
-      portelem.dispatchEvent(new PortConnectionInitiatedEvent(portKey));
-      return true;
-    },
-    [handlePointerMove, panZoom]
-  );
-
-  const handlePointerUp = useCallback(
-    (event: React.PointerEvent) => {
-      if (!draggingStateRef.current) return;
-
-      const elem = event.currentTarget as HTMLElement;
-      elem.removeEventListener("pointermove", handlePointerMove);
-
+  const handleDragEnd = useCallback(
+    (pos: PanZoomCanvasPosition & ClientPosition) => {
+      const portElem = getNodePortElement(thisPortKey);
+      portElem.classList.remove("node__port--dragging");
       hoveredPortRef.current?.classList.remove("node__port--dragging");
       hoveredPortRef.current = null;
+      startCanvasPosRef.current = null;
+      setPosition(null);
 
-      const startPortKey = draggingStateRef.current.dragStartPort;
-      const startPortElem = getNodePortElement(startPortKey);
-      startPortElem.classList.remove("node__port--dragging");
-      draggingStateRef.current = null;
-
-      const suppressClick = (e: MouseEvent) => {
-        e.stopPropagation();
-        document.removeEventListener("click", suppressClick, true);
-      };
-      document.addEventListener("click", suppressClick, true);
-
-      setPosition({ fromX: 0, fromY: 0, toX: 0, toY: 0 });
-
-      const endPortElem = document.elementFromPoint(event.clientX, event.clientY);
+      const endElem = document.elementFromPoint(pos.clientX, pos.clientY);
       const endPortKey =
-        endPortElem instanceof HTMLElement && getNodePortKeyFromElement(endPortElem);
-      if (endPortKey && endPortElem instanceof HTMLElement) {
-        endPortElem.dispatchEvent(new PortConnectionCompletedEvent(endPortKey, startPortKey));
+        endElem instanceof HTMLElement ? getNodePortKeyFromElement(endElem) : null;
+      if (endPortKey && endPortKey !== thisPortKey) {
+        const startInfo = parsePortKey(thisPortKey);
+        const endInfo = parsePortKey(endPortKey);
+        if (startInfo.portType !== endInfo.portType) {
+          connect(startInfo, endInfo);
+        }
       }
     },
-    [handlePointerMove]
+    [thisPortKey, connect, setPosition]
   );
 
-  return {
-    handlePointerDown,
-    handlePointerUp,
-    position,
-  };
+  return useCanvasDragging({
+    onDragStart: handleDragStart,
+    onDragMove: handleDragMove,
+    onDragEnd: handleDragEnd,
+  });
 }

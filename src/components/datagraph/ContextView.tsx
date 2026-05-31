@@ -8,10 +8,11 @@ import { NodePortsSettings } from "./NodePortsSettings";
 import { useCallback } from "react";
 
 export function ContextView() {
-  const { getSelectedNode } = useSelection();
+  const { getSelectedNodeStates } = useSelection();
   const { getNode, updateNodeSettings, setDefaultInputValue, resetDefaultInputValue } = useNodes();
 
-  const node = getSelectedNode();
+  const nodes = getSelectedNodeStates();
+  const node = nodes.length === 1 ? nodes[0] : null;
 
   const rustNodeType = node?.rustNodeType;
   const classname = rustNodeType?.split("::").slice(-1)[0];
@@ -39,6 +40,13 @@ export function ContextView() {
 
   return (
     <aside className="contextview">
+      {!node && nodes.length > 1 && (
+        <>
+          <div className="contextview__header">
+            <h1 className="contextview__title">{nodes.length} selected</h1>
+          </div>
+        </>
+      )}
       {node && selectedNodeId && (
         <>
           <div className="contextview__header">

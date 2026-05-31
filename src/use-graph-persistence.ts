@@ -11,7 +11,7 @@ const OUTPUT_SENTINEL = "__output__";
 type GraphState = {
   version: 1;
   nodes: {
-    [nodeId: string]: Pick<AnyNodeState, "kind" | "x" | "y" | "config" | "settings"> & {
+    [nodeId: string]: Pick<AnyNodeState, "kind" | "canvasX" | "canvasY" | "config" | "settings"> & {
       defaultInputValues: number[];
     };
   };
@@ -34,8 +34,8 @@ function denormalizePortInfo(port: PortInfo, idMap: Map<string, NodeInfo>): Port
 function mapNodeStateToGraphNodeState(nodeState: AnyNodeState): GraphState["nodes"][string] {
   return {
     kind: nodeState.kind,
-    x: nodeState.x,
-    y: nodeState.y,
+    canvasX: nodeState.canvasX,
+    canvasY: nodeState.canvasY,
     config: nodeState.config,
     settings: nodeState.settings,
     defaultInputValues: nodeState.inputPorts.map((p) => p.defaultValue),
@@ -58,7 +58,7 @@ function retrieveGraphState(
 }
 
 export function useGraphPersistence(outputNodeInfo: NodeInfo | null) {
-  const { nodes, addNode, removeNode, setDefaultInputValue } = useNodes();
+  const { nodes, addNode, removeNode, updateNodePosition, setDefaultInputValue } = useNodes();
   const { edges, connect, disconnectNodes } = usePortConnections();
 
   const saveGraph = useCallback(() => {
@@ -67,7 +67,15 @@ export function useGraphPersistence(outputNodeInfo: NodeInfo | null) {
       to: normalizePortInfo(edge.to, outputNodeInfo?.nodeId ?? null),
     }));
 
-    const state: GraphState = retrieveGraphState(nodes, normalizedEdges);
+    const normalizedNodes = outputNodeInfo
+      ? Object.fromEntries(
+          Object.entries(nodes).map(([id, state]) =>
+            id === outputNodeInfo.nodeId ? [OUTPUT_SENTINEL, state] : [id, state]
+          )
+        )
+      : nodes;
+
+    const state: GraphState = retrieveGraphState(normalizedNodes, normalizedEdges);
     const blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -75,7 +83,7 @@ export function useGraphPersistence(outputNodeInfo: NodeInfo | null) {
     a.download = `datagraph-${Date.now()}.json`;
     a.click();
     URL.revokeObjectURL(url);
-  }, [edges, nodes, outputNodeInfo?.nodeId]);
+  }, [edges, nodes, outputNodeInfo]);
 
   const loadGraph = useCallback(() => {
     const input = document.createElement("input");
@@ -98,27 +106,40 @@ export function useGraphPersistence(outputNodeInfo: NodeInfo | null) {
         return;
       }
 
-      const currentNodeIds = Object.keys(nodes);
-      if (currentNodeIds.length > 0) {
-        disconnectNodes(...currentNodeIds);
-        for (const id of currentNodeIds) {
+      const allCurrentIds = Object.keys(nodes);
+      const nodesToRemove = allCurrentIds.filter((id) => id !== outputNodeInfo?.nodeId);
+      if (allCurrentIds.length > 0) {
+        disconnectNodes(...allCurrentIds);
+        for (const id of nodesToRemove) {
           await removeNode(id);
         }
       }
 
       const infoMap = new Map<string, NodeInfo>();
-      if (outputNodeInfo?.nodeId) {
-        infoMap.set(OUTPUT_SENTINEL, outputNodeInfo);
-      }
 
       for (const [oldId, nodeState] of Object.entries(state.nodes)) {
+        if (oldId === OUTPUT_SENTINEL) {
+          if (outputNodeInfo) {
+            updateNodePosition(outputNodeInfo.nodeId, {
+              canvasX: nodeState.canvasX,
+              canvasY: nodeState.canvasY,
+            });
+            infoMap.set(OUTPUT_SENTINEL, outputNodeInfo);
+          }
+          continue;
+        }
         const newInfo = await addNode(
           nodeState.kind,
-          { x: nodeState.x, y: nodeState.y },
+          { canvasX: nodeState.canvasX, canvasY: nodeState.canvasY },
           nodeState.config,
           nodeState.settings
         );
         if (newInfo) infoMap.set(oldId, newInfo);
+      }
+
+      // Ensure output node is mapped for edge restoration even if absent from saved nodes
+      if (outputNodeInfo?.nodeId && !infoMap.has(OUTPUT_SENTINEL)) {
+        infoMap.set(OUTPUT_SENTINEL, outputNodeInfo);
       }
 
       for (const edge of state.edges) {
@@ -130,6 +151,7 @@ export function useGraphPersistence(outputNodeInfo: NodeInfo | null) {
       }
 
       for (const [oldId, nodeState] of Object.entries(state.nodes)) {
+        if (oldId === OUTPUT_SENTINEL) continue;
         const newInfo = infoMap.get(oldId);
         if (!newInfo) continue;
         for (let i = 0; i < nodeState.defaultInputValues.length; i++) {
@@ -141,7 +163,7 @@ export function useGraphPersistence(outputNodeInfo: NodeInfo | null) {
       }
     };
     input.click();
-  }, [nodes, outputNodeInfo, disconnectNodes, removeNode, addNode, connect, setDefaultInputValue]);
+  }, [nodes, outputNodeInfo, disconnectNodes, removeNode, addNode, connect, setDefaultInputValue, updateNodePosition]);
 
   return { saveGraph, loadGraph };
 }

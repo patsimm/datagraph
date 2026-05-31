@@ -1,7 +1,6 @@
 import { useDatagraph } from "../../datagraph.context";
 import "./Datagraph.css";
 import { getNodeKeyFromElement, PortInfo } from "../node/node-utils";
-import { OutputNode } from "../node/OutputNode";
 import { ContextView } from "./ContextView";
 import { useSelection } from "../../selection.context";
 import { useNodes } from "../../nodes.context";
@@ -10,34 +9,26 @@ import { usePortConnections } from "../../edges.context";
 import {
   PanZoomCanvas,
   PanZoomCanvasContext,
+  PanZoomCanvasPointerEvent,
   PanZoomCanvasProvider,
+  usePanZoomCanvas,
 } from "../canvas/PanZoomCanvas";
 import { NodeInfo } from "../../audio-worklet/datagraph-audio-worklet-commands";
 import { Toolbar } from "./Toolbar";
-import { Edges, EdgesHandle } from "../edge/Edges";
+import { Edges } from "../edge/Edges";
+import { GhostEdgeProvider } from "../edge/ghost-edge.context";
+import { PanZoomCanvasRect, ClientRect } from "../canvas/utils";
 
 import React, { useCallback, useEffect, useImperativeHandle, useRef, useState } from "react";
 
 type NodeSelectionHandle = {
-  nodeSelectionPointerDown: (e: React.PointerEvent) => boolean;
-};
-
-type NodeSelectionState = {
-  startX: number;
-  startY: number;
-};
-
-type SelectionClientRect = {
-  left: number;
-  top: number;
-  width: number;
-  height: number;
+  nodeSelectionPointerDown: (e: PanZoomCanvasPointerEvent) => boolean;
 };
 
 type NodeSelectionProps = {
   disableSelection?: boolean;
-  onSelectionComplete?: (selectionClientRect: SelectionClientRect) => void;
-  onSelectionChange?: (selectionClientRect: SelectionClientRect) => void;
+  onSelectionComplete?: (selectionClientRect: PanZoomCanvasRect) => void;
+  onSelectionChange?: (selectionClientRect: PanZoomCanvasRect) => void;
   ref: React.Ref<NodeSelectionHandle>;
 };
 
@@ -47,53 +38,65 @@ function NodeSelection({
   onSelectionChange,
   onSelectionComplete,
 }: NodeSelectionProps) {
-  const selectionStateRef = useRef<NodeSelectionState | null>(null);
-  const [selectionRect, setSelectionRect] = useState<{
-    left: number;
-    top: number;
-    width: number;
-    height: number;
-  } | null>(null);
+  const [selectionRect, setSelectionRect] = useState<ClientRect | null>(null);
+  const { handleSelectionRangeChanged, handleRangeSelectionCompleted } = useSelection();
+  const { clientToCanvasRect } = usePanZoomCanvas();
 
   const handlePointerDown = useCallback(
     (e: React.PointerEvent) => {
       if (disableSelection) return false;
-      const eventTarget = e.target as Element;
-      if (!(eventTarget instanceof HTMLElement) || eventTarget.dataset.canvasBackground !== "true")
-        return false;
+      if (e.button !== 0) return false;
       const target = e.currentTarget as HTMLElement;
       target.setPointerCapture(e.pointerId);
-      const x = e.clientX;
-      const y = e.clientY;
-      selectionStateRef.current = {
-        startX: x,
-        startY: y,
-      };
+      const startX = e.clientX;
+      const startY = e.clientY;
+      let moved = false;
 
       const handlePointerMove = (e: PointerEvent) => {
-        if (!selectionStateRef.current) return;
         const x = e.clientX;
         const y = e.clientY;
-        const width = x - selectionStateRef.current.startX;
-        const height = y - selectionStateRef.current.startY;
+        const width = x - startX;
+        const height = y - startY;
         const newRect = {
-          left: Math.min(selectionStateRef.current.startX, x),
-          top: Math.min(selectionStateRef.current.startY, y),
+          clientX: Math.min(startX, x),
+          clientY: Math.min(startY, y),
           width: Math.abs(width),
           height: Math.abs(height),
         };
         setSelectionRect(newRect);
-        onSelectionChange?.(newRect);
+
+        const canvasRect = clientToCanvasRect(newRect);
+        onSelectionChange?.(canvasRect);
+        handleSelectionRangeChanged(canvasRect);
+        moved = true;
       };
 
       const handlePointerUp = (e: PointerEvent) => {
-        if (!selectionStateRef.current) return;
+        const x = e.clientX;
+        const y = e.clientY;
+        const width = x - startX;
+        const height = y - startY;
+        const newRect = {
+          clientX: Math.min(startX, x),
+          clientY: Math.min(startY, y),
+          width: Math.abs(width),
+          height: Math.abs(height),
+        };
 
-        const target = e.currentTarget as HTMLElement;
-        if (selectionRect) {
-          onSelectionComplete?.(selectionRect);
+        if (moved) {
+          const canvasRect = clientToCanvasRect(newRect);
+          onSelectionComplete?.(canvasRect);
+          handleRangeSelectionCompleted(canvasRect);
+          const suppressClick = (ev: MouseEvent) => {
+            ev.stopPropagation();
+            document.removeEventListener("click", suppressClick, true);
+          };
+          document.addEventListener("click", suppressClick, true);
         }
         setSelectionRect(null);
+        handleSelectionRangeChanged(null);
+        const target = e.currentTarget as HTMLElement;
+        target.releasePointerCapture(e.pointerId);
         target.removeEventListener("pointermove", handlePointerMove);
         target.removeEventListener("pointerup", handlePointerUp);
         target.removeEventListener("pointercancel", handlePointerCancel);
@@ -102,6 +105,7 @@ function NodeSelection({
       const handlePointerCancel = (e: PointerEvent) => {
         const target = e.currentTarget as HTMLElement;
         setSelectionRect(null);
+        handleSelectionRangeChanged(null);
         target.removeEventListener("pointermove", handlePointerMove);
         target.removeEventListener("pointerup", handlePointerUp);
         target.removeEventListener("pointercancel", handlePointerCancel);
@@ -112,35 +116,50 @@ function NodeSelection({
       target.addEventListener("pointercancel", handlePointerUp);
       return true;
     },
-    [disableSelection, onSelectionChange, onSelectionComplete, selectionRect]
+    [
+      clientToCanvasRect,
+      disableSelection,
+      handleRangeSelectionCompleted,
+      handleSelectionRangeChanged,
+      onSelectionChange,
+      onSelectionComplete,
+    ]
   );
 
   useImperativeHandle(ref, () => ({
     nodeSelectionPointerDown: handlePointerDown,
   }));
 
-  return <>{selectionRect && <div className="node-selection" style={selectionRect} />}</>;
+  return (
+    <>
+      {selectionRect && (
+        <div
+          className="node-selection"
+          style={{
+            left: selectionRect.clientX,
+            top: selectionRect.clientY,
+            width: selectionRect.width,
+            height: selectionRect.height,
+          }}
+        />
+      )}
+    </>
+  );
 }
 
 export function Datagraph() {
   const ref = useRef<HTMLDivElement>(null);
   const datagraph = useDatagraph();
   const { ready } = datagraph;
-  const { removeNode } = useNodes();
+  const { removeNode, injectOutputNode } = useNodes();
   const [outputNode, setOutputNode] = useState<NodeInfo | null>(null);
   const { disconnectPorts, disconnectNodes } = usePortConnections();
   const { handleNodeSelected } = useSelection();
-  const edgesHandleRef = useRef<EdgesHandle>(null);
   const nodeSelectionHandleRef = useRef<NodeSelectionHandle>(null);
   const canvasHandle = useRef<PanZoomCanvasContext | null>(null);
 
-  const handlePointerDown = useCallback((e: React.PointerEvent) => {
-    if (edgesHandleRef.current?.portConnectPointerDown(e)) return;
+  const handlePointerDown = useCallback((e: PanZoomCanvasPointerEvent) => {
     nodeSelectionHandleRef.current?.nodeSelectionPointerDown(e);
-  }, []);
-
-  const handlePointerUp = useCallback((e: React.PointerEvent) => {
-    edgesHandleRef.current?.portConnectPointerUp(e);
   }, []);
 
   const handleEdgeClick = useCallback(
@@ -156,8 +175,9 @@ export function Datagraph() {
     if (ready) return;
     datagraph.start().then(({ outputNode }) => {
       setOutputNode(outputNode);
+      injectOutputNode(outputNode, { canvasX: 200, canvasY: 500 });
     });
-  }, [ready, datagraph]);
+  }, [ready, datagraph, injectOutputNode]);
 
   const handleNodeClick = useCallback(
     (nodeId: string, ev: React.MouseEvent) => {
@@ -174,34 +194,35 @@ export function Datagraph() {
           ? getNodeKeyFromElement(document.activeElement)
           : null;
       if (!nodeId) return;
+      if (nodeId === outputNode?.nodeId) return;
       if (ev.key === "Backspace" || ev.key === "Delete") {
         disconnectNodes(nodeId);
         removeNode(nodeId);
         handleNodeSelected(null);
       }
     },
-    [disconnectNodes, handleNodeSelected, removeNode]
+    [disconnectNodes, handleNodeSelected, outputNode?.nodeId, removeNode]
   );
 
   return (
     <PanZoomCanvasProvider canvasHandle={canvasHandle}>
-      {" "}
-      <div ref={ref} onKeyDown={handleKeyDown} className="datagraph">
-        {outputNode && <Toolbar outputNode={outputNode} />}
-        <ContextView />
-        <div
-          className="datagraph__canvas"
-          onPointerDown={handlePointerDown}
-          onPointerUp={handlePointerUp}
-        >
-          <NodeSelection ref={nodeSelectionHandleRef} disableSelection />
-          <PanZoomCanvas ref={canvasHandle}>
-            <Nodes onNodeClick={handleNodeClick} />
-            <Edges ref={edgesHandleRef} onEdgeClick={handleEdgeClick} />
-            {outputNode && <OutputNode node={outputNode} x={200} y={500} />}
-          </PanZoomCanvas>
+      <GhostEdgeProvider>
+        <div ref={ref} onKeyDown={handleKeyDown} className="datagraph">
+          {outputNode && <Toolbar outputNode={outputNode} />}
+          <ContextView />
+          <div className="datagraph__canvas">
+            <NodeSelection ref={nodeSelectionHandleRef} />
+            <PanZoomCanvas
+              ref={canvasHandle}
+              onPointerDown={handlePointerDown}
+              onClick={() => handleNodeSelected(null)}
+            >
+              <Nodes onNodeClick={handleNodeClick} />
+              <Edges onEdgeClick={handleEdgeClick} />
+            </PanZoomCanvas>
+          </div>
         </div>
-      </div>
+      </GhostEdgeProvider>
     </PanZoomCanvasProvider>
   );
 }

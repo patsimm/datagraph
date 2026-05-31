@@ -3,10 +3,10 @@ import "./Node.css";
 import type { NodePortState, NodeInteractionProps } from "../../node.types";
 import { useCanvasDragging } from "../canvas/canvas-dragging.hook";
 import { NodePort } from "./NodePort";
-import { CanvasPos } from "../canvas/PanZoomCanvas";
+import { PanZoomCanvasPosition } from "../canvas/utils";
 
 import classNames from "classnames";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 
 export type NodeProps = {
   kind: string;
@@ -16,7 +16,7 @@ export type NodeProps = {
   outputPorts: NodePortState[];
   rustNodeType: string;
 } & NodeInteractionProps &
-  CanvasPos;
+  PanZoomCanvasPosition;
 
 export function Node({
   nodeId,
@@ -28,39 +28,58 @@ export function Node({
   canvasY,
   children,
   selected,
+  inSelectionRange,
   onClick,
   onFocus,
   onBlur,
-  onPortConnectionInitiated,
-  onPortConnectionCompleted,
-  onCanvasPositionChanged,
+  onDragCompleted,
+  onDragMove,
+  externalDragOffset,
 }: React.PropsWithChildren<NodeProps>) {
   const canvasPosition = useMemo(() => ({ canvasX, canvasY }), [canvasX, canvasY]);
-  const [displayPosition, setDisplayPosition] = useState<CanvasPos>(canvasPosition);
+  const [displayPosition, setDisplayPosition] = useState<PanZoomCanvasPosition>(canvasPosition);
   const [prevPosition, setPrevPosition] = useState(canvasPosition);
   const [dragging, setDragging] = useState(false);
+  const dragOffsetRef = useRef<{ dx: number; dy: number } | null>(null);
 
   if (canvasPosition !== prevPosition) {
     setPrevPosition(canvasPosition);
     setDisplayPosition(canvasPosition);
   }
 
-  const handleDragStart = useCallback(() => {
-    setDragging(true);
-  }, []);
+  const handleDragStart = useCallback(
+    (pos: PanZoomCanvasPosition) => {
+      dragOffsetRef.current = { dx: pos.canvasX - canvasX, dy: pos.canvasY - canvasY };
+      setDragging(true);
+    },
+    [canvasX, canvasY]
+  );
 
-  const handleDraggedToCanvasPos = useCallback((pos: CanvasPos) => {
-    setDisplayPosition(pos);
-  }, []);
+  const handleDraggedToCanvasPos = useCallback(
+    (pos: PanZoomCanvasPosition) => {
+      if (!dragOffsetRef.current) return;
+      const newPos = {
+        canvasX: pos.canvasX - dragOffsetRef.current.dx,
+        canvasY: pos.canvasY - dragOffsetRef.current.dy,
+      };
+      setDisplayPosition(newPos);
+      onDragMove?.(nodeId, newPos);
+    },
+    [nodeId, onDragMove]
+  );
 
   const handleDragEnd = useCallback(
-    (pos: CanvasPos, didMove: boolean) => {
+    (pos: PanZoomCanvasPosition, didMove: boolean) => {
       setDragging(false);
-      if (didMove) {
-        onCanvasPositionChanged(nodeId, pos);
+      if (didMove && dragOffsetRef.current) {
+        onDragCompleted?.(nodeId, {
+          canvasX: pos.canvasX - dragOffsetRef.current.dx,
+          canvasY: pos.canvasY - dragOffsetRef.current.dy,
+        });
       }
+      dragOffsetRef.current = null;
     },
-    [nodeId, onCanvasPositionChanged]
+    [nodeId, onDragCompleted]
   );
 
   const isValidDragTarget = useCallback((target: EventTarget) => {
@@ -73,7 +92,7 @@ export function Node({
 
   const canvasDraggingProps = useCanvasDragging({
     onDragStart: handleDragStart,
-    onDraggedToCanvasPos: handleDraggedToCanvasPos,
+    onDragMove: handleDraggedToCanvasPos,
     onDragEnd: handleDragEnd,
     isValidTarget: isValidDragTarget,
   });
@@ -91,12 +110,16 @@ export function Node({
       className={classNames("node", {
         "node--selected": selected,
         "node--dragging": dragging,
+        "node--in-selection-range": inSelectionRange,
       })}
       data-node-id={nodeId}
       data-kind={kind}
       data-input-ports={inputPorts.length}
       data-output-ports={outputPorts.length}
-      style={{ left: displayPosition.canvasX, top: displayPosition.canvasY }}
+      style={{
+        left: displayPosition.canvasX + (externalDragOffset?.dx ?? 0),
+        top: displayPosition.canvasY + (externalDragOffset?.dy ?? 0),
+      }}
       onClick={(ev) => onClick?.(nodeId, ev)}
       tabIndex={0}
       onFocus={handleFocus}
@@ -114,8 +137,6 @@ export function Node({
               portType="in"
               connected={port.connectedTo.length > 0}
               hasCustomDefault={port.type === "in" && port.isDefaultModified}
-              onPortConnectionInitiated={onPortConnectionInitiated}
-              onPortConnectionCompleted={onPortConnectionCompleted}
             />
           ))}
         </div>
@@ -128,8 +149,6 @@ export function Node({
               port={i}
               portType="out"
               connected={port.connectedTo.length > 0}
-              onPortConnectionInitiated={onPortConnectionInitiated}
-              onPortConnectionCompleted={onPortConnectionCompleted}
             />
           ))}
         </div>

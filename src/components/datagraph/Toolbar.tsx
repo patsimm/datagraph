@@ -71,7 +71,6 @@ export function Toolbar({ outputNode }: ToolbarProps) {
   return (
     <div role="toolbar" className="toolbar">
       <div role="group" className="toolbar__section">
-        {" "}
         {ready && (
           <button
             className={classNames("toolbar__button", {
@@ -196,7 +195,9 @@ export function Toolbar({ outputNode }: ToolbarProps) {
             </div>
           )}
         </div>
+        <div className="toolbar__divider" />
       </div>
+
       <div role="group" className="toolbar__section">
         <button className="toolbar__button" onClick={saveGraph}>
           <IconDeviceFloppy stroke={1.25} className="toolbar__button-icon" />

@@ -16,7 +16,7 @@ import {
   NodeRemovedEvent,
 } from "./audio-worklet/datagraph-audio-worklet-commands";
 import { convertToCv } from "./unit-conversion";
-import { CanvasPos } from "./components/canvas/PanZoomCanvas";
+import { isPointInRect, PanZoomCanvasPosition, PanZoomCanvasRect } from "./components/canvas/utils";
 
 import { useState, useCallback, useEffect, useRef, createContext, useContext } from "react";
 
@@ -28,7 +28,7 @@ export type {
 
 type PendingCreation = {
   kind: NodeKind;
-  position: CanvasPos;
+  position: PanZoomCanvasPosition;
   config: unknown;
   settings: unknown;
   resolve: (info: NodeInfo) => void;
@@ -159,7 +159,6 @@ function useAllNodes() {
         nodeId,
         (current) =>
           ({
-            ...current,
             config: { ...(current.config as object), value },
           }) as AnyNodeState
       );
@@ -170,7 +169,7 @@ function useAllNodes() {
   const addNode = useCallback(
     <T extends NodeKind>(
       kind: T,
-      position: CanvasPos,
+      position: PanZoomCanvasPosition,
       config: NodeState<T>["config"],
       settings: NodeState<T>["settings"]
     ): Promise<NodeInfo | null> => {
@@ -203,6 +202,27 @@ function useAllNodes() {
       removeNodeFromGraph(nodeId);
     },
     [ready, removeNodeFromGraph]
+  );
+
+  const injectOutputNode = useCallback(
+    (info: NodeInfo, position: PanZoomCanvasPosition) => {
+      setNodes((prev) => ({
+        ...prev,
+        [info.nodeId]: {
+          kind: "output",
+          nodeId: info.nodeId,
+          rustNodeType: info.nodeType,
+          inputPorts: [
+            { type: "in", name: "input", connectedTo: [], defaultValue: 0, isDefaultModified: false },
+          ],
+          outputPorts: [],
+          settings: undefined,
+          config: undefined,
+          ...position,
+        } as AnyNodeState,
+      }));
+    },
+    []
   );
 
   const getNode = useCallback(
@@ -274,16 +294,25 @@ function useAllNodes() {
   );
 
   const updateNodePosition = useCallback(
-    (nodeId: string, position: CanvasPos) => {
+    (nodeId: string, position: PanZoomCanvasPosition) => {
       updateNodeState(nodeId, (current) => ({ ...current, ...position }));
     },
     [updateNodeState]
+  );
+
+  const getNodesInRange = useCallback(
+    (range: PanZoomCanvasRect) => {
+      const nodesInRange = Object.values(nodes).filter((node) => isPointInRect(node, range));
+      return nodesInRange;
+    },
+    [nodes]
   );
 
   return {
     nodes,
     addNode,
     removeNode,
+    injectOutputNode,
     updateNodeState,
     updateNodeSettings,
     getNode,
@@ -291,6 +320,7 @@ function useAllNodes() {
     setDefaultInputValue,
     resetDefaultInputValue,
     updateNodePosition,
+    getNodesInRange,
   };
 }
 
@@ -298,11 +328,12 @@ const nodesContext = createContext<{
   nodes: { [nodeId: string]: AnyNodeState };
   addNode: <T extends NodeKind>(
     kind: T,
-    position: CanvasPos,
+    position: PanZoomCanvasPosition,
     config: NodeState<T>["config"],
     settings: NodeState<T>["settings"]
   ) => Promise<NodeInfo | null>;
   removeNode: (nodeId: string) => void;
+  injectOutputNode: (info: NodeInfo, position: PanZoomCanvasPosition) => void;
   updateNodeState: (nodeId: string, update: (current: AnyNodeState) => AnyNodeState) => void;
   getNode: (nodeId: string) => AnyNodeState | undefined;
   setParamValue: (nodeId: string, value: number) => Promise<void>;
@@ -311,15 +342,19 @@ const nodesContext = createContext<{
     nodeId: string,
     updateNodeSettings: (current: NodeState<T>["settings"]) => NodeState<T>["settings"]
   ) => void;
-  updateNodePosition: (nodeId: string, position: CanvasPos) => void;
+  updateNodePosition: (nodeId: string, position: PanZoomCanvasPosition) => void;
   setDefaultInputValue: (nodeId: string, port: number, value: number) => void;
   resetDefaultInputValue: (nodeId: string, port: number) => void;
+  getNodesInRange: (range: PanZoomCanvasRect) => AnyNodeState[];
 }>({
   nodes: {},
   addNode: async () => {
     throw new Error("Nodes context not initialized yet");
   },
   removeNode: () => {
+    throw new Error("Nodes context not initialized yet");
+  },
+  injectOutputNode: () => {
     throw new Error("Nodes context not initialized yet");
   },
   updateNodeState: () => {
@@ -343,6 +378,9 @@ const nodesContext = createContext<{
   resetDefaultInputValue: () => {
     throw new Error("Nodes context not initialized yet");
   },
+  getNodesInRange: () => {
+    throw new Error("Nodes context not initialized yet");
+  },
 });
 
 export function NodesProvider({ children }: { children: React.ReactNode }) {
@@ -350,6 +388,7 @@ export function NodesProvider({ children }: { children: React.ReactNode }) {
     nodes,
     addNode,
     removeNode,
+    injectOutputNode,
     updateNodeState,
     getNode,
     setParamValue,
@@ -357,6 +396,7 @@ export function NodesProvider({ children }: { children: React.ReactNode }) {
     setDefaultInputValue,
     resetDefaultInputValue,
     updateNodePosition,
+    getNodesInRange,
   } = useAllNodes();
 
   return (
@@ -365,6 +405,7 @@ export function NodesProvider({ children }: { children: React.ReactNode }) {
         nodes,
         addNode,
         removeNode,
+        injectOutputNode,
         updateNodeState,
         getNode,
         setParamValue,
@@ -372,6 +413,7 @@ export function NodesProvider({ children }: { children: React.ReactNode }) {
         setDefaultInputValue,
         resetDefaultInputValue,
         updateNodePosition,
+        getNodesInRange,
       }}
     >
       {children}
