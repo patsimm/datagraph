@@ -16,6 +16,7 @@ import {
   NodeRemovedEvent,
 } from "./audio-worklet/datagraph-audio-worklet-commands";
 import { convertToCv } from "./unit-conversion";
+import { CanvasPos } from "./components/canvas/PanZoomCanvas";
 
 import { useState, useCallback, useEffect, useRef, createContext, useContext } from "react";
 
@@ -27,7 +28,7 @@ export type {
 
 type PendingCreation = {
   kind: NodeKind;
-  position: { x: number; y: number };
+  position: CanvasPos;
   config: unknown;
   settings: unknown;
   resolve: (info: NodeInfo) => void;
@@ -169,7 +170,7 @@ function useAllNodes() {
   const addNode = useCallback(
     <T extends NodeKind>(
       kind: T,
-      position: { x: number; y: number },
+      position: CanvasPos,
       config: NodeState<T>["config"],
       settings: NodeState<T>["settings"]
     ): Promise<NodeInfo | null> => {
@@ -212,7 +213,7 @@ function useAllNodes() {
   );
 
   const updateNodeSettings = useCallback(
-    async <T extends NodeKind>(
+    <T extends NodeKind>(
       kind: T,
       nodeId: string,
       updateNodeSettings: (current: NodeState<T>["settings"]) => NodeState<T>["settings"]
@@ -272,6 +273,13 @@ function useAllNodes() {
     [ready, resetDefaultInputValueInGraph]
   );
 
+  const updateNodePosition = useCallback(
+    (nodeId: string, position: CanvasPos) => {
+      updateNodeState(nodeId, (current) => ({ ...current, ...position }));
+    },
+    [updateNodeState]
+  );
+
   return {
     nodes,
     addNode,
@@ -282,6 +290,7 @@ function useAllNodes() {
     setParamValue,
     setDefaultInputValue,
     resetDefaultInputValue,
+    updateNodePosition,
   };
 }
 
@@ -289,7 +298,7 @@ const nodesContext = createContext<{
   nodes: { [nodeId: string]: AnyNodeState };
   addNode: <T extends NodeKind>(
     kind: T,
-    position: { x: number; y: number },
+    position: CanvasPos,
     config: NodeState<T>["config"],
     settings: NodeState<T>["settings"]
   ) => Promise<NodeInfo | null>;
@@ -301,7 +310,8 @@ const nodesContext = createContext<{
     kind: T,
     nodeId: string,
     updateNodeSettings: (current: NodeState<T>["settings"]) => NodeState<T>["settings"]
-  ) => Promise<void>;
+  ) => void;
+  updateNodePosition: (nodeId: string, position: CanvasPos) => void;
   setDefaultInputValue: (nodeId: string, port: number, value: number) => void;
   resetDefaultInputValue: (nodeId: string, port: number) => void;
 }>({
@@ -324,6 +334,9 @@ const nodesContext = createContext<{
   updateNodeSettings: async () => {
     throw new Error("Nodes context not initialized yet");
   },
+  updateNodePosition: () => {
+    throw new Error("Nodes context not initialized yet");
+  },
   setDefaultInputValue: () => {
     throw new Error("Nodes context not initialized yet");
   },
@@ -343,6 +356,7 @@ export function NodesProvider({ children }: { children: React.ReactNode }) {
     updateNodeSettings,
     setDefaultInputValue,
     resetDefaultInputValue,
+    updateNodePosition,
   } = useAllNodes();
 
   return (
@@ -357,6 +371,7 @@ export function NodesProvider({ children }: { children: React.ReactNode }) {
         updateNodeSettings,
         setDefaultInputValue,
         resetDefaultInputValue,
+        updateNodePosition,
       }}
     >
       {children}

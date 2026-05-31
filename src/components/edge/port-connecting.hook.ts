@@ -25,7 +25,7 @@ export function usePortConnecting() {
     (event: PointerEvent) => {
       if (!draggingStateRef.current) return;
 
-      const { x, y } = panZoom.clientToCanvasPos(event);
+      const { canvasX: x, canvasY: y } = panZoom.clientToCanvasPos(event);
       const startPosX = draggingStateRef.current.dragStartX;
       const startPosY = draggingStateRef.current.dragStartY;
 
@@ -49,8 +49,8 @@ export function usePortConnecting() {
       setPosition({
         fromX: startPosX,
         fromY: startPosY,
-        toX: canvasPortPosUnderCursor?.x ?? x,
-        toY: canvasPortPosUnderCursor?.y ?? y,
+        toX: canvasPortPosUnderCursor?.canvasX ?? x,
+        toY: canvasPortPosUnderCursor?.canvasY ?? y,
       });
 
       if (portUnderCursor !== hoveredPortRef.current) {
@@ -80,10 +80,15 @@ export function usePortConnecting() {
 
       draggingStateRef.current = {
         dragStartPort: portKey,
-        dragStartX: startPos.x,
-        dragStartY: startPos.y,
+        dragStartX: startPos.canvasX,
+        dragStartY: startPos.canvasY,
       };
-      setPosition({ fromX: startPos.x, fromY: startPos.y, toX: startPos.x, toY: startPos.y });
+      setPosition({
+        fromX: startPos.canvasX,
+        fromY: startPos.canvasY,
+        toX: startPos.canvasX,
+        toY: startPos.canvasY,
+      });
 
       const elem = event.currentTarget as HTMLElement;
       elem.setPointerCapture(event.pointerId);

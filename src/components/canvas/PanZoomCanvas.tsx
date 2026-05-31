@@ -12,9 +12,19 @@ import React, {
 } from "react";
 import { flushSync } from "react-dom";
 
+export type ClientPos = {
+  clientX: number;
+  clientY: number;
+};
+
+export type CanvasPos = {
+  canvasX: number;
+  canvasY: number;
+};
+
 export type PanZoomCanvasContext = {
   panByScreenPos: (x: number, y: number) => void;
-  clientToCanvasPos(pos: { clientX: number; clientY: number }): { x: number; y: number };
+  clientToCanvasPos(pos: ClientPos): CanvasPos;
 };
 
 const defaultContextValue: PanZoomCanvasContext = {
@@ -74,9 +84,10 @@ export function PanZoomCanvas({
     const containerX = pos.clientX - containerRect.x;
     const containerY = pos.clientY - containerRect.y;
 
-    const x = containerX / zoom - panX;
-    const y = containerY / zoom - panY;
-    return { x, y };
+    return {
+      canvasX: containerX / zoom - panX,
+      canvasY: containerY / zoom - panY,
+    };
   }, []);
 
   const { containerProps } = usePan({

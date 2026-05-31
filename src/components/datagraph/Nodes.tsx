@@ -9,7 +9,7 @@ export type NodesProps = {
 
 export function Nodes({ onNodeClick }: NodesProps) {
   const { getSelectedNode } = useSelection();
-  const { nodes } = useNodes();
+  const { nodes, updateNodePosition } = useNodes();
   const { connect } = usePortConnections();
 
   return (
@@ -21,6 +21,7 @@ export function Nodes({ onNodeClick }: NodesProps) {
           selected={getSelectedNode()?.nodeId === node.nodeId}
           onClick={onNodeClick}
           onPortConnectionCompleted={connect}
+          onCanvasPositionChanged={updateNodePosition}
         />
       ))}
     </>

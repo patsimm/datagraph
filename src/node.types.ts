@@ -1,4 +1,5 @@
 import type { AnyNodeSpec } from "./audio-worklet/datagraph-audio-worklet-commands";
+import { CanvasPos } from "./components/canvas/PanZoomCanvas";
 import { PortInfo } from "./components/node/node-utils";
 import { Unit } from "./unit-conversion";
 
@@ -20,14 +21,12 @@ export type NodeOutputPortState = Extract<NodePortState, { type: "out" }>;
 export type NodeStateBase<T extends string, C = undefined, S = undefined> = {
   kind: T;
   nodeId: string;
-  x: number;
-  y: number;
   inputPorts: NodeInputPortState[];
   outputPorts: NodeOutputPortState[];
   rustNodeType: string;
   settings: S;
   config: C;
-};
+} & CanvasPos;
 
 type EmptyToUndefined<T> = keyof T extends never ? undefined : T;
 
@@ -100,6 +99,7 @@ export type NodeInteractionProps = {
   onBlur?: (nodeId: string) => void;
   onPortConnectionInitiated?: (startPort: PortInfo) => void;
   onPortConnectionCompleted?: (startPort: PortInfo, endPort: PortInfo) => void;
+  onCanvasPositionChanged: (nodeId: string, canvasPos: CanvasPos) => void;
 };
 
 export type NodeKind = AnyNodeState["kind"];

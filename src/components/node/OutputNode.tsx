@@ -2,9 +2,8 @@ import { NodeInfo } from "../../audio-worklet/datagraph-audio-worklet-commands";
 import { usePortConnections } from "../../edges.context";
 import { NodePortState } from "../../node.types";
 import { Node } from "./Node";
-import { PortInfo } from "./node-utils";
 
-import { useCallback, useMemo } from "react";
+import { useMemo } from "react";
 
 export type OutputNodeProps = {
   node: NodeInfo;
@@ -15,13 +14,6 @@ const OUTPUT_PORTS: NodePortState[] = [];
 
 export function OutputNode({ node, x, y }: OutputNodeProps) {
   const { edges, connect } = usePortConnections();
-
-  const handleOutputConnectionCompleted = useCallback(
-    async (port1: PortInfo, port2: PortInfo) => {
-      await connect(port1, port2);
-    },
-    [connect]
-  );
 
   const inputPorts = useMemo(() => {
     const connectedTo = edges.filter((e) => e.to.nodeId === node.nodeId).map((e) => e.from);
@@ -41,10 +33,11 @@ export function OutputNode({ node, x, y }: OutputNodeProps) {
       kind="output"
       inputPorts={inputPorts}
       outputPorts={OUTPUT_PORTS}
-      onPortConnectionCompleted={handleOutputConnectionCompleted}
+      onPortConnectionCompleted={connect}
+      onCanvasPositionChanged={console.log}
       rustNodeType={node.nodeType}
-      x={x}
-      y={y}
+      canvasX={x}
+      canvasY={y}
       label="speaker"
       nodeId={node.nodeId}
     ></Node>

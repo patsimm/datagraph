@@ -15,7 +15,7 @@
   color: var(--color-text);
   border-radius: var(--node-border-radius);
   font-size: 0.8rem;
-  cursor: grab;
+  cursor: default;
   z-index: 2;
   transform: translate(-50%, -50%);
   min-width: calc(

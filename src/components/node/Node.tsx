@@ -1,22 +1,22 @@
 import { portKey } from "./node-utils";
 import "./Node.css";
 import type { NodePortState, NodeInteractionProps } from "../../node.types";
-import { useNodeDragging } from "./node-dragging.hook";
+import { useCanvasDragging } from "../canvas/canvas-dragging.hook";
 import { NodePort } from "./NodePort";
+import { CanvasPos } from "../canvas/PanZoomCanvas";
 
 import classNames from "classnames";
-import { useCallback } from "react";
+import { useCallback, useMemo, useState } from "react";
 
 export type NodeProps = {
   kind: string;
   label: React.ReactNode;
   nodeId: string;
-  x: number;
-  y: number;
   inputPorts: NodePortState[];
   outputPorts: NodePortState[];
   rustNodeType: string;
-} & NodeInteractionProps;
+} & NodeInteractionProps &
+  CanvasPos;
 
 export function Node({
   nodeId,
@@ -24,8 +24,8 @@ export function Node({
   label,
   inputPorts,
   outputPorts,
-  x,
-  y,
+  canvasX,
+  canvasY,
   children,
   selected,
   onClick,
@@ -33,8 +33,50 @@ export function Node({
   onBlur,
   onPortConnectionInitiated,
   onPortConnectionCompleted,
+  onCanvasPositionChanged,
 }: React.PropsWithChildren<NodeProps>) {
-  const { handlePointerDown, handlePointerUp } = useNodeDragging(nodeId);
+  const canvasPosition = useMemo(() => ({ canvasX, canvasY }), [canvasX, canvasY]);
+  const [displayPosition, setDisplayPosition] = useState<CanvasPos>(canvasPosition);
+  const [prevPosition, setPrevPosition] = useState(canvasPosition);
+  const [dragging, setDragging] = useState(false);
+
+  if (canvasPosition !== prevPosition) {
+    setPrevPosition(canvasPosition);
+    setDisplayPosition(canvasPosition);
+  }
+
+  const handleDragStart = useCallback(() => {
+    setDragging(true);
+  }, []);
+
+  const handleDraggedToCanvasPos = useCallback((pos: CanvasPos) => {
+    setDisplayPosition(pos);
+  }, []);
+
+  const handleDragEnd = useCallback(
+    (pos: CanvasPos, didMove: boolean) => {
+      setDragging(false);
+      if (didMove) {
+        onCanvasPositionChanged(nodeId, pos);
+      }
+    },
+    [nodeId, onCanvasPositionChanged]
+  );
+
+  const isValidDragTarget = useCallback((target: EventTarget) => {
+    const htmlElement = target as HTMLElement;
+    if (htmlElement.closest(".node__ports")) {
+      return false;
+    }
+    return true;
+  }, []);
+
+  const canvasDraggingProps = useCanvasDragging({
+    onDragStart: handleDragStart,
+    onDraggedToCanvasPos: handleDraggedToCanvasPos,
+    onDragEnd: handleDragEnd,
+    isValidTarget: isValidDragTarget,
+  });
 
   const handleFocus = useCallback(() => {
     onFocus?.(nodeId);
@@ -48,18 +90,18 @@ export function Node({
     <div
       className={classNames("node", {
         "node--selected": selected,
+        "node--dragging": dragging,
       })}
       data-node-id={nodeId}
       data-kind={kind}
       data-input-ports={inputPorts.length}
       data-output-ports={outputPorts.length}
-      style={{ left: x, top: y }}
+      style={{ left: displayPosition.canvasX, top: displayPosition.canvasY }}
       onClick={(ev) => onClick?.(nodeId, ev)}
       tabIndex={0}
       onFocus={handleFocus}
       onBlur={handleBlur}
-      onPointerDown={handlePointerDown}
-      onPointerUp={handlePointerUp}
+      {...canvasDraggingProps}
     >
       <div className="node__wrapper">
         <div className={"node__ports node__ports--input"}>

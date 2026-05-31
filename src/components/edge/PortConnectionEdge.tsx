@@ -34,7 +34,7 @@ export function PortConnectionEdge({ from, fromPort, to, toPort, onClick }: Edge
       })
     );
 
-    const { x: fromX, y: fromY } = panZoom.clientToCanvasPos({
+    const { canvasX: fromX, canvasY: fromY } = panZoom.clientToCanvasPos({
       clientX:
         fromPortElem.getBoundingClientRect().left +
         0.5 * fromPortElem.getBoundingClientRect().width,
@@ -43,7 +43,7 @@ export function PortConnectionEdge({ from, fromPort, to, toPort, onClick }: Edge
         0.5 * fromPortElem.getBoundingClientRect().height,
     });
 
-    const { x: toX, y: toY } = panZoom.clientToCanvasPos({
+    const { canvasX: toX, canvasY: toY } = panZoom.clientToCanvasPos({
       clientX:
         toPortElem.getBoundingClientRect().left + 0.5 * toPortElem.getBoundingClientRect().width,
       clientY:

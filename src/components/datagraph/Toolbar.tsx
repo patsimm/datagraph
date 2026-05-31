@@ -27,7 +27,7 @@ export function Toolbar({ outputNode }: ToolbarProps) {
   const [newNodeMenuOpen, setNewNodeMenuOpen] = useState(false);
   const datagraph = useDatagraph();
   const { ready, nodeTypes } = datagraph;
-  const { addNode, updateNodeState } = useNodes();
+  const { addNode } = useNodes();
   const { handleNodeSelected } = useSelection();
   const panZoomCanvas = usePanZoomCanvas();
 
@@ -56,39 +56,17 @@ export function Toolbar({ outputNode }: ToolbarProps) {
       ev: React.PointerEvent
     ) => {
       ev.currentTarget.setPointerCapture(ev.pointerId);
-      document.body.classList.add("dragging");
       const position = panZoomCanvas.clientToCanvasPos(ev);
       const info = await addNode(kind, position, config, settings);
-      if (!info) {
-        document.body.classList.remove("dragging");
-        return;
-      }
+      if (!info) return;
+
+      setNewNodeMenuOpen(false);
       const element = await waitForElement(info.nodeId);
       handleNodeSelected(info.nodeId);
-      // Transfer capture from the button (which may be unmounting) to the new node element.
-      // This must happen before setNewNodeMenuOpen(false) unmounts the button.
       element.setPointerCapture(ev.pointerId);
-      element.classList.add("node--dragging");
-      setNewNodeMenuOpen(false);
-
-      const pointerMoveHandler = (ev: PointerEvent) => {
-        const newPos = panZoomCanvas.clientToCanvasPos(ev);
-        element.style.left = `${newPos.x}px`;
-        element.style.top = `${newPos.y}px`;
-      };
-      const pointerUpHandler = (ev: PointerEvent) => {
-        element.removeEventListener("pointermove", pointerMoveHandler);
-        element.removeEventListener("pointerup", pointerUpHandler);
-        element.classList.remove("node--dragging");
-        document.body.classList.remove("dragging");
-        const newPos = panZoomCanvas.clientToCanvasPos(ev);
-        updateNodeState(info.nodeId, (prev) => ({ ...prev, ...newPos }));
-      };
-
-      element.addEventListener("pointermove", pointerMoveHandler);
-      element.addEventListener("pointerup", pointerUpHandler);
+      element.dispatchEvent(new PointerEvent("pointerdown", ev.nativeEvent));
     },
-    [addNode, handleNodeSelected, panZoomCanvas, updateNodeState]
+    [addNode, handleNodeSelected, panZoomCanvas]
   );
   return (
     <div role="toolbar" className="toolbar">
