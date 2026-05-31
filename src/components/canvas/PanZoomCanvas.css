@@ -1,14 +1,19 @@
-.scroll-dragging {
+.panzoomcanvas {
+  cursor: grab;
   position: relative;
   overflow: hidden;
   width: 100%;
   height: 100%;
 
-  &.scroll-dragging--dragging {
+  &.panzoomcanvas--panning {
     cursor: grabbing;
   }
 
-  & .scroll-dragging__content {
+  &.panzoomcanvas--pan-disabled {
+    cursor: default;
+  }
+
+  & .panzoomcanvas__content {
     position: absolute;
     width: 100%;
     height: 100%;

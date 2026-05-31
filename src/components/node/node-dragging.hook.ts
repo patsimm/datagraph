@@ -9,11 +9,12 @@ type NodeDraggingState = {
   startDragY: number;
   startLeft: number;
   startTop: number;
+  moved?: boolean;
 };
 
 export function useNodeDragging(nodeId: string) {
   const panZoom = usePanZoomCanvas();
-  const { updateNodeState, getNode } = useNodes();
+  const { updateNodeState } = useNodes();
   const draggingStateRef = useRef<NodeDraggingState | null>(null);
 
   const handlePointerMove = useCallback(
@@ -28,6 +29,7 @@ export function useNodeDragging(nodeId: string) {
         canvasPos.y - draggingStateRef.current.startDragY + draggingStateRef.current.startTop;
       draggingNodeElem.style.left = `${x}px`;
       draggingNodeElem.style.top = `${y}px`;
+      draggingStateRef.current.moved = true;
     },
     [nodeId, panZoom]
   );
@@ -64,29 +66,23 @@ export function useNodeDragging(nodeId: string) {
       elem.removeEventListener("pointermove", handlePointerMove);
       elem.classList.remove("node--dragging");
 
-      const didMove =
-        event.clientX !== draggingStateRef.current.startDragX ||
-        event.clientY !== draggingStateRef.current.startDragY;
-      draggingStateRef.current = null;
-
       const draggingNodeElem = getNodeElement(nodeId);
       const x = parseFloat(draggingNodeElem.style.left);
       const y = parseFloat(draggingNodeElem.style.top);
 
-      const node = getNode(nodeId);
-      if (node && didMove) {
-        updateNodeState(nodeId, (current) => ({ ...current, x, y }));
-      }
+      const didMove = draggingStateRef.current.moved;
+      draggingStateRef.current = null;
 
-      if (didMove) {
-        const suppressClick = (e: MouseEvent) => {
-          e.stopPropagation();
-          document.removeEventListener("click", suppressClick, true);
-        };
-        document.addEventListener("click", suppressClick, true);
-      }
+      if (!didMove) return;
+      updateNodeState(nodeId, (current) => ({ ...current, x, y }));
+
+      const suppressClick = (e: MouseEvent) => {
+        e.stopPropagation();
+        document.removeEventListener("click", suppressClick, true);
+      };
+      document.addEventListener("click", suppressClick, true);
     },
-    [nodeId, getNode, updateNodeState, handlePointerMove]
+    [nodeId, updateNodeState, handlePointerMove]
   );
 
   return { handlePointerDown, handlePointerUp };

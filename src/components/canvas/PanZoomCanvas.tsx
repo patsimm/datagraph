@@ -2,36 +2,42 @@ import { usePan } from "./pan.hook";
 import "./PanZoomCanvas.css";
 
 import classNames from "classnames";
-import React, { useCallback, useContext, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useContext,
+  useImperativeHandle,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { flushSync } from "react-dom";
 
-const context = React.createContext<PanZoomCanvasContext>({
-  moveByScreenPos: () => {
-    throw new Error("PanZoomCanvasContext not wired");
-  },
-  isDragHandleElement: () => {
-    throw new Error("PanZoomCanvasContext not wired");
-  },
-  getBoundingClientRect: () => {
-    throw new Error("PanZoomCanvasContext not wired");
-  },
-  setDragging: () => {
+export type PanZoomCanvasContext = {
+  panByScreenPos: (x: number, y: number) => void;
+  clientToCanvasPos(pos: { clientX: number; clientY: number }): { x: number; y: number };
+};
+
+const defaultContextValue: PanZoomCanvasContext = {
+  panByScreenPos: () => {
     throw new Error("PanZoomCanvasContext not wired");
   },
   clientToCanvasPos: () => {
     throw new Error("PanZoomCanvasContext not wired");
   },
-});
-
-export type PanZoomCanvasContext = {
-  moveByScreenPos: (x: number, y: number) => void;
-  isDragHandleElement: (target: EventTarget) => boolean;
-  getBoundingClientRect: () => DOMRect;
-  setDragging(dragging: boolean): void;
-  clientToCanvasPos(pos: { clientX: number; clientY: number }): { x: number; y: number };
 };
 
-export function PanZoomCanvas({ children }: React.PropsWithChildren) {
+const context = React.createContext<PanZoomCanvasContext>(defaultContextValue);
+
+export type PanZoomCanvasProps = {
+  ref: React.Ref<PanZoomCanvasContext>;
+  disablePan?: boolean;
+};
+
+export function PanZoomCanvas({
+  ref,
+  children,
+  disablePan,
+}: React.PropsWithChildren<PanZoomCanvasProps>) {
   const contentRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [position, setPosition] = useState({ x: 0, y: 0, zoom: 1 });
@@ -47,32 +53,34 @@ export function PanZoomCanvas({ children }: React.PropsWithChildren) {
     );
   }, []);
 
-  const getBoundingClientRect = useCallback(() => {
-    if (!contentRef.current) {
-      throw new Error("contentRef was not wired");
-    }
-    return contentRef.current.getBoundingClientRect();
-  }, []);
-
-  const isDragHandleElement = (target: EventTarget) => {
+  const isDragHandleElement = useCallback((target: EventTarget) => {
     const ele = target instanceof HTMLElement ? (target as HTMLElement) : null;
     return ele === contentRef.current || ele === containerRef.current;
-  };
+  }, []);
 
-  const clientToCanvasPos = (pos: { clientX: number; clientY: number }) => {
-    const containerRect = containerRef.current?.getBoundingClientRect();
-    if (!containerRect) {
+  const clientToCanvasPos = useCallback((pos: { clientX: number; clientY: number }) => {
+    const containerElement =
+      containerRef.current instanceof HTMLElement ? containerRef.current : null;
+
+    if (!containerElement) {
       throw new Error("containerRef was not wired");
     }
+    const containerRect = containerElement.getBoundingClientRect();
+
+    const panX = containerElement.dataset.panX ? parseFloat(containerElement.dataset.panX) : 0;
+    const panY = containerElement.dataset.panY ? parseFloat(containerElement.dataset.panY) : 0;
+    const zoom = containerElement.dataset.zoom ? parseFloat(containerElement.dataset.zoom) : 1;
+
     const containerX = pos.clientX - containerRect.x;
     const containerY = pos.clientY - containerRect.y;
 
-    const x = containerX / position.zoom - position.x;
-    const y = containerY / position.zoom - position.y;
+    const x = containerX / zoom - panX;
+    const y = containerY / zoom - panY;
     return { x, y };
-  };
+  }, []);
 
   const { containerProps } = usePan({
+    disablePan,
     onPanByScreenPos: panByScreenPos,
     isDragHandleElement,
     onPanStart: () => setDragging(true),
@@ -98,36 +106,59 @@ export function PanZoomCanvas({ children }: React.PropsWithChildren) {
     });
   }, []);
 
+  useImperativeHandle(ref, () => ({
+    clientToCanvasPos,
+    panByScreenPos,
+    isDragHandleElement,
+  }));
+
   return (
-    <context.Provider
-      value={{
-        moveByScreenPos: panByScreenPos,
-        getBoundingClientRect,
-        isDragHandleElement,
-        setDragging,
-        clientToCanvasPos,
-      }}
+    <div
+      className={classNames("panzoomcanvas", {
+        "panzoomcanvas--panning": dragging,
+        "panzoomcanvas--pan-disabled": disablePan,
+      })}
+      data-pan-x={position.x}
+      data-pan-y={position.y}
+      data-zoom={position.zoom}
+      ref={containerRef}
+      onWheel={handleScroll}
+      {...containerProps}
     >
       <div
-        className={classNames("scroll-dragging", { "scroll-dragging--dragging": dragging })}
-        ref={containerRef}
-        onWheel={handleScroll}
-        {...containerProps}
+        className="panzoomcanvas__content"
+        style={{
+          transform: `scale(${position.zoom}) translate(${position.x}px, ${position.y}px)`,
+        }}
+        ref={contentRef}
+        data-canvas-background="true"
       >
-        <div
-          className="scroll-dragging__content"
-          style={{
-            transform: `scale(${position.zoom}) translate(${position.x}px, ${position.y}px)`,
-          }}
-          ref={contentRef}
-          data-canvas-background="true"
-        >
-          {children}
-        </div>
+        {children}
       </div>
-    </context.Provider>
+    </div>
   );
 }
+
+export type PanZoomCanvasProviderProps = {
+  canvasHandle: React.RefObject<PanZoomCanvasContext | null>;
+};
+
+export const PanZoomCanvasProvider = ({
+  canvasHandle,
+  children,
+}: React.PropsWithChildren<PanZoomCanvasProviderProps>) => {
+  const value = useMemo<PanZoomCanvasContext>(
+    () => ({
+      panByScreenPos: (...args) =>
+        (canvasHandle.current ?? defaultContextValue).panByScreenPos(...args),
+      clientToCanvasPos: (...args) =>
+        (canvasHandle.current ?? defaultContextValue).clientToCanvasPos(...args),
+    }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    []
+  );
+  return <context.Provider value={value}>{children}</context.Provider>;
+};
 
 export function usePanZoomCanvas() {
   return useContext(context);

@@ -3,9 +3,11 @@ import React, { useCallback, useRef } from "react";
 type DragState = {
   lastX: number;
   lastY: number;
+  started: boolean;
 };
 
 export type UsePanProps = {
+  disablePan?: boolean;
   onPanByScreenPos: (x: number, y: number) => void;
   onPanStart: () => void;
   onPanEnd: () => void;
@@ -17,6 +19,7 @@ export function usePan({
   onPanEnd,
   onPanStart,
   isDragHandleElement,
+  disablePan,
 }: UsePanProps) {
   const stateRef = useRef<DragState | null>(null);
 
@@ -44,6 +47,7 @@ export function usePan({
 
   const handlePointerDown = useCallback(
     (ev: React.PointerEvent<HTMLDivElement>) => {
+      if (disablePan) return;
       if (ev.button !== 0) return;
       if (!isDragHandleElement(ev.target)) return;
       if (!(ev.target instanceof HTMLElement)) return;
@@ -51,13 +55,14 @@ export function usePan({
       stateRef.current = {
         lastX: ev.clientX,
         lastY: ev.clientY,
+        started: false,
       };
 
       ev.currentTarget.setPointerCapture(ev.pointerId);
       (ev.currentTarget as HTMLElement).addEventListener("pointermove", handlePointerMove);
       onPanStart();
     },
-    [handlePointerMove, isDragHandleElement, onPanStart]
+    [disablePan, handlePointerMove, isDragHandleElement, onPanStart]
   );
 
   const handlePointerUp = useCallback(

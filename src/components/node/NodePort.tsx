@@ -1,7 +1,7 @@
 import {
   PortConnectionInitiatedEvent,
   PortConnectionCompletedEvent,
-} from "../datagraph/connection-events";
+} from "../edge/connection-events";
 import { PortInfo, parsePortKey, portKey } from "./node-utils";
 import "./NodePort.css";
 

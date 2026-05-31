@@ -6,6 +6,7 @@ import { useNodes } from "../../nodes.context";
 import { NodeKind, NodeState } from "../../node.types";
 import { getNodeElement } from "../node/node-utils";
 import { useSelection } from "../../selection.context";
+import { usePanZoomCanvas } from "../canvas/PanZoomCanvas";
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
@@ -28,6 +29,7 @@ export function Toolbar({ outputNode }: ToolbarProps) {
   const { ready, nodeTypes } = datagraph;
   const { addNode, updateNodeState } = useNodes();
   const { handleNodeSelected } = useSelection();
+  const panZoomCanvas = usePanZoomCanvas();
 
   const menuTriggerRef = useRef<HTMLDivElement>(null);
 
@@ -49,13 +51,13 @@ export function Toolbar({ outputNode }: ToolbarProps) {
   const handleAddNodePointerDown = useCallback(
     async <T extends NodeKind>(
       kind: T,
-      position: { x: number; y: number },
       config: NodeState<T>["config"],
       settings: NodeState<T>["settings"],
       ev: React.PointerEvent
     ) => {
       ev.currentTarget.setPointerCapture(ev.pointerId);
       document.body.classList.add("dragging");
+      const position = panZoomCanvas.clientToCanvasPos(ev);
       const info = await addNode(kind, position, config, settings);
       if (!info) {
         document.body.classList.remove("dragging");
@@ -70,7 +72,7 @@ export function Toolbar({ outputNode }: ToolbarProps) {
       setNewNodeMenuOpen(false);
 
       const pointerMoveHandler = (ev: PointerEvent) => {
-        const newPos = getCanvasPosition(ev.clientX, ev.clientY);
+        const newPos = panZoomCanvas.clientToCanvasPos(ev);
         element.style.left = `${newPos.x}px`;
         element.style.top = `${newPos.y}px`;
       };
@@ -79,14 +81,14 @@ export function Toolbar({ outputNode }: ToolbarProps) {
         element.removeEventListener("pointerup", pointerUpHandler);
         element.classList.remove("node--dragging");
         document.body.classList.remove("dragging");
-        const newPos = getCanvasPosition(ev.clientX, ev.clientY);
+        const newPos = panZoomCanvas.clientToCanvasPos(ev);
         updateNodeState(info.nodeId, (prev) => ({ ...prev, ...newPos }));
       };
 
       element.addEventListener("pointermove", pointerMoveHandler);
       element.addEventListener("pointerup", pointerUpHandler);
     },
-    [addNode, handleNodeSelected, updateNodeState]
+    [addNode, handleNodeSelected, panZoomCanvas, updateNodeState]
   );
   return (
     <div role="toolbar" className="toolbar">
@@ -132,13 +134,7 @@ export function Toolbar({ outputNode }: ToolbarProps) {
                         role="menuitem"
                         className="toolbar__add-node-button"
                         onPointerDown={(ev) =>
-                          handleAddNodePointerDown(
-                            "datagraph",
-                            getCanvasPosition(ev.clientX, ev.clientY),
-                            { typename },
-                            undefined,
-                            ev
-                          )
+                          handleAddNodePointerDown("datagraph", { typename }, undefined, ev)
                         }
                       >
                         {typename.split("::").at(-1)}
@@ -158,7 +154,6 @@ export function Toolbar({ outputNode }: ToolbarProps) {
                     onPointerDown={(ev) =>
                       handleAddNodePointerDown(
                         "param:slider",
-                        getCanvasPosition(ev.clientX, ev.clientY),
                         { value: 0 },
                         { unit: "raw", min: 0, max: 1, step: 0.01 },
                         ev
@@ -173,7 +168,6 @@ export function Toolbar({ outputNode }: ToolbarProps) {
                     onPointerDown={(ev) =>
                       handleAddNodePointerDown(
                         "param:button",
-                        getCanvasPosition(ev.clientX, ev.clientY),
                         { value: 0 },
                         { unit: "raw", onValue: 1, offValue: 0 },
                         ev
@@ -186,13 +180,7 @@ export function Toolbar({ outputNode }: ToolbarProps) {
                     role="menuitem"
                     className="toolbar__add-node-button"
                     onPointerDown={(ev) =>
-                      handleAddNodePointerDown(
-                        "param:input",
-                        getCanvasPosition(ev.clientX, ev.clientY),
-                        { value: 0 },
-                        { unit: "raw" },
-                        ev
-                      )
+                      handleAddNodePointerDown("param:input", { value: 0 }, { unit: "raw" }, ev)
                     }
                   >
                     input
@@ -211,13 +199,7 @@ export function Toolbar({ outputNode }: ToolbarProps) {
                     role="menuitem"
                     className="toolbar__add-node-button"
                     onPointerDown={(ev) =>
-                      handleAddNodePointerDown(
-                        "visualizer:oscilloscope",
-                        getCanvasPosition(ev.clientX, ev.clientY),
-                        undefined,
-                        undefined,
-                        ev
-                      )
+                      handleAddNodePointerDown("visualizer:oscilloscope", undefined, undefined, ev)
                     }
                   >
                     oscilloscope
@@ -226,13 +208,7 @@ export function Toolbar({ outputNode }: ToolbarProps) {
                     role="menuitem"
                     className="toolbar__add-node-button"
                     onPointerDown={(ev) =>
-                      handleAddNodePointerDown(
-                        "visualizer:inspect",
-                        getCanvasPosition(ev.clientX, ev.clientY),
-                        undefined,
-                        undefined,
-                        ev
-                      )
+                      handleAddNodePointerDown("visualizer:inspect", undefined, undefined, ev)
                     }
                   >
                     inspect
@@ -270,17 +246,4 @@ function waitForElement(nodeId: string): Promise<HTMLElement> {
     };
     requestAnimationFrame(check);
   });
-}
-
-function getCanvasPosition(screenX: number, screenY: number) {
-  const canvas = document.querySelector(".scroll-dragging__content") as HTMLElement;
-  if (!canvas) return { x: screenX, y: screenY };
-
-  const r = canvas.getBoundingClientRect();
-  const scaleX = canvas.offsetWidth / r.width;
-  const scaleY = canvas.offsetHeight / r.height;
-  const x = (screenX - r.left) * scaleX;
-  const y = (screenY - r.top) * scaleY;
-
-  return { x, y };
 }

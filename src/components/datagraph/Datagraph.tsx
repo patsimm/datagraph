@@ -1,20 +1,126 @@
 import { useDatagraph } from "../../datagraph.context";
 import "./Datagraph.css";
-import { usePortConnecting } from "./port-connecting.hook";
-import { getNodeKeyFromElement, PortInfo, portKey } from "../node/node-utils";
+import { getNodeKeyFromElement, PortInfo } from "../node/node-utils";
 import { OutputNode } from "../node/OutputNode";
 import { ContextView } from "./ContextView";
 import { useSelection } from "../../selection.context";
 import { useNodes } from "../../nodes.context";
 import { Nodes } from "./Nodes";
 import { usePortConnections } from "../../edges.context";
-import { PanZoomCanvas } from "../canvas/PanZoomCanvas";
-import { PortConnectionEdge } from "../edge/PortConnectionEdge";
-import { Edge } from "../edge/Edge";
+import {
+  PanZoomCanvas,
+  PanZoomCanvasContext,
+  PanZoomCanvasProvider,
+} from "../canvas/PanZoomCanvas";
 import { NodeInfo } from "../../audio-worklet/datagraph-audio-worklet-commands";
 import { Toolbar } from "./Toolbar";
+import { Edges, EdgesHandle } from "../edge/Edges";
 
 import React, { useCallback, useEffect, useImperativeHandle, useRef, useState } from "react";
+
+type NodeSelectionHandle = {
+  nodeSelectionPointerDown: (e: React.PointerEvent) => boolean;
+};
+
+type NodeSelectionState = {
+  startX: number;
+  startY: number;
+};
+
+type SelectionClientRect = {
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+};
+
+type NodeSelectionProps = {
+  disableSelection?: boolean;
+  onSelectionComplete?: (selectionClientRect: SelectionClientRect) => void;
+  onSelectionChange?: (selectionClientRect: SelectionClientRect) => void;
+  ref: React.Ref<NodeSelectionHandle>;
+};
+
+function NodeSelection({
+  ref,
+  disableSelection,
+  onSelectionChange,
+  onSelectionComplete,
+}: NodeSelectionProps) {
+  const selectionStateRef = useRef<NodeSelectionState | null>(null);
+  const [selectionRect, setSelectionRect] = useState<{
+    left: number;
+    top: number;
+    width: number;
+    height: number;
+  } | null>(null);
+
+  const handlePointerDown = useCallback(
+    (e: React.PointerEvent) => {
+      if (disableSelection) return false;
+      const eventTarget = e.target as Element;
+      if (!(eventTarget instanceof HTMLElement) || eventTarget.dataset.canvasBackground !== "true")
+        return false;
+      const target = e.currentTarget as HTMLElement;
+      target.setPointerCapture(e.pointerId);
+      const x = e.clientX;
+      const y = e.clientY;
+      selectionStateRef.current = {
+        startX: x,
+        startY: y,
+      };
+
+      const handlePointerMove = (e: PointerEvent) => {
+        if (!selectionStateRef.current) return;
+        const x = e.clientX;
+        const y = e.clientY;
+        const width = x - selectionStateRef.current.startX;
+        const height = y - selectionStateRef.current.startY;
+        const newRect = {
+          left: Math.min(selectionStateRef.current.startX, x),
+          top: Math.min(selectionStateRef.current.startY, y),
+          width: Math.abs(width),
+          height: Math.abs(height),
+        };
+        setSelectionRect(newRect);
+        onSelectionChange?.(newRect);
+      };
+
+      const handlePointerUp = (e: PointerEvent) => {
+        if (!selectionStateRef.current) return;
+
+        const target = e.currentTarget as HTMLElement;
+        if (selectionRect) {
+          onSelectionComplete?.(selectionRect);
+        }
+        setSelectionRect(null);
+        target.removeEventListener("pointermove", handlePointerMove);
+        target.removeEventListener("pointerup", handlePointerUp);
+        target.removeEventListener("pointercancel", handlePointerCancel);
+      };
+
+      const handlePointerCancel = (e: PointerEvent) => {
+        const target = e.currentTarget as HTMLElement;
+        setSelectionRect(null);
+        target.removeEventListener("pointermove", handlePointerMove);
+        target.removeEventListener("pointerup", handlePointerUp);
+        target.removeEventListener("pointercancel", handlePointerCancel);
+      };
+
+      target.addEventListener("pointermove", handlePointerMove);
+      target.addEventListener("pointerup", handlePointerUp);
+      target.addEventListener("pointercancel", handlePointerUp);
+      return true;
+    },
+    [disableSelection, onSelectionChange, onSelectionComplete, selectionRect]
+  );
+
+  useImperativeHandle(ref, () => ({
+    nodeSelectionPointerDown: handlePointerDown,
+  }));
+
+  return <>{selectionRect && <div className="node-selection" style={selectionRect} />}</>;
+}
 
 export function Datagraph() {
   const ref = useRef<HTMLDivElement>(null);
@@ -25,9 +131,12 @@ export function Datagraph() {
   const { disconnectPorts, disconnectNodes } = usePortConnections();
   const { handleNodeSelected } = useSelection();
   const edgesHandleRef = useRef<EdgesHandle>(null);
+  const nodeSelectionHandleRef = useRef<NodeSelectionHandle>(null);
+  const canvasHandle = useRef<PanZoomCanvasContext | null>(null);
 
   const handlePointerDown = useCallback((e: React.PointerEvent) => {
-    edgesHandleRef.current?.portConnectPointerDown(e);
+    if (edgesHandleRef.current?.portConnectPointerDown(e)) return;
+    nodeSelectionHandleRef.current?.nodeSelectionPointerDown(e);
   }, []);
 
   const handlePointerUp = useCallback((e: React.PointerEvent) => {
@@ -36,6 +145,7 @@ export function Datagraph() {
 
   const handleEdgeClick = useCallback(
     (edge: { from: PortInfo; to: PortInfo }, ev: React.MouseEvent) => {
+      console.log("Edge clicked", edge);
       ev.stopPropagation();
       disconnectPorts([edge.from, edge.to]);
     },
@@ -74,62 +184,24 @@ export function Datagraph() {
   );
 
   return (
-    <div
-      ref={ref}
-      onPointerDown={handlePointerDown}
-      onPointerUp={handlePointerUp}
-      onKeyDown={handleKeyDown}
-      className="datagraph"
-    >
-      {outputNode && <Toolbar outputNode={outputNode} />}
-      <ContextView />
-      <div className="datagraph__canvas">
-        <PanZoomCanvas>
-          <Nodes onNodeClick={handleNodeClick} />
-          <Edges ref={edgesHandleRef} onEdgeClick={handleEdgeClick} />
-          {outputNode && <OutputNode node={outputNode} x={200} y={500} />}
-        </PanZoomCanvas>
+    <PanZoomCanvasProvider canvasHandle={canvasHandle}>
+      {" "}
+      <div ref={ref} onKeyDown={handleKeyDown} className="datagraph">
+        {outputNode && <Toolbar outputNode={outputNode} />}
+        <ContextView />
+        <div
+          className="datagraph__canvas"
+          onPointerDown={handlePointerDown}
+          onPointerUp={handlePointerUp}
+        >
+          <NodeSelection ref={nodeSelectionHandleRef} disableSelection />
+          <PanZoomCanvas ref={canvasHandle}>
+            <Nodes onNodeClick={handleNodeClick} />
+            <Edges ref={edgesHandleRef} onEdgeClick={handleEdgeClick} />
+            {outputNode && <OutputNode node={outputNode} x={200} y={500} />}
+          </PanZoomCanvas>
+        </div>
       </div>
-    </div>
-  );
-}
-
-type EdgesHandle = {
-  portConnectPointerDown: (e: React.PointerEvent) => void;
-  portConnectPointerUp: (e: React.PointerEvent) => void;
-};
-
-type EdgesProps = {
-  onEdgeClick: (edge: { from: PortInfo; to: PortInfo }, ev: React.MouseEvent) => void;
-  ref: React.Ref<EdgesHandle>;
-};
-
-function Edges({ ref, onEdgeClick }: EdgesProps) {
-  const {
-    handlePointerDown: portConnectPointerDown,
-    handlePointerUp: portConnectPointerUp,
-    position: ghostPosition,
-  } = usePortConnecting();
-  const { edges } = usePortConnections();
-
-  useImperativeHandle(ref, () => ({
-    portConnectPointerDown,
-    portConnectPointerUp,
-  }));
-
-  return (
-    <>
-      {ghostPosition && <Edge ghost {...ghostPosition} />}
-      {edges.map((edge) => (
-        <PortConnectionEdge
-          key={`${portKey(edge.from)}->${portKey(edge.to)}`}
-          from={edge.from.nodeId}
-          fromPort={edge.from.port}
-          to={edge.to.nodeId}
-          toPort={edge.to.port}
-          onClick={(ev) => onEdgeClick?.(edge, ev)}
-        />
-      ))}
-    </>
+    </PanZoomCanvasProvider>
   );
 }
