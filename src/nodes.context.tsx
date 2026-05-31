@@ -159,6 +159,7 @@ function useAllNodes() {
         nodeId,
         (current) =>
           ({
+            ...current,
             config: { ...(current.config as object), value },
           }) as AnyNodeState
       );
