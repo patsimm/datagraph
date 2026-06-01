@@ -16,6 +16,8 @@ export function NumberInput({
 
   if (value !== prevValue) {
     setPrevValue(value);
+  }
+  if (parseFloat(displayValue) !== value) {
     setDisplayValue(value.toString());
   }
 
