@@ -71,6 +71,10 @@ export function Toolbar({ outputNode }: ToolbarProps) {
     },
     [addNode, handleNodeSelected, panZoomCanvas]
   );
+
+  const categorys = nodeTypes && [
+    ...nodeTypes.reduce((acc, { category }) => acc.add(category), new Set<string>()),
+  ];
   return (
     <div role="toolbar" className="toolbar">
       <div role="group" className="toolbar__section">
@@ -102,27 +106,36 @@ export function Toolbar({ outputNode }: ToolbarProps) {
           </button>
           {newNodeMenuOpen && (
             <div role="menu" className="toolbar__menu toolbar__menu--new-node">
-              {ready && nodeTypes.length > 0 && (
-                <div role="group" className="toolbar__menu-section toolbar__menu-section--audio">
-                  <div role="presentation" className="toolbar__menu-label">
-                    Audio
-                  </div>
-                  <div className="toolbar__menu-items">
-                    {nodeTypes.map((typename) => (
-                      <button
-                        key={typename}
-                        role="menuitem"
-                        className="toolbar__add-node-button"
-                        onPointerDown={(ev) =>
-                          handleAddNodePointerDown("datagraph", { typename }, undefined, ev)
-                        }
-                      >
-                        {typename.split("::").at(-1)}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
+              {ready &&
+                nodeTypes.length > 0 &&
+                categorys &&
+                categorys
+                  .toSorted((a, b) => a.localeCompare(b))
+                  .map((category) => (
+                    <div role="group" className="toolbar__menu-section">
+                      <div role="presentation" className="toolbar__menu-label">
+                        {category.charAt(0).toUpperCase() + category.slice(1)}
+                      </div>
+                      <div className="toolbar__menu-items">
+                        {nodeTypes
+                          .filter(({ category: c }) => category === c)
+                          .map(({ nodeType: typename }) => typename)
+                          .toSorted((a, b) => a.localeCompare(b))
+                          .map((typename) => (
+                            <button
+                              key={typename}
+                              role="menuitem"
+                              className="toolbar__add-node-button"
+                              onPointerDown={(ev) =>
+                                handleAddNodePointerDown("datagraph", { typename }, undefined, ev)
+                              }
+                            >
+                              {typename.split("::").at(-1)}
+                            </button>
+                          ))}
+                      </div>
+                    </div>
+                  ))}
               <div role="group" className="toolbar__menu-section toolbar__menu-section--controls">
                 <div role="presentation" className="toolbar__menu-label">
                   Controls

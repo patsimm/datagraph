@@ -16,9 +16,9 @@ export function NumberInput({
 
   if (value !== prevValue) {
     setPrevValue(value);
-  }
-  if (parseFloat(displayValue) !== value) {
-    setDisplayValue(value.toString());
+    if (parseFloat(displayValue) !== value) {
+      setDisplayValue(value.toString());
+    }
   }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {

@@ -81,20 +81,19 @@
 
       &.toolbar__menu--new-node {
         display: grid;
-        grid-template-columns: 1fr 1fr;
-        grid-template-rows: min-content 1fr;
+        flex-flow: row;
+        flex-wrap: wrap;
+        width: 500px;
+        grid-template-columns: repeat(4, 1fr);
+        grid-template-rows: auto auto;
       }
     }
 
     .toolbar__menu-section {
       display: flex;
+      flex: 1;
       flex-direction: column;
       gap: 0.625rem;
-
-      &.toolbar__menu-section--audio {
-        grid-column: 1 / 2;
-        grid-row: 1 / -1;
-      }
     }
 
     .toolbar__menu-label {
@@ -105,7 +104,7 @@
 
     .toolbar__menu-items {
       display: flex;
-      flex-direction: column;
+      flex-flow: row wrap;
       gap: 0.25rem;
       align-items: flex-start;
     }

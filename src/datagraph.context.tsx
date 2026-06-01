@@ -8,17 +8,17 @@ import {
 import { PortInfo } from "./components/node/node-utils";
 
 import { createContext, useCallback, useContext, useMemo, useRef, useState } from "react";
-import init, { startAudio } from "@patsimm/datagraph-core";
+import init, { NodeTypeInfo, startAudio } from "@patsimm/datagraph-core";
 import wasmUrl from "@patsimm/datagraph-core/pkg/datagraph_bg.wasm?url";
 
 export type DatagraphContext = {
   ready: boolean;
-  nodeTypes: string[];
+  nodeTypes: NodeTypeInfo[];
   audioContextState: AudioContextState | null;
   initialize: () => Promise<{
     workletNode: AudioGraphWrapper;
     outputNode: NodeInfo;
-    nodeTypes: string[];
+    nodeTypes: NodeTypeInfo[];
   }>;
   getNode: () => AudioGraphWrapper;
   getAudioContext: () => AudioContext;
@@ -67,7 +67,7 @@ export function DatagraphProvider({ children }: { children: React.ReactNode }) {
   const [node, setNode] = useState<AudioGraphWrapper | null>(null);
   const [audioContext, setAudioContext] = useState<AudioContext | null>(null);
   const [audioContextState, setAudioContextState] = useState<AudioContextState | null>(null);
-  const [nodeTypes, setNodeTypes] = useState<string[]>([]);
+  const [nodeTypes, setNodeTypes] = useState<NodeTypeInfo[]>([]);
   const initializeRef = useRef<ReturnType<DatagraphContext["initialize"]> | null>(null);
 
   const initialize = useCallback(async () => {
