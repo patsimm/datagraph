@@ -1,7 +1,7 @@
 import { useDatagraph } from "../../datagraph.context";
 import "./Datagraph.css";
 import { getNodeKeyFromElement, PortInfo } from "../node/node-utils";
-import { useClipboard } from "../../use-clipboard";
+import { useClipboard } from "../../persistence/use-clipboard";
 import { ContextView } from "./ContextView";
 import { useSelection } from "../../selection.context";
 import { useNodes } from "../../nodes.context";

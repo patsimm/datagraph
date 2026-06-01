@@ -1,5 +1,5 @@
 import { NodeInfo } from "../../audio-worklet/datagraph-audio-worklet-commands";
-import { useGraphPersistence } from "../../use-graph-persistence";
+import { useGraphPersistence } from "../../persistence/use-graph-persistence";
 import "./Toolbar.css";
 import { useDatagraph } from "../../datagraph.context";
 import { useNodes } from "../../nodes.context";
@@ -7,6 +7,7 @@ import { NodeKind, NodeState } from "../../node.types";
 import { getNodeElement } from "../node/node-utils";
 import { useSelection } from "../../selection.context";
 import { usePanZoomCanvas } from "../canvas/PanZoomCanvas";
+import { useLinkGeneration } from "../../persistence/use-link-generation";
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
@@ -14,6 +15,7 @@ import {
   IconFileUpload,
   IconPlayerPause,
   IconPlayerPlay,
+  IconShare,
   IconSquarePlus,
 } from "@tabler/icons-react";
 import classNames from "classnames";
@@ -24,6 +26,7 @@ export type ToolbarProps = {
 
 export function Toolbar({ outputNode }: ToolbarProps) {
   const { saveGraph, loadGraph } = useGraphPersistence(outputNode);
+  const { shareGraph } = useLinkGeneration(outputNode);
   const [newNodeMenuOpen, setNewNodeMenuOpen] = useState(false);
   const datagraph = useDatagraph();
   const { ready, nodeTypes } = datagraph;
@@ -195,7 +198,6 @@ export function Toolbar({ outputNode }: ToolbarProps) {
             </div>
           )}
         </div>
-        <div className="toolbar__divider" />
       </div>
 
       <div role="group" className="toolbar__section">
@@ -204,6 +206,9 @@ export function Toolbar({ outputNode }: ToolbarProps) {
         </button>
         <button className="toolbar__button" onClick={loadGraph}>
           <IconFileUpload stroke={1.25} className="toolbar__button-icon" />
+        </button>
+        <button className="toolbar__button" onClick={shareGraph}>
+          <IconShare stroke={1.25} className="toolbar__button-icon" />
         </button>
       </div>
     </div>

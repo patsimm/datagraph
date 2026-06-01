@@ -43,6 +43,7 @@ async function initializeDatagraphAudioWorkletNode() {
   const wasmBytes = await (await fetch(wasmUrl)).arrayBuffer();
   await init(wasmBytes);
   const audioContext = new AudioContext();
+  audioContext.suspend(); // Start suspended until the user explicitly starts it, to comply with browser autoplay policies
   await audioContext.audioWorklet.addModule(processorUrl);
   const audioGraph = await startAudio(audioContext);
   const outputNodeInfo = audioGraph.outputNode();
@@ -53,7 +54,7 @@ async function initializeDatagraphAudioWorkletNode() {
     outputNames: outputNodeInfo.outputNames as string[],
     defaultInputValues: [...outputNodeInfo.defaultInputValues] as number[],
   };
-  audioGraph.workletNode.connect(audioContext.destination);
+  // audioGraph.workletNode.connect(audioContext.destination);
   return {
     audioGraph: new AudioGraphWrapper(audioGraph),
     outputNode,
