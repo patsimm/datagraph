@@ -1,0 +1,8 @@
+.node[data-kind="visualizer:oscilloscope"] {
+  & .node__body {
+    & .node__canvas {
+      width: 200px;
+      height: 100px;
+    }
+  }
+}

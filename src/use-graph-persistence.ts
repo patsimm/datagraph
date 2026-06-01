@@ -8,13 +8,14 @@ import { useCallback } from "react";
 
 const OUTPUT_SENTINEL = "__output__";
 
+export type SerializedNodeState = Pick<
+  AnyNodeState,
+  "kind" | "canvasX" | "canvasY" | "config" | "settings"
+> & { defaultInputValues: number[] };
+
 type GraphState = {
   version: 1;
-  nodes: {
-    [nodeId: string]: Pick<AnyNodeState, "kind" | "canvasX" | "canvasY" | "config" | "settings"> & {
-      defaultInputValues: number[];
-    };
-  };
+  nodes: { [nodeId: string]: SerializedNodeState };
   edges: { from: PortInfo; to: PortInfo }[];
 };
 
@@ -31,7 +32,7 @@ function denormalizePortInfo(port: PortInfo, idMap: Map<string, NodeInfo>): Port
   return { ...port, nodeId: newId };
 }
 
-function mapNodeStateToGraphNodeState(nodeState: AnyNodeState): GraphState["nodes"][string] {
+export function mapNodeStateToSerializedNodeState(nodeState: AnyNodeState): SerializedNodeState {
   return {
     kind: nodeState.kind,
     canvasX: nodeState.canvasX,
@@ -48,7 +49,7 @@ function retrieveGraphState(
 ): GraphState {
   const n = Object.entries(nodes).map(([id, nodeState]) => [
     id,
-    mapNodeStateToGraphNodeState(nodeState),
+    mapNodeStateToSerializedNodeState(nodeState),
   ]);
   return {
     version: 1,
@@ -57,9 +58,55 @@ function retrieveGraphState(
   };
 }
 
+export function useRestoreNodes() {
+  const { addNode, setDefaultInputValue } = useNodes();
+  const { connect } = usePortConnections();
+
+  return useCallback(
+    async (
+      nodes: { [oldId: string]: SerializedNodeState },
+      edges: { from: PortInfo; to: PortInfo }[],
+      preSeedMap: Map<string, NodeInfo> = new Map()
+    ): Promise<Map<string, NodeInfo>> => {
+      const idMap = new Map<string, NodeInfo>(preSeedMap);
+
+      for (const [oldId, nodeState] of Object.entries(nodes)) {
+        if (idMap.has(oldId)) continue;
+        const newInfo = await addNode(
+          nodeState.kind,
+          { canvasX: nodeState.canvasX, canvasY: nodeState.canvasY },
+          nodeState.config,
+          nodeState.settings
+        );
+        if (newInfo) idMap.set(oldId, newInfo);
+      }
+
+      for (const edge of edges) {
+        const from = denormalizePortInfo(edge.from, idMap);
+        const to = denormalizePortInfo(edge.to, idMap);
+        if (from && to) connect(from, to);
+      }
+
+      for (const [oldId, nodeState] of Object.entries(nodes)) {
+        const newInfo = idMap.get(oldId);
+        if (!newInfo) continue;
+        for (let i = 0; i < nodeState.defaultInputValues.length; i++) {
+          if (nodeState.defaultInputValues[i] !== newInfo.defaultInputValues[i]) {
+            setDefaultInputValue(newInfo.nodeId, i, nodeState.defaultInputValues[i]);
+          }
+        }
+      }
+
+      return idMap;
+    },
+    [addNode, connect, setDefaultInputValue]
+  );
+}
+
 export function useGraphPersistence(outputNodeInfo: NodeInfo | null) {
-  const { nodes, addNode, removeNode, updateNodePosition, setDefaultInputValue } = useNodes();
-  const { edges, connect, disconnectNodes } = usePortConnections();
+  const { nodes, removeNode, updateNodePosition } = useNodes();
+  const { edges, disconnectNodes } = usePortConnections();
+  const restoreNodes = useRestoreNodes();
 
   const saveGraph = useCallback(() => {
     const normalizedEdges = edges.map((edge) => ({
@@ -111,59 +158,26 @@ export function useGraphPersistence(outputNodeInfo: NodeInfo | null) {
       if (allCurrentIds.length > 0) {
         disconnectNodes(...allCurrentIds);
         for (const id of nodesToRemove) {
-          await removeNode(id);
+          removeNode(id);
         }
       }
 
-      const infoMap = new Map<string, NodeInfo>();
-
-      for (const [oldId, nodeState] of Object.entries(state.nodes)) {
-        if (oldId === OUTPUT_SENTINEL) {
-          if (outputNodeInfo) {
-            updateNodePosition(outputNodeInfo.nodeId, {
-              canvasX: nodeState.canvasX,
-              canvasY: nodeState.canvasY,
-            });
-            infoMap.set(OUTPUT_SENTINEL, outputNodeInfo);
-          }
-          continue;
+      const preSeedMap = new Map<string, NodeInfo>();
+      if (outputNodeInfo) {
+        const outputState = state.nodes[OUTPUT_SENTINEL];
+        if (outputState) {
+          updateNodePosition(outputNodeInfo.nodeId, {
+            canvasX: outputState.canvasX,
+            canvasY: outputState.canvasY,
+          });
         }
-        const newInfo = await addNode(
-          nodeState.kind,
-          { canvasX: nodeState.canvasX, canvasY: nodeState.canvasY },
-          nodeState.config,
-          nodeState.settings
-        );
-        if (newInfo) infoMap.set(oldId, newInfo);
+        preSeedMap.set(OUTPUT_SENTINEL, outputNodeInfo);
       }
 
-      // Ensure output node is mapped for edge restoration even if absent from saved nodes
-      if (outputNodeInfo?.nodeId && !infoMap.has(OUTPUT_SENTINEL)) {
-        infoMap.set(OUTPUT_SENTINEL, outputNodeInfo);
-      }
-
-      for (const edge of state.edges) {
-        const from = denormalizePortInfo(edge.from, infoMap);
-        const to = denormalizePortInfo(edge.to, infoMap);
-        if (from && to) {
-          await connect(from, to);
-        }
-      }
-
-      for (const [oldId, nodeState] of Object.entries(state.nodes)) {
-        if (oldId === OUTPUT_SENTINEL) continue;
-        const newInfo = infoMap.get(oldId);
-        if (!newInfo) continue;
-        for (let i = 0; i < nodeState.defaultInputValues.length; i++) {
-          const defaultValue = nodeState.defaultInputValues[i];
-          if (defaultValue !== newInfo.defaultInputValues[i]) {
-            await setDefaultInputValue(newInfo.nodeId, i, defaultValue);
-          }
-        }
-      }
+      await restoreNodes(state.nodes, state.edges, preSeedMap);
     };
     input.click();
-  }, [nodes, outputNodeInfo, disconnectNodes, removeNode, addNode, connect, setDefaultInputValue, updateNodePosition]);
+  }, [nodes, outputNodeInfo, disconnectNodes, removeNode, restoreNodes, updateNodePosition]);
 
   return { saveGraph, loadGraph };
 }

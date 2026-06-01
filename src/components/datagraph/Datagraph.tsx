@@ -1,6 +1,7 @@
 import { useDatagraph } from "../../datagraph.context";
 import "./Datagraph.css";
 import { getNodeKeyFromElement, PortInfo } from "../node/node-utils";
+import { useClipboard } from "../../use-clipboard";
 import { ContextView } from "./ContextView";
 import { useSelection } from "../../selection.context";
 import { useNodes } from "../../nodes.context";
@@ -155,6 +156,7 @@ export function Datagraph() {
   const [outputNode, setOutputNode] = useState<NodeInfo | null>(null);
   const { disconnectPorts, disconnectNodes } = usePortConnections();
   const { handleNodeSelected } = useSelection();
+  const { copy, paste } = useClipboard();
   const nodeSelectionHandleRef = useRef<NodeSelectionHandle>(null);
   const canvasHandle = useRef<PanZoomCanvasContext | null>(null);
 
@@ -175,7 +177,7 @@ export function Datagraph() {
     if (ready) return;
     datagraph.start().then(({ outputNode }) => {
       setOutputNode(outputNode);
-      injectOutputNode(outputNode, { canvasX: 200, canvasY: 500 });
+      injectOutputNode(outputNode, { canvasX: 0, canvasY: 0 });
     });
   }, [ready, datagraph, injectOutputNode]);
 
@@ -189,6 +191,16 @@ export function Datagraph() {
 
   const handleKeyDown = useCallback(
     (ev: React.KeyboardEvent) => {
+      if ((ev.metaKey || ev.ctrlKey) && ev.key === "c") {
+        ev.preventDefault();
+        copy();
+        return;
+      }
+      if ((ev.metaKey || ev.ctrlKey) && ev.key === "v") {
+        ev.preventDefault();
+        paste();
+        return;
+      }
       const nodeId =
         document.activeElement instanceof HTMLElement
           ? getNodeKeyFromElement(document.activeElement)
@@ -201,13 +213,13 @@ export function Datagraph() {
         handleNodeSelected(null);
       }
     },
-    [disconnectNodes, handleNodeSelected, outputNode?.nodeId, removeNode]
+    [copy, paste, disconnectNodes, handleNodeSelected, outputNode?.nodeId, removeNode]
   );
 
   return (
     <PanZoomCanvasProvider canvasHandle={canvasHandle}>
       <GhostEdgeProvider>
-        <div ref={ref} onKeyDown={handleKeyDown} className="datagraph">
+        <div ref={ref} onKeyDown={handleKeyDown} className="datagraph" tabIndex={-1}>
           {outputNode && <Toolbar outputNode={outputNode} />}
           <ContextView />
           <div className="datagraph__canvas">
@@ -215,7 +227,10 @@ export function Datagraph() {
             <PanZoomCanvas
               ref={canvasHandle}
               onPointerDown={handlePointerDown}
-              onClick={() => handleNodeSelected(null)}
+              onClick={() => {
+                handleNodeSelected(null);
+                ref.current?.focus();
+              }}
             >
               <Nodes onNodeClick={handleNodeClick} />
               <Edges onEdgeClick={handleEdgeClick} />

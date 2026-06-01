@@ -8,6 +8,7 @@ const selectionContext = createContext<{
   handleSelectionRangeChanged: (range: PanZoomCanvasRect | null) => void;
   handleRangeSelectionCompleted: (range: PanZoomCanvasRect) => void;
   handleNodeSelected: (nodeId: string | null) => void;
+  selectNodes: (nodeIds: NodeId[]) => void;
   getSelectedNodeStates: () => AnyNodeState[];
   nodesInSelectionRange: NodeId[];
   selectedNodes: NodeId[];
@@ -20,6 +21,9 @@ const selectionContext = createContext<{
   },
   handleNodeSelected: () => {
     throw new Error("handleNodeSelected not implemented");
+  },
+  selectNodes: () => {
+    throw new Error("selectNodes not implemented");
   },
   getSelectedNodeStates: () => {
     throw new Error("getSelectedNode not implemented");
@@ -39,6 +43,10 @@ export function SelectionProvider({ children }: { children: React.ReactNode }) {
       return;
     }
     setSelectedNodes([nodeId]);
+  }, []);
+
+  const selectNodes = useCallback((nodeIds: NodeId[]) => {
+    setSelectedNodes(nodeIds);
   }, []);
 
   const handleSelectionRangeChanged = useCallback(
@@ -70,6 +78,7 @@ export function SelectionProvider({ children }: { children: React.ReactNode }) {
     <selectionContext.Provider
       value={{
         handleNodeSelected,
+        selectNodes,
         handleRangeSelectionCompleted,
         handleSelectionRangeChanged,
         getSelectedNodeStates,

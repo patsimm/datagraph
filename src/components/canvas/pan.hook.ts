@@ -11,20 +11,13 @@ export type UsePanProps = {
   onPanByScreenPos: (x: number, y: number) => void;
   onPanStart: () => void;
   onPanEnd: () => void;
-  isDragHandleElement: (target: EventTarget) => boolean;
 };
 
-export function usePan({
-  onPanByScreenPos,
-  onPanEnd,
-  onPanStart,
-  isDragHandleElement,
-  disablePan,
-}: UsePanProps) {
+export function usePan({ onPanByScreenPos, onPanEnd, onPanStart, disablePan }: UsePanProps) {
   const stateRef = useRef<DragState | null>(null);
 
   const handlePointerMove = useCallback(
-    (ev: PointerEvent) => {
+    (ev: React.PointerEvent) => {
       if (!stateRef.current) return;
       const x = ev.clientX - stateRef.current.lastX;
       const y = ev.clientY - stateRef.current.lastY;
@@ -35,22 +28,18 @@ export function usePan({
     [onPanByScreenPos]
   );
 
-  const handlePointerCancel = useCallback(
-    (ev: React.PointerEvent) => {
-      if (!stateRef.current) return;
-      stateRef.current = null;
-      (ev.currentTarget as HTMLElement).removeEventListener("pointermove", handlePointerMove);
-      onPanEnd?.();
-    },
-    [handlePointerMove, onPanEnd]
-  );
+  const handlePointerCancel = useCallback(() => {
+    if (!stateRef.current) return;
+    stateRef.current = null;
+    onPanEnd?.();
+  }, [onPanEnd]);
 
   const handlePointerDown = useCallback(
     (ev: React.PointerEvent<HTMLDivElement>) => {
       if (disablePan) return;
       if (ev.button !== 1) return;
-      if (!isDragHandleElement(ev.target)) return;
       if (!(ev.target instanceof HTMLElement)) return;
+      ev.preventDefault();
 
       stateRef.current = {
         lastX: ev.clientX,
@@ -59,10 +48,9 @@ export function usePan({
       };
 
       ev.currentTarget.setPointerCapture(ev.pointerId);
-      (ev.currentTarget as HTMLElement).addEventListener("pointermove", handlePointerMove);
       onPanStart();
     },
-    [disablePan, handlePointerMove, isDragHandleElement, onPanStart]
+    [disablePan, onPanStart]
   );
 
   const handlePointerUp = useCallback(
@@ -71,7 +59,6 @@ export function usePan({
       const didMove =
         ev.clientX !== stateRef.current.lastX || ev.clientY !== stateRef.current.lastY;
       stateRef.current = null;
-      (ev.currentTarget as HTMLElement).removeEventListener("pointermove", handlePointerMove);
       onPanEnd();
 
       if (didMove) {
@@ -82,7 +69,7 @@ export function usePan({
         document.addEventListener("click", suppress, true);
       }
     },
-    [handlePointerMove, onPanEnd]
+    [onPanEnd]
   );
 
   return {
@@ -90,6 +77,7 @@ export function usePan({
       onPointerDown: handlePointerDown,
       onPointerUp: handlePointerUp,
       onPointerCancel: handlePointerCancel,
+      onPointerMove: handlePointerMove,
     },
   };
 }

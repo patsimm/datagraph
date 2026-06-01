@@ -6,12 +6,13 @@ import classNames from "classnames";
 import React, {
   useCallback,
   useContext,
+  useEffect,
   useImperativeHandle,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
 } from "react";
-import { flushSync } from "react-dom";
 
 export type PanZoomCanvasContext = {
   panByScreenPos: (x: number, y: number) => void;
@@ -42,6 +43,7 @@ export type PanZoomCanvasMouseEvent<T extends Element = Element> = PanZoomCanvas
 export type PanZoomCanvasProps = {
   ref: React.Ref<PanZoomCanvasContext>;
   disablePan?: boolean;
+  canvasSize?: { width: number; height: number };
   onPointerDown?: (event: PanZoomCanvasPointerEvent<HTMLDivElement>) => void;
   onPointerUp?: (event: PanZoomCanvasPointerEvent<HTMLDivElement>) => void;
   onPointerMove?: (event: PanZoomCanvasPointerEvent<HTMLDivElement>) => void;
@@ -52,6 +54,7 @@ export function PanZoomCanvas({
   ref,
   children,
   disablePan,
+  canvasSize = { width: 8000, height: 8000 },
   onPointerDown,
   onPointerUp,
   onPointerMove,
@@ -59,55 +62,40 @@ export function PanZoomCanvas({
 }: React.PropsWithChildren<PanZoomCanvasProps>) {
   const contentRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const [position, setPosition] = useState({ x: 0, y: 0, zoom: 1 });
+  const zoomRef = useRef(1);
   const [dragging, setDragging] = useState(false);
 
   const panByScreenPos = useCallback((moveByX: number, moveByY: number) => {
-    flushSync(() =>
-      setPosition(({ x, y, zoom }) => {
-        const newX = x + moveByX / zoom;
-        const newY = y + moveByY / zoom;
-        return { x: newX, y: newY, zoom };
-      })
-    );
+    const container = containerRef.current;
+    if (!container) return;
+    container.scrollLeft -= moveByX;
+    container.scrollTop -= moveByY;
   }, []);
 
-  const isDragHandleElement = useCallback((target: EventTarget) => {
-    const ele = target instanceof HTMLElement ? (target as HTMLElement) : null;
-    return ele === contentRef.current || ele === containerRef.current;
-  }, []);
-
-  const clientToCanvasPos = useCallback((pos: { clientX: number; clientY: number }) => {
-    const containerElement =
-      containerRef.current instanceof HTMLElement ? containerRef.current : null;
-
-    if (!containerElement) {
-      throw new Error("containerRef was not wired");
-    }
-    const containerRect = containerElement.getBoundingClientRect();
-
-    const panX = containerElement.dataset.panX ? parseFloat(containerElement.dataset.panX) : 0;
-    const panY = containerElement.dataset.panY ? parseFloat(containerElement.dataset.panY) : 0;
-    const zoom = containerElement.dataset.zoom ? parseFloat(containerElement.dataset.zoom) : 1;
-
-    const containerX = pos.clientX - containerRect.x;
-    const containerY = pos.clientY - containerRect.y;
-
-    return {
-      canvasX: containerX / zoom - panX,
-      canvasY: containerY / zoom - panY,
-    };
-  }, []);
+  const clientToCanvasPos = useCallback(
+    (pos: { clientX: number; clientY: number }) => {
+      const contentElement = contentRef.current;
+      if (!contentElement) {
+        throw new Error("contentRef was not wired");
+      }
+      const contentRect = contentElement.getBoundingClientRect();
+      return {
+        canvasX: (pos.clientX - contentRect.x) / zoomRef.current - canvasSize.width / 2,
+        canvasY: (pos.clientY - contentRect.y) / zoomRef.current - canvasSize.height / 2,
+      };
+    },
+    [canvasSize.height, canvasSize.width]
+  );
 
   const clientToCanvasRect = useCallback(
     (clientRect: ClientRect) => {
       return {
-        width: clientRect.width / position.zoom,
-        height: clientRect.height / position.zoom,
+        width: clientRect.width / zoomRef.current,
+        height: clientRect.height / zoomRef.current,
         ...clientToCanvasPos(clientRect),
       };
     },
-    [clientToCanvasPos, position.zoom]
+    [clientToCanvasPos]
   );
 
   const makePointerEvent = useCallback(
@@ -126,37 +114,64 @@ export function PanZoomCanvas({
     [clientToCanvasPos]
   );
 
+  const handleZoom = useCallback((zoomBy: number, centerX: number, centerY: number) => {
+    const container = containerRef.current;
+    const content = contentRef.current;
+    if (!container || !content) return;
+
+    const outerRect = container.getBoundingClientRect();
+    const cursorX = centerX - outerRect.x;
+    const cursorY = centerY - outerRect.y;
+
+    const oldZoom = zoomRef.current;
+    const newZoom = Math.min(Math.max(0.3, oldZoom * Math.exp(-zoomBy * 0.001)), 2);
+    const canvasX = (cursorX + container.scrollLeft) / oldZoom;
+    const canvasY = (cursorY + container.scrollTop) / oldZoom;
+
+    zoomRef.current = newZoom;
+
+    // Apply zoom and scroll correction synchronously in the same JS turn so the
+    // browser never paints an intermediate frame with mismatched zoom and scroll.
+    content.style.zoom = String(newZoom);
+    // Force layout so the browser uses the new scroll area dimensions before we
+    // set scrollLeft/scrollTop, otherwise it clamps against the stale max.
+    void container.scrollWidth;
+    container.scrollLeft = canvasX * newZoom - cursorX;
+    container.scrollTop = canvasY * newZoom - cursorY;
+  }, []);
+
+  useLayoutEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    container.scrollLeft = canvasSize.width / 2 - container.clientWidth / 2;
+    container.scrollTop = canvasSize.height / 2 - container.clientHeight / 2;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const { containerProps } = usePan({
     disablePan,
     onPanByScreenPos: panByScreenPos,
-    isDragHandleElement,
     onPanStart: () => setDragging(true),
     onPanEnd: () => setDragging(false),
   });
 
-  const handleScroll = useCallback((ev: React.WheelEvent) => {
-    const outerRect = containerRef.current?.getBoundingClientRect();
-    if (!outerRect) return;
-
-    const cursorX = ev.clientX - outerRect.x;
-    const cursorY = ev.clientY - outerRect.y;
-
-    setPosition(({ x, y, zoom }) => {
-      const nextZoom = Math.min(Math.max(0.3, zoom * Math.exp(-ev.deltaY * 0.001)), 2);
-      const scale = 1 / nextZoom - 1 / zoom;
-
-      return {
-        x: x + cursorX * scale,
-        y: y + cursorY * scale,
-        zoom: nextZoom,
-      };
-    });
-  }, []);
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const handler = (ev: WheelEvent) => {
+      if (ev.ctrlKey || ev.metaKey) {
+        ev.preventDefault();
+        handleZoom(ev.deltaY * 20, ev.clientX, ev.clientY);
+      }
+      // Plain scroll: let the browser handle natively
+    };
+    el.addEventListener("wheel", handler, { passive: false });
+    return () => el.removeEventListener("wheel", handler);
+  }, [handleZoom]);
 
   useImperativeHandle(ref, () => ({
     clientToCanvasPos,
     panByScreenPos,
-    isDragHandleElement,
     clientToCanvasRect,
   }));
 
@@ -166,11 +181,7 @@ export function PanZoomCanvas({
         "panzoomcanvas--panning": dragging,
         "panzoomcanvas--pan-disabled": disablePan,
       })}
-      data-pan-x={position.x}
-      data-pan-y={position.y}
-      data-zoom={position.zoom}
       ref={containerRef}
-      onWheel={handleScroll}
       onPointerDown={(ev) => {
         onPointerDown?.(makePointerEvent(ev));
         if (!ev.defaultPrevented) {
@@ -183,18 +194,26 @@ export function PanZoomCanvas({
           containerProps.onPointerUp?.(ev);
         }
       }}
-      onPointerMove={onPointerMove && ((ev) => onPointerMove(makePointerEvent(ev)))}
-      onClick={onClick && ((ev) => onClick(makeMouseEvent(ev)))}
+      onPointerMove={(ev) => {
+        onPointerMove?.(makePointerEvent(ev));
+        if (!ev.defaultPrevented) {
+          containerProps.onPointerMove?.(ev);
+        }
+      }}
+      onClick={(ev) => {
+        onClick?.(makeMouseEvent(ev));
+      }}
     >
       <div
-        className="panzoomcanvas__content"
+        className="panzoomcanvas__content-wrapper"
         style={{
-          transform: `scale(${position.zoom}) translate(${position.x}px, ${position.y}px)`,
+          width: canvasSize.width,
+          height: canvasSize.height,
         }}
         ref={contentRef}
         data-canvas-background="true"
       >
-        {children}
+        <div className="panzoomcanvas__content">{children}</div>
       </div>
     </div>
   );

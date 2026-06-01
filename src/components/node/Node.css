@@ -91,10 +91,12 @@
   }
 
   &.node--selected {
+    box-sizing: content-box;
     border: 3px solid color-mix(in srgb, var(--color-accent) 70%, var(--color-gray-light));
   }
 
   &.node--in-selection-range {
+    box-sizing: content-box;
     border: 3px solid color-mix(in srgb, var(--color-accent) 70%, var(--color-gray-dark));
   }
 }

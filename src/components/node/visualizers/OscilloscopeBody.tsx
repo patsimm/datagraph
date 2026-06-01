@@ -1,5 +1,6 @@
 import { PortInfo } from "../node-utils";
 import { usePortData } from "../port-data.hook";
+import "./OscilloscopeBody.css";
 
 import { useCallback, useMemo, useRef } from "react";
 
@@ -55,5 +56,5 @@ export function OscilloscopeBody({ nodeId }: { nodeId: string }) {
 
   usePortData(port, handleChange);
 
-  return <canvas className="datagraph-node__vis-canvas" ref={canvasRef} />;
+  return <canvas className="node__canvas" ref={canvasRef} />;
 }

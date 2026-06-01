@@ -18,6 +18,7 @@
   pointer-events: auto;
   user-select: auto;
   overflow-y: auto;
+  touch-action: pinch-zoom;
 
   & .contextview__header {
     & .contextview__title {

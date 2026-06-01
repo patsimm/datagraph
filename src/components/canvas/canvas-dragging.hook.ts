@@ -10,7 +10,8 @@ type UseCanvasDraggingProps = {
   isValidTarget?: (target: EventTarget) => boolean;
 };
 
-const DRAG_START_DELAY_MS = 100;
+const DRAG_START_DELAY_MS = 200;
+const DRAG_MOVE_THRESHOLD_PX = 5;
 
 export function useCanvasDragging({
   onDragMove,
@@ -23,7 +24,9 @@ export function useCanvasDragging({
   const handlePointerDown = useCallback(
     (event: React.PointerEvent) => {
       if (!isValidTarget(event.target)) return;
-
+      console.log("pointer down", event);
+      if (event.button !== 0) return;
+      console.log("start drag");
       event.stopPropagation();
 
       const targetElement = event.currentTarget as HTMLElement;
@@ -63,10 +66,17 @@ export function useCanvasDragging({
           onDragStart?.(startPos);
         }
 
-        const clientPos = { clientX: event.clientX, clientY: event.clientY };
-        const canvasPos = panZoom.clientToCanvasPos(clientPos);
-        onDragMove({ ...clientPos, ...canvasPos });
-        didMove = true;
+        // if start pos is at least 5px away from current pos, consider it as moved
+        const isMoved =
+          (event.clientX - startClientPos.clientX) ** 2 +
+            (event.clientY - startClientPos.clientY) ** 2 >=
+            DRAG_MOVE_THRESHOLD_PX ** 2 || didMove;
+        if (isMoved) {
+          const clientPos = { clientX: event.clientX, clientY: event.clientY };
+          const canvasPos = panZoom.clientToCanvasPos(clientPos);
+          onDragMove({ ...clientPos, ...canvasPos });
+          didMove = true;
+        }
       };
 
       targetElement.setPointerCapture(event.pointerId);
