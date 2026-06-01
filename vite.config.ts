@@ -22,6 +22,7 @@ function coiServiceWorkerPlugin() {
 export default defineConfig(() => ({
   plugins: [react(), coiServiceWorkerPlugin()],
   server: {
+    host: true,
     fs: {
       allow: [path.resolve(__dirname, "..")],
     },
