@@ -23,7 +23,6 @@ export function usePortConnecting(thisPortKey: string) {
     });
     startCanvasPosRef.current = { fromX: canvasX, fromY: canvasY };
     setPosition({ fromX: canvasX, fromY: canvasY, toX: canvasX, toY: canvasY });
-    portElem.classList.add("node__port--dragging");
   }, [thisPortKey, panZoom, setPosition]);
 
   const handleDragMove = useCallback(
@@ -37,7 +36,7 @@ export function usePortConnecting(thisPortKey: string) {
 
       const portUnderCursor =
         portKeyUnderCursor && portKeyUnderCursor !== thisPortKey
-          ? (elemUnderCursor as HTMLElement)
+          ? getNodePortElement(portKeyUnderCursor)
           : null;
 
       let toX = pos.canvasX;
@@ -55,8 +54,8 @@ export function usePortConnecting(thisPortKey: string) {
       setPosition({ fromX, fromY, toX, toY });
 
       if (portUnderCursor !== hoveredPortRef.current) {
-        hoveredPortRef.current?.classList.remove("node__port--dragging");
-        portUnderCursor?.classList.add("node__port--dragging");
+        hoveredPortRef.current?.classList.remove("node-port--dragging");
+        portUnderCursor?.classList.add("node-port--dragging");
         hoveredPortRef.current = portUnderCursor;
       }
     },
@@ -65,16 +64,13 @@ export function usePortConnecting(thisPortKey: string) {
 
   const handleDragEnd = useCallback(
     (pos: PanZoomCanvasPosition & ClientPosition) => {
-      const portElem = getNodePortElement(thisPortKey);
-      portElem.classList.remove("node__port--dragging");
-      hoveredPortRef.current?.classList.remove("node__port--dragging");
+      hoveredPortRef.current?.classList.remove("node-port--dragging");
       hoveredPortRef.current = null;
       startCanvasPosRef.current = null;
       setPosition(null);
 
       const endElem = document.elementFromPoint(pos.clientX, pos.clientY);
-      const endPortKey =
-        endElem instanceof HTMLElement ? getNodePortKeyFromElement(endElem) : null;
+      const endPortKey = endElem instanceof HTMLElement ? getNodePortKeyFromElement(endElem) : null;
       if (endPortKey && endPortKey !== thisPortKey) {
         const startInfo = parsePortKey(thisPortKey);
         const endInfo = parsePortKey(endPortKey);

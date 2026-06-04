@@ -13,12 +13,20 @@ export type NodePortProps = {
   hasCustomDefault?: boolean;
 };
 
-export function NodePort({ nodeId, port, portType, portName, connected, hasCustomDefault }: NodePortProps) {
+export function NodePort({
+  nodeId,
+  port,
+  portType,
+  portName,
+  connected,
+  hasCustomDefault,
+}: NodePortProps) {
   const key = portKey({ nodeId, port, portType });
   const { onPointerDown } = usePortConnecting(key);
 
   return (
     <div
+      data-port={key}
       className={classNames("node-port", {
         "node-port--connected": connected,
         "node-port--has-custom-default": hasCustomDefault,
@@ -27,12 +35,7 @@ export function NodePort({ nodeId, port, portType, portName, connected, hasCusto
       })}
     >
       <div className="node-port__indicator" />
-      <div
-        className="node-port__hover-target"
-        title={portName}
-        data-port={key}
-        onPointerDown={onPointerDown}
-      />
+      <div className="node-port__hover-target" title={portName} onPointerDown={onPointerDown} />
     </div>
   );
 }

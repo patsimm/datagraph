@@ -12,13 +12,23 @@ import {
 import {
   NodeInfo,
   PASSTHROUGH_TYPENAME,
-  NodeAddedEvent,
   NodeRemovedEvent,
+  WasmNodeInfo,
 } from "./audio-worklet/datagraph-audio-worklet-commands";
+
+function toNodeInfo(wasmInfo: WasmNodeInfo): NodeInfo {
+  return {
+    nodeId: wasmInfo.nodeId,
+    nodeType: wasmInfo.nodeType,
+    inputNames: wasmInfo.inputNames as string[],
+    outputNames: wasmInfo.outputNames as string[],
+    defaultInputValues: [...wasmInfo.defaultInputValues] as number[],
+  };
+}
 import { convertToCv } from "./unit-conversion";
 import { isPointInRect, PanZoomCanvasPosition, PanZoomCanvasRect } from "./components/canvas/utils";
 
-import { useState, useCallback, useEffect, useRef, createContext, useContext } from "react";
+import { useState, useCallback, useEffect, createContext, useContext } from "react";
 
 export type {
   AnyNodeState,
@@ -31,7 +41,6 @@ type PendingCreation = {
   position: PanZoomCanvasPosition;
   config: unknown;
   settings: unknown;
-  resolve: (info: NodeInfo) => void;
 };
 
 function buildNodeState(info: NodeInfo, pending: PendingCreation): AnyNodeState {
@@ -98,24 +107,9 @@ function useAllNodes() {
     off,
   } = useDatagraph();
   const [nodes, setNodes] = useState<{ [nodeId: string]: AnyNodeState }>({});
-  const pendingCreations = useRef<PendingCreation[]>([]);
 
   useEffect(() => {
     if (!ready) return;
-
-    const handleNodeAdded = ({ nodeInfo }: NodeAddedEvent) => {
-      const pending = pendingCreations.current.shift();
-      if (!pending) return;
-      const info: NodeInfo = {
-        nodeId: nodeInfo.nodeId,
-        nodeType: nodeInfo.nodeType,
-        inputNames: nodeInfo.inputNames as string[],
-        outputNames: nodeInfo.outputNames as string[],
-        defaultInputValues: [...nodeInfo.defaultInputValues] as number[],
-      };
-      setNodes((prev) => ({ ...prev, [info.nodeId]: buildNodeState(info, pending) }));
-      pending.resolve(info);
-    };
 
     const handleNodeRemoved = ({ nodeInfo }: NodeRemovedEvent) => {
       setNodes((prev) => {
@@ -125,10 +119,8 @@ function useAllNodes() {
       });
     };
 
-    on("nodeAdded", handleNodeAdded);
     on("nodeRemoved", handleNodeRemoved);
     return () => {
-      off("nodeAdded", handleNodeAdded);
       off("nodeRemoved", handleNodeRemoved);
     };
   }, [ready, on, off]);
@@ -175,24 +167,29 @@ function useAllNodes() {
       settings: NodeState<T>["settings"]
     ): Promise<NodeInfo | null> => {
       if (!ready) return Promise.resolve(null);
-      return new Promise((resolve) => {
-        pendingCreations.current.push({ kind, position, config, settings, resolve });
-        if (isParamKind(kind)) {
-          const typedConfig = config as NodeState<"param:slider" | "param:button">["config"];
-          const typedSettings = settings as AnyParamNodeState["settings"];
-          const cvValue = typedSettings?.unit
-            ? convertToCv(typedConfig.value, typedSettings.unit)
-            : typedConfig.value;
-          addParamToGraph(cvValue);
-        } else if (isVisualizerKind(kind)) {
-          addNodeToGraph({ kind: "datagraph", typename: PASSTHROUGH_TYPENAME });
-        } else {
-          addNodeToGraph({
-            kind: "datagraph",
-            typename: (config as { typename: string }).typename,
-          });
-        }
-      });
+
+      let wasmInfo: WasmNodeInfo | undefined;
+      if (isParamKind(kind)) {
+        const typedConfig = config as NodeState<"param:slider" | "param:button">["config"];
+        const typedSettings = settings as AnyParamNodeState["settings"];
+        const cvValue = typedSettings?.unit
+          ? convertToCv(typedConfig.value, typedSettings.unit)
+          : typedConfig.value;
+        wasmInfo = addParamToGraph(cvValue);
+      } else if (isVisualizerKind(kind)) {
+        wasmInfo = addNodeToGraph({ kind: "datagraph", typename: PASSTHROUGH_TYPENAME });
+      } else {
+        wasmInfo = addNodeToGraph({
+          kind: "datagraph",
+          typename: (config as { typename: string }).typename,
+        });
+      }
+
+      if (!wasmInfo) return Promise.resolve(null);
+      const info = toNodeInfo(wasmInfo);
+      const pending: PendingCreation = { kind, position, config, settings };
+      setNodes((prev) => ({ ...prev, [info.nodeId]: buildNodeState(info, pending) }));
+      return Promise.resolve(info);
     },
     [ready, addNodeToGraph, addParamToGraph]
   );

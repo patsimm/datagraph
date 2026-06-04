@@ -40,5 +40,6 @@ export function getNodeKeyFromElement(el: HTMLElement) {
 }
 
 export function getNodePortKeyFromElement(el: HTMLElement) {
-  return el.getAttribute("data-port");
+  const portEl = el.closest("[data-port]") as HTMLElement;
+  return portEl?.getAttribute("data-port");
 }

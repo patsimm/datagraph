@@ -86,10 +86,8 @@
     }
   }
 
-  .node-port__indicator:has(
-    + .node-port__hover-target:hover,
-    + .node-port__hover-target.node__port--dragging
-  ) {
+  &.node-port--dragging > .node-port__indicator,
+  .node-port__indicator:has(+ .node-port__hover-target:hover) {
     overflow: visible;
 
     &::after {
