@@ -13,20 +13,13 @@ type UseCanvasDraggingProps = {
 const DRAG_START_DELAY_MS = 200;
 const DRAG_MOVE_THRESHOLD_PX = 5;
 
-export function useCanvasDragging({
-  onDragMove,
-  onDragEnd,
-  onDragStart,
-  isValidTarget = () => true,
-}: UseCanvasDraggingProps) {
+export function useCanvasDragging({ onDragMove, onDragEnd, onDragStart }: UseCanvasDraggingProps) {
   const panZoom = usePanZoomCanvas();
 
   const handlePointerDown = useCallback(
     (event: React.PointerEvent) => {
-      if (!isValidTarget(event.target)) return;
-      console.log("pointer down", event);
+      // if (!isValidTarget(event.target)) return;
       if (event.button !== 0) return;
-      console.log("start drag");
       event.stopPropagation();
 
       const targetElement = event.currentTarget as HTMLElement;
@@ -87,7 +80,7 @@ export function useCanvasDragging({
         onDragStart?.(startPos);
       }, DRAG_START_DELAY_MS);
     },
-    [isValidTarget, onDragEnd, onDragStart, onDragMove, panZoom]
+    [onDragEnd, onDragStart, onDragMove, panZoom]
   );
 
   return { onPointerDown: handlePointerDown };

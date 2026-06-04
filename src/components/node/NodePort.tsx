@@ -11,6 +11,7 @@ export type NodePortProps = {
   portName: string;
   connected: boolean;
   hasCustomDefault?: boolean;
+  className?: string;
 };
 
 export function NodePort({
@@ -20,6 +21,7 @@ export function NodePort({
   portName,
   connected,
   hasCustomDefault,
+  className,
 }: NodePortProps) {
   const key = portKey({ nodeId, port, portType });
   const { onPointerDown } = usePortConnecting(key);
@@ -27,7 +29,8 @@ export function NodePort({
   return (
     <div
       data-port={key}
-      className={classNames("node-port", {
+      data-port-index={port}
+      className={classNames("node-port", className, {
         "node-port--connected": connected,
         "node-port--has-custom-default": hasCustomDefault,
         "node-port--input": portType === "in",

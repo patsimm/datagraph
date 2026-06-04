@@ -191,7 +191,7 @@ export function PanZoomCanvas({
       onPointerUp={(ev) => {
         onPointerUp?.(makePointerEvent(ev));
         if (!ev.defaultPrevented) {
-          containerProps.onPointerUp?.(ev);
+          containerProps.onPointerUp?.();
         }
       }}
       onPointerMove={(ev) => {

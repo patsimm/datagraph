@@ -1,0 +1,6 @@
+.node.sequencer-node {
+  & .sequencer-node__port--active {
+    --node-port-color-input: color-mix(in srgb, var(--color-accent) 50%, var(--color-gray-light));
+    --node-port-color-connected: var(--color-accent);
+  }
+}

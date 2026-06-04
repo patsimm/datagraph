@@ -112,7 +112,7 @@ export function Toolbar({ outputNode }: ToolbarProps) {
                 categorys
                   .toSorted((a, b) => a.localeCompare(b))
                   .map((category) => (
-                    <div role="group" className="toolbar__menu-section">
+                    <div key={category} role="group" className="toolbar__menu-section">
                       <div role="presentation" className="toolbar__menu-label">
                         {category.charAt(0).toUpperCase() + category.slice(1)}
                       </div>

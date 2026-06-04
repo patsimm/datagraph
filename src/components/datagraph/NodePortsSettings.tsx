@@ -1,11 +1,11 @@
 import { AnyNodeState } from "../../node.types";
-import { portKey } from "../node/node-utils";
-import { useLatestPortValues } from "../node/latest-port-values.hook";
+import { PortInfo, portKey } from "../node/node-utils";
+import { useLatestPortValues } from "../node/latest-port-value.context";
 import { DataField } from "../DataField";
 import "./NodePortsSettings.css";
 import { NumberInput } from "../NumberInput";
 
-import { Fragment, useMemo } from "react";
+import { Fragment, useMemo, useState } from "react";
 import { IconArrowBackUp } from "@tabler/icons-react";
 import classNames from "classnames";
 
@@ -15,27 +15,40 @@ export type NodeInputViewProps = {
   onDefaultValueReset: (port: number) => void;
 };
 
+function LiveValue({ portInfo }: { portInfo: PortInfo }) {
+  const [value, setValue] = useState(0);
+  useLatestPortValues([portInfo], (values) => {
+    setValue(values[0] ?? 0);
+  });
+  return <>{value.toFixed(4)}</>;
+}
+
 export function NodePortsSettings({
   node,
   onDefaultValueChange,
   onDefaultValueReset,
 }: NodeInputViewProps) {
-  const ports = useMemo(
+  const inputPortInfos = useMemo(
     () => [
       ...Array.from({ length: node.inputPorts.length }, (_, i) => ({
         nodeId: node.nodeId,
         port: i,
         portType: "in" as const,
       })),
+    ],
+    [node.inputPorts.length, node.nodeId]
+  );
+
+  const outputPortInfos = useMemo(
+    () => [
       ...Array.from({ length: node.outputPorts.length }, (_, i) => ({
         nodeId: node.nodeId,
         port: i,
         portType: "out" as const,
       })),
     ],
-    [node.inputPorts.length, node.outputPorts.length, node.nodeId]
+    [node.nodeId, node.outputPorts.length]
   );
-  const values = useLatestPortValues(ports);
 
   return (
     <>
@@ -45,33 +58,34 @@ export function NodePortsSettings({
         })}
       >
         <h2>Inputs</h2>
-        {node.inputPorts.map((port, i) => (
-          <Fragment key={portKey({ nodeId: node.nodeId, port: i, portType: "in" })}>
-            <h3>{port.name}</h3>
+        {inputPortInfos.map((port, i) => (
+          <Fragment key={portKey(port)}>
+            <h3>{node.inputPorts[i].name}</h3>
             <DataField
               label="default"
               value={
                 <div
                   className={classNames("node-ports-settings__default-field", {
-                    "node-ports-settings__default-field--unmodified": !port.isDefaultModified,
+                    "node-ports-settings__default-field--unmodified":
+                      !node.inputPorts[i].isDefaultModified,
                   })}
                 >
                   <NumberInput
-                    value={port.defaultValue}
+                    value={node.inputPorts[i].defaultValue}
                     onChange={(value) => onDefaultValueChange(i, value)}
                   />
                   <button
                     className="node-ports-settings__reset-btn"
                     onClick={() => onDefaultValueReset(i)}
                     title="Reset to default"
-                    disabled={!port.isDefaultModified}
+                    disabled={!node.inputPorts[i].isDefaultModified}
                   >
                     <IconArrowBackUp className="node-ports-settings__reset-btn-icon" />
                   </button>
                 </div>
               }
             />
-            <DataField label="live" value={values[i].toFixed(4)} />
+            <DataField label="live" value={<LiveValue portInfo={port} />} />
           </Fragment>
         ))}
         {node.inputPorts.length === 0 && (
@@ -87,7 +101,7 @@ export function NodePortsSettings({
         {node.outputPorts.map((port, i) => (
           <Fragment key={portKey({ nodeId: node.nodeId, port: i, portType: "out" })}>
             <h3>{port.name}</h3>
-            <DataField label="live" value={values[node.inputPorts.length + i].toFixed(4)} />
+            <DataField label="live" value={<LiveValue portInfo={outputPortInfos[i]} />} />
           </Fragment>
         ))}
         {node.outputPorts.length === 0 && (

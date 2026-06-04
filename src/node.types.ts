@@ -113,6 +113,10 @@ export type NodeKind = AnyNodeState["kind"];
 
 export type NodeState<T extends NodeKind> = Extract<AnyNodeState, { kind: T }>;
 
+export function isDatagraphNodeState(nodeState: AnyNodeState): nodeState is AnyAudioNodeState {
+  return nodeState.kind === "datagraph";
+}
+
 export function isParamKind(kind: NodeKind): kind is ParamKind {
   return kind.startsWith("param:");
 }

@@ -2,11 +2,12 @@ import { portKey } from "./node-utils";
 import "./Node.css";
 import type { NodePortState, NodeInteractionProps } from "../../node.types";
 import { useCanvasDragging } from "../canvas/canvas-dragging.hook";
-import { NodePort } from "./NodePort";
+import { NodePort, NodePortProps } from "./NodePort";
 import { PanZoomCanvasPosition } from "../canvas/utils";
 
 import classNames from "classnames";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { ComponentPropsWithoutRef, JSX, useCallback, useMemo, useRef, useState } from "react";
+import { PortType } from "@patsimm/datagraph-core";
 
 export type NodeProps = {
   kind: string;
@@ -15,8 +16,10 @@ export type NodeProps = {
   inputPorts: NodePortState[];
   outputPorts: NodePortState[];
   rustNodeType: string;
+  renderPort?: (props: NodePortProps, portType: PortType, portIndex: number) => JSX.Element;
 } & NodeInteractionProps &
-  PanZoomCanvasPosition;
+  PanZoomCanvasPosition &
+  Omit<ComponentPropsWithoutRef<"div">, keyof NodeInteractionProps>;
 
 export function Node({
   nodeId,
@@ -35,6 +38,9 @@ export function Node({
   onDragCompleted,
   onDragMove,
   externalDragOffset,
+  className,
+  renderPort,
+  ...forwardedProps
 }: React.PropsWithChildren<NodeProps>) {
   const canvasPosition = useMemo(() => ({ canvasX, canvasY }), [canvasX, canvasY]);
   const [displayPosition, setDisplayPosition] = useState<PanZoomCanvasPosition>(canvasPosition);
@@ -105,9 +111,18 @@ export function Node({
     onBlur?.(nodeId);
   }, [nodeId, onBlur]);
 
+  const PortRenderer = useMemo(
+    () =>
+      renderPort
+        ? ({ portIndex, ...props }: NodePortProps & { portIndex: number }) =>
+            renderPort(props, props.portType, portIndex)
+        : (props: NodePortProps) => <NodePort {...props} />,
+    [renderPort]
+  );
+
   return (
     <div
-      className={classNames("node", {
+      className={classNames(className, "node", {
         "node--selected": selected,
         "node--dragging": dragging,
         "node--in-selection-range": inSelectionRange,
@@ -125,11 +140,12 @@ export function Node({
       onFocus={handleFocus}
       onBlur={handleBlur}
       {...canvasDraggingProps}
+      {...forwardedProps}
     >
       <div className="node__wrapper">
         <div className={"node__ports node__ports--input"}>
           {inputPorts.map((port, i) => (
-            <NodePort
+            <PortRenderer
               key={portKey({ nodeId: nodeId, port: i, portType: "in" })}
               portName={port.name}
               nodeId={nodeId}
@@ -137,18 +153,20 @@ export function Node({
               portType="in"
               connected={port.connectedTo.length > 0}
               hasCustomDefault={port.type === "in" && port.isDefaultModified}
+              portIndex={i}
             />
           ))}
         </div>
         <div className="node__ports node__ports--output">
           {outputPorts.map((port, i) => (
-            <NodePort
+            <PortRenderer
               key={portKey({ nodeId: nodeId, port: i, portType: "out" })}
               portName={port.name}
               nodeId={nodeId}
               port={i}
               portType="out"
               connected={port.connectedTo.length > 0}
+              portIndex={i}
             />
           ))}
         </div>

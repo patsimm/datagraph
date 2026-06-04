@@ -53,24 +53,11 @@ export function usePan({ onPanByScreenPos, onPanEnd, onPanStart, disablePan }: U
     [disablePan, onPanStart]
   );
 
-  const handlePointerUp = useCallback(
-    (ev: React.PointerEvent) => {
-      if (!stateRef.current) return;
-      const didMove =
-        ev.clientX !== stateRef.current.lastX || ev.clientY !== stateRef.current.lastY;
-      stateRef.current = null;
-      onPanEnd();
-
-      if (didMove) {
-        const suppress = (e: MouseEvent) => {
-          e.stopPropagation();
-          document.removeEventListener("click", suppress, true);
-        };
-        document.addEventListener("click", suppress, true);
-      }
-    },
-    [onPanEnd]
-  );
+  const handlePointerUp = useCallback(() => {
+    if (!stateRef.current) return;
+    stateRef.current = null;
+    onPanEnd();
+  }, [onPanEnd]);
 
   return {
     containerProps: {

@@ -166,7 +166,7 @@ export function Datagraph() {
 
   const handleEdgeClick = useCallback(
     (edge: { from: PortInfo; to: PortInfo }, ev: React.MouseEvent) => {
-      console.log("Edge clicked", edge);
+      if (ev.button !== 0) return;
       ev.stopPropagation();
       disconnectPorts([edge.from, edge.to]);
     },

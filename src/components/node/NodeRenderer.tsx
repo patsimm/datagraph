@@ -1,10 +1,12 @@
 import {
+  isDatagraphNodeState,
   isOutputNodeState,
   isParamNodeState,
   isVisualizerNodeState,
   NodeInteractionProps,
 } from "../../node.types";
 import { AnyNodeState } from "../../nodes.context";
+import { SequencerNode } from "./datagraph/SequencerNode";
 import { Node } from "./Node";
 import { ParamNode } from "./ParamNode";
 import { VisualizerNode } from "./VisualizerNode";
@@ -41,6 +43,19 @@ export const NodeRenderer = React.memo(function NodeRenderer({
         {...interactionProps}
       />
     );
+  }
+
+  if (isDatagraphNodeState(node)) {
+    if (node.config?.typename === "datagraph::nodes::sequencer::Sequencer") {
+      return (
+        <SequencerNode
+          {...node}
+          {...interactionProps}
+          inputPorts={node.inputPorts ?? []}
+          outputPorts={node.outputPorts ?? []}
+        />
+      );
+    }
   }
 
   return (
