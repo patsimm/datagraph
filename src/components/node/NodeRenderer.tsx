@@ -6,7 +6,7 @@ import {
   NodeInteractionProps,
 } from "../../node.types";
 import { AnyNodeState } from "../../nodes.context";
-import { SequencerNode } from "./datagraph/SequencerNode";
+import { ActivatableInputPortNode } from "./datagraph/ActivatableInputPortNode";
 import { Node } from "./Node";
 import { ParamNode } from "./ParamNode";
 import { VisualizerNode } from "./VisualizerNode";
@@ -47,14 +47,10 @@ export const NodeRenderer = React.memo(function NodeRenderer({
 
   if (isDatagraphNodeState(node)) {
     if (node.config?.typename === "datagraph::nodes::sequencer::Sequencer") {
-      return (
-        <SequencerNode
-          {...node}
-          {...interactionProps}
-          inputPorts={node.inputPorts ?? []}
-          outputPorts={node.outputPorts ?? []}
-        />
-      );
+      return <ActivatableInputPortNode label="Sequencer" {...node} {...interactionProps} />;
+    }
+    if (node.config?.typename === "datagraph::nodes::select::Select") {
+      return <ActivatableInputPortNode label="Select" {...node} {...interactionProps} />;
     }
   }
 
@@ -63,8 +59,6 @@ export const NodeRenderer = React.memo(function NodeRenderer({
       {...node}
       {...interactionProps}
       label={node.config?.typename?.split("::").at(-1) ?? node.kind}
-      inputPorts={node.inputPorts ?? []}
-      outputPorts={node.outputPorts ?? []}
     />
   );
 });

@@ -5,13 +5,14 @@ import { NodePort, NodePortProps } from "../NodePort";
 import { PortInfo } from "../node-utils";
 
 import { useCallback, useMemo, useState } from "react";
-import "./SequencerNode.css";
+import "./ActivatableInputPortNode.css";
 import classNames from "classnames";
 import { PortType } from "@patsimm/datagraph-core";
 
-export type SequencerNodeProps = AnyAudioNodeState & NodeInteractionProps;
+export type SequencerNodeProps = AnyAudioNodeState &
+  NodeInteractionProps & { label: React.ReactNode };
 
-function SequencerNodePort({
+function ActivatableNodePort({
   i,
   indexPort,
   ...props
@@ -22,20 +23,24 @@ function SequencerNodePort({
   return (
     <NodePort
       {...props}
-      className={classNames("sequencer-node__port", props.className, {
-        "sequencer-node__port--active": isActive,
+      className={classNames(props.className, {
+        "node__port--active": isActive,
       })}
     />
   );
 }
 
-export function SequencerNode({ nodeId, outputPorts, ...nodeProps }: SequencerNodeProps) {
-  const outputPort = useMemo(() => [outputPorts[1]], [outputPorts]);
+export function ActivatableInputPortNode({
+  nodeId,
+  outputPorts,
+  ...nodeProps
+}: SequencerNodeProps) {
+  const outputPort = useMemo(() => [outputPorts[0]], [outputPorts]);
 
   const renderPort = useCallback(
     (props: NodePortProps, portType: PortType, i: number) => {
       return portType === "in" ? (
-        <SequencerNodePort i={i} indexPort={[{ nodeId, port: 1, portType: "out" }]} {...props} />
+        <ActivatableNodePort i={i} indexPort={[{ nodeId, port: 1, portType: "out" }]} {...props} />
       ) : (
         <NodePort {...props} />
       );
@@ -45,9 +50,8 @@ export function SequencerNode({ nodeId, outputPorts, ...nodeProps }: SequencerNo
 
   return (
     <Node
-      className="sequencer-node"
+      className="node--activatable-input-port"
       nodeId={nodeId}
-      label="Sequencer"
       outputPorts={outputPort}
       renderPort={renderPort}
       {...nodeProps}
