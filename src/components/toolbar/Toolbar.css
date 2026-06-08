@@ -1,0 +1,83 @@
+.toolbar {
+  --toolbar-color-bg: color-mix(in srgb, var(--color-gray-dark) 80%, var(--color-primary));
+  --toolbar-padding: 0.75rem;
+  --color-text: var(--color-text-light);
+  --color-text-alternative: var(--color-text-dark);
+  --color-text-disabled: color-mix(in srgb, var(--color-text) 50%, var(--color-surface));
+  --color-surface: var(--toolbar-color-bg);
+
+  width: 100%;
+  background-color: var(--toolbar-color-bg);
+  color: var(--color-text);
+  top: 0;
+  left: 0;
+  z-index: 10;
+  display: flex;
+  justify-content: space-between;
+  gap: var(--toolbar-padding);
+  cursor: default;
+  padding: var(--toolbar-padding);
+
+  .toolbar__section {
+    display: flex;
+    gap: var(--toolbar-padding);
+  }
+
+  .toolbar__button {
+    --toolbar-button-color-bg: var(--color-primary);
+
+    width: 3rem;
+    height: 3rem;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-radius: 0;
+    background: var(--toolbar-button-color-bg);
+    border: none;
+    color: inherit;
+
+    &.toolbar__button--play {
+      --toolbar-button-color-bg: var(--color-accent);
+    }
+
+    .toolbar__button-icon {
+      width: 2rem;
+      height: 2rem;
+    }
+
+    &:hover {
+      background: color-mix(in srgb, var(--toolbar-button-color-bg) 80%, var(--color-surface));
+    }
+
+    &:active {
+      background: color-mix(in srgb, var(--toolbar-button-color-bg) 70%, var(--color-surface));
+    }
+  }
+
+  .toolbar__menu-trigger {
+    position: relative;
+
+    &.toolbar__menu-trigger--open {
+      .toolbar__button {
+        --toolbar-button-color-bg: var(--color-gray-light);
+
+        color: var(--color-primary);
+
+        &:hover {
+          background: color-mix(in srgb, var(--color-primary) 15%, var(--toolbar-button-color-bg));
+        }
+
+        &:active {
+          background: color-mix(in srgb, var(--color-primary) 30%, var(--toolbar-button-color-bg));
+        }
+      }
+    }
+  }
+
+  .toolbar__divider {
+    width: 3px;
+    background: color-mix(in srgb, var(--color-text) 10%, var(--color-surface));
+    margin: 0.25rem 0;
+    border-radius: 1px;
+  }
+}

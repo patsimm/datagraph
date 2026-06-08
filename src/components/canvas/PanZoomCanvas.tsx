@@ -18,6 +18,7 @@ export type PanZoomCanvasContext = {
   panByScreenPos: (x: number, y: number) => void;
   clientToCanvasPos(pos: ClientPosition): PanZoomCanvasPosition;
   clientToCanvasRect(clientRect: ClientRect): PanZoomCanvasRect;
+  canvasBoundingClientRect: () => DOMRect | null;
 };
 
 const defaultContextValue: PanZoomCanvasContext = {
@@ -30,6 +31,7 @@ const defaultContextValue: PanZoomCanvasContext = {
   clientToCanvasRect: () => {
     throw new Error("PanZoomCanvasContext not wired");
   },
+  canvasBoundingClientRect: () => null,
 };
 
 const context = React.createContext<PanZoomCanvasContext>(defaultContextValue);
@@ -96,6 +98,11 @@ export function PanZoomCanvas({
       };
     },
     [clientToCanvasPos]
+  );
+
+  const canvasBoundingClientRect = useCallback(
+    () => containerRef.current?.getBoundingClientRect() ?? null,
+    []
   );
 
   const makePointerEvent = useCallback(
@@ -173,6 +180,7 @@ export function PanZoomCanvas({
     clientToCanvasPos,
     panByScreenPos,
     clientToCanvasRect,
+    canvasBoundingClientRect,
   }));
 
   return (
@@ -235,6 +243,7 @@ export const PanZoomCanvasProvider = ({
         (canvasHandle.current ?? defaultContextValue).clientToCanvasPos(...args),
       clientToCanvasRect: (...args) =>
         (canvasHandle.current ?? defaultContextValue).clientToCanvasRect(...args),
+      canvasBoundingClientRect: () => canvasHandle.current?.canvasBoundingClientRect() ?? null,
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     []

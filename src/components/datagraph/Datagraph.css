@@ -34,3 +34,8 @@
     border: 1px solid var(--color-primary);
   }
 }
+
+.datagraph__context-menu-container {
+  z-index: 20;
+  position: absolute;
+}

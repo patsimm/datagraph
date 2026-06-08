@@ -17,6 +17,7 @@
 
   --color-primary: #3454d1;
   --color-accent: #e56399;
+  --color-red: #ff0026;
   --color-gray-light: #f5f5f5;
   --color-gray-dark: #1d1d2d;
   --color-text-light: #fff;
@@ -25,6 +26,9 @@
   --color-surface: var(--color-background);
   --color-text: var(--color-text-dark);
   --color-text-disabled: color-mix(in srgb, var(--color-text) 50%, var(--color-surface));
+  --shadow: drop-shadow(
+    0.25rem 0.25rem 0.5rem color-mix(in srgb, var(--color-gray-dark) 10%, transparent)
+  );
 
   background: var(--color-background);
   color: var(--color-text);

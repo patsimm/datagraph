@@ -43,3 +43,20 @@ export function getNodePortKeyFromElement(el: HTMLElement) {
   const portEl = el.closest("[data-port]") as HTMLElement;
   return portEl?.getAttribute("data-port");
 }
+
+export function waitForNode(nodeId: string): Promise<HTMLElement> {
+  let count = 0;
+  return new Promise((resolve, reject) => {
+    const check = () => {
+      count++;
+      try {
+        const el = getNodeElement(nodeId);
+        resolve(el);
+      } catch (e: unknown) {
+        if (count > 50) reject(e);
+        requestAnimationFrame(check);
+      }
+    };
+    requestAnimationFrame(check);
+  });
+}

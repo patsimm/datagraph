@@ -1,6 +1,6 @@
 import { useDatagraph } from "../../datagraph.context";
 import "./Datagraph.css";
-import { getNodeKeyFromElement, PortInfo } from "../node/node-utils";
+import { PortInfo } from "../node/node-utils";
 import { useClipboard } from "../../persistence/use-clipboard";
 import { ContextView } from "./ContextView";
 import { useSelection } from "../../selection.context";
@@ -12,141 +12,18 @@ import {
   PanZoomCanvasContext,
   PanZoomCanvasPointerEvent,
   PanZoomCanvasProvider,
-  usePanZoomCanvas,
 } from "../canvas/PanZoomCanvas";
 import { NodeInfo } from "../../audio-worklet/datagraph-audio-worklet-commands";
-import { Toolbar } from "./Toolbar";
+import { Toolbar } from "../toolbar/Toolbar";
 import { Edges } from "../edge/Edges";
 import { GhostEdgeProvider } from "../edge/ghost-edge.context";
-import { PanZoomCanvasRect, ClientRect } from "../canvas/utils";
+import { NodeCreationMenu } from "../toolbar/NodeCreationMenu";
+import { Modal } from "../Modal";
+import { NodeSelection, NodeSelectionHandle } from "./NodeSelection";
+import { ConfirmationDialog } from "../ConfirmationDialog";
 
-import React, { useCallback, useEffect, useImperativeHandle, useRef, useState } from "react";
-
-type NodeSelectionHandle = {
-  nodeSelectionPointerDown: (e: PanZoomCanvasPointerEvent) => boolean;
-};
-
-type NodeSelectionProps = {
-  disableSelection?: boolean;
-  onSelectionComplete?: (selectionClientRect: PanZoomCanvasRect) => void;
-  onSelectionChange?: (selectionClientRect: PanZoomCanvasRect) => void;
-  ref: React.Ref<NodeSelectionHandle>;
-};
-
-function NodeSelection({
-  ref,
-  disableSelection,
-  onSelectionChange,
-  onSelectionComplete,
-}: NodeSelectionProps) {
-  const [selectionRect, setSelectionRect] = useState<ClientRect | null>(null);
-  const { handleSelectionRangeChanged, handleRangeSelectionCompleted } = useSelection();
-  const { clientToCanvasRect } = usePanZoomCanvas();
-
-  const handlePointerDown = useCallback(
-    (e: React.PointerEvent) => {
-      if (disableSelection) return false;
-      if (e.button !== 0) return false;
-      const target = e.currentTarget as HTMLElement;
-      target.setPointerCapture(e.pointerId);
-      const startX = e.clientX;
-      const startY = e.clientY;
-      let moved = false;
-
-      const handlePointerMove = (e: PointerEvent) => {
-        const x = e.clientX;
-        const y = e.clientY;
-        const width = x - startX;
-        const height = y - startY;
-        const newRect = {
-          clientX: Math.min(startX, x),
-          clientY: Math.min(startY, y),
-          width: Math.abs(width),
-          height: Math.abs(height),
-        };
-        setSelectionRect(newRect);
-
-        const canvasRect = clientToCanvasRect(newRect);
-        onSelectionChange?.(canvasRect);
-        handleSelectionRangeChanged(canvasRect);
-        moved = true;
-      };
-
-      const handlePointerUp = (e: PointerEvent) => {
-        const x = e.clientX;
-        const y = e.clientY;
-        const width = x - startX;
-        const height = y - startY;
-        const newRect = {
-          clientX: Math.min(startX, x),
-          clientY: Math.min(startY, y),
-          width: Math.abs(width),
-          height: Math.abs(height),
-        };
-
-        if (moved) {
-          const canvasRect = clientToCanvasRect(newRect);
-          onSelectionComplete?.(canvasRect);
-          handleRangeSelectionCompleted(canvasRect);
-          const suppressClick = (ev: MouseEvent) => {
-            ev.stopPropagation();
-            document.removeEventListener("click", suppressClick, true);
-          };
-          document.addEventListener("click", suppressClick, true);
-        }
-        setSelectionRect(null);
-        handleSelectionRangeChanged(null);
-        const target = e.currentTarget as HTMLElement;
-        target.releasePointerCapture(e.pointerId);
-        target.removeEventListener("pointermove", handlePointerMove);
-        target.removeEventListener("pointerup", handlePointerUp);
-        target.removeEventListener("pointercancel", handlePointerCancel);
-      };
-
-      const handlePointerCancel = (e: PointerEvent) => {
-        const target = e.currentTarget as HTMLElement;
-        setSelectionRect(null);
-        handleSelectionRangeChanged(null);
-        target.removeEventListener("pointermove", handlePointerMove);
-        target.removeEventListener("pointerup", handlePointerUp);
-        target.removeEventListener("pointercancel", handlePointerCancel);
-      };
-
-      target.addEventListener("pointermove", handlePointerMove);
-      target.addEventListener("pointerup", handlePointerUp);
-      target.addEventListener("pointercancel", handlePointerUp);
-      return true;
-    },
-    [
-      clientToCanvasRect,
-      disableSelection,
-      handleRangeSelectionCompleted,
-      handleSelectionRangeChanged,
-      onSelectionChange,
-      onSelectionComplete,
-    ]
-  );
-
-  useImperativeHandle(ref, () => ({
-    nodeSelectionPointerDown: handlePointerDown,
-  }));
-
-  return (
-    <>
-      {selectionRect && (
-        <div
-          className="node-selection"
-          style={{
-            left: selectionRect.clientX,
-            top: selectionRect.clientY,
-            width: selectionRect.width,
-            height: selectionRect.height,
-          }}
-        />
-      )}
-    </>
-  );
-}
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import { IconTrash } from "@tabler/icons-react";
 
 export function Datagraph() {
   const ref = useRef<HTMLDivElement>(null);
@@ -155,10 +32,15 @@ export function Datagraph() {
   const { removeNode, injectOutputNode } = useNodes();
   const [outputNode, setOutputNode] = useState<NodeInfo | null>(null);
   const { disconnectPorts, disconnectNodes } = usePortConnections();
-  const { handleNodeSelected } = useSelection();
+  const { handleNodeSelected, selectedNodes } = useSelection();
   const { copy, paste } = useClipboard();
   const nodeSelectionHandleRef = useRef<NodeSelectionHandle>(null);
   const canvasHandle = useRef<PanZoomCanvasContext | null>(null);
+  const [contextMenuPosition, setContextMenuPosition] = useState<{ x: number; y: number } | null>(
+    null
+  );
+  const [isDeleteConfirmModalOpen, setDeleteConfirmModalOpen] = useState(false);
+  const [nodesToDelete, setNodesToDelete] = useState(0);
 
   const handlePointerDown = useCallback((e: PanZoomCanvasPointerEvent) => {
     nodeSelectionHandleRef.current?.nodeSelectionPointerDown(e);
@@ -201,20 +83,29 @@ export function Datagraph() {
         paste();
         return;
       }
-      const nodeId =
-        document.activeElement instanceof HTMLElement
-          ? getNodeKeyFromElement(document.activeElement)
-          : null;
-      if (!nodeId) return;
-      if (nodeId === outputNode?.nodeId) return;
       if (ev.key === "Backspace" || ev.key === "Delete") {
-        disconnectNodes(nodeId);
-        removeNode(nodeId);
-        handleNodeSelected(null);
+        const deletableNodes = selectedNodes.filter((id) => id !== outputNode?.nodeId);
+        if (deletableNodes.length === 0) return;
+        setNodesToDelete(deletableNodes.length);
+        setDeleteConfirmModalOpen(true);
       }
     },
-    [copy, paste, disconnectNodes, handleNodeSelected, outputNode?.nodeId, removeNode]
+    [copy, paste, outputNode?.nodeId, selectedNodes]
   );
+
+  const handleDeleteSelectedNodes = useCallback(() => {
+    const nodesToDelete = selectedNodes.filter((id) => id !== outputNode?.nodeId);
+    if (nodesToDelete.length === 0) return;
+    disconnectNodes(...nodesToDelete);
+    nodesToDelete.forEach(removeNode);
+    handleNodeSelected(null);
+    setDeleteConfirmModalOpen(false);
+  }, [disconnectNodes, handleNodeSelected, outputNode?.nodeId, removeNode, selectedNodes]);
+
+  const handleContextMenu = useCallback((ev: React.MouseEvent) => {
+    ev.preventDefault();
+    setContextMenuPosition({ x: ev.clientX, y: ev.clientY });
+  }, []);
 
   return (
     <PanZoomCanvasProvider canvasHandle={canvasHandle}>
@@ -222,7 +113,7 @@ export function Datagraph() {
         <div ref={ref} onKeyDown={handleKeyDown} className="datagraph" tabIndex={-1}>
           {outputNode && <Toolbar outputNode={outputNode} />}
           <ContextView />
-          <div className="datagraph__canvas">
+          <div className="datagraph__canvas" onContextMenu={handleContextMenu}>
             <NodeSelection ref={nodeSelectionHandleRef} />
             <PanZoomCanvas
               ref={canvasHandle}
@@ -236,6 +127,31 @@ export function Datagraph() {
               <Edges onEdgeClick={handleEdgeClick} />
             </PanZoomCanvas>
           </div>
+          {contextMenuPosition && (
+            <Modal onClose={() => setContextMenuPosition(null)}>
+              <div
+                className="datagraph__context-menu-container"
+                style={{ left: contextMenuPosition.x, top: contextMenuPosition.y }}
+              >
+                <NodeCreationMenu onClose={() => setContextMenuPosition(null)} />
+              </div>
+            </Modal>
+          )}
+          {isDeleteConfirmModalOpen && (
+            <ConfirmationDialog
+              title={`Delete ${nodesToDelete} node${nodesToDelete > 1 ? "s" : ""}?`}
+              text={`Do you want to delete the selected node${nodesToDelete > 1 ? "s" : ""}? This action cannot be undone.`}
+              confirmText={
+                <>
+                  <IconTrash size={15} /> Delete
+                </>
+              }
+              declineText="Cancel"
+              onConfirm={handleDeleteSelectedNodes}
+              onDecline={() => setDeleteConfirmModalOpen(false)}
+              onClose={() => setDeleteConfirmModalOpen(false)}
+            />
+          )}
         </div>
       </GhostEdgeProvider>
     </PanZoomCanvasProvider>
