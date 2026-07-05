@@ -2,6 +2,8 @@ import type { AnyParamNodeState, ParamNodeState } from "../../../node.types";
 import { SliderParamBody } from "./SliderParamBody";
 import { ButtonParamBody } from "./ButtonParamBody";
 import { InputParamBody } from "./InputParamBody";
+import { MIDINoteParamBody } from "./MIDINoteParamBody";
+import { MIDIGateParamBody } from "./MIDIGateParamBody";
 
 export function ParamBody({
   onChange,
@@ -23,6 +25,10 @@ export function ParamBody({
         return <ButtonParamBody {...getProps(node)} />;
       case "param:input":
         return <InputParamBody {...getProps(node)} />;
+      case "param:midinote":
+        return <MIDINoteParamBody {...getProps(node)} />;
+      case "param:midigate":
+        return <MIDIGateParamBody {...getProps(node)} />;
     }
   })();
 

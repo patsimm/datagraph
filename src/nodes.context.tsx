@@ -148,9 +148,9 @@ function useAllNodes() {
       if (!isParamNodeState(node)) {
         throw new Error(`Node ${nodeId} is not a param node`);
       }
-      const unit = node.settings.unit;
-      if (!unit) return;
-      setParamInGraph(nodeId, convertToCv(value, unit));
+      const unit = node.settings?.unit;
+      const cvValue = unit ? convertToCv(value, unit) : value;
+      setParamInGraph(nodeId, cvValue);
       updateNodeState(
         nodeId,
         (current) =>

@@ -61,8 +61,15 @@ export type ButtonParamNodeState = ParamNodeBase<
   }
 >;
 export type InputParamNodeState = ParamNodeBase<"param:input", { unit: Unit }>;
+export type MIDINoteParamNodeState = ParamNodeBase<"param:midinote", { unit: Unit }>;
+export type MIDIGateParamNodeState = ParamNodeBase<"param:midigate", { unit: Unit }>;
 
-export type AnyParamNodeState = SliderParamNodeState | ButtonParamNodeState | InputParamNodeState;
+export type AnyParamNodeState =
+  | SliderParamNodeState
+  | ButtonParamNodeState
+  | InputParamNodeState
+  | MIDINoteParamNodeState
+  | MIDIGateParamNodeState;
 export type ParamNodeState<T extends AnyParamNodeState["kind"]> = Extract<
   AnyParamNodeState,
   { kind: T }

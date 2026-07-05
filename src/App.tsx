@@ -4,6 +4,7 @@ import { LatestPortValueProvider } from "./components/node/latest-port-value.con
 import { EdgesProvider } from "./edges.context";
 import { NodesProvider } from "./nodes.context";
 import { SelectionProvider } from "./selection.context";
+import { MIDIProvider } from "./midi.context";
 
 export function App() {
   return (
@@ -12,7 +13,9 @@ export function App() {
         <NodesProvider>
           <EdgesProvider>
             <SelectionProvider>
-              <Datagraph />
+              <MIDIProvider>
+                <Datagraph />
+              </MIDIProvider>
             </SelectionProvider>
           </EdgesProvider>
         </NodesProvider>

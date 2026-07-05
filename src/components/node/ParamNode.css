@@ -1,20 +1,8 @@
 .node[data-kind^="param"] {
-  min-width: 8rem;
-
-  &[data-kind="param:input"] {
-    min-width: 6rem;
-    width: 6rem;
-  }
-
-  &[data-kind="param:button"] {
-    min-width: 6rem;
-    width: 6rem;
-  }
-
   & .node__value {
     text-overflow: ellipsis;
     text-wrap: nowrap;
-    color: color-mix(in srgb, var(--color-surface) 30%, var(--color-gray-dark));
+    color: color-mix(in srgb, var(--color-accent) 70%, var(--color-gray-light));
     overflow: hidden;
   }
 
@@ -60,6 +48,25 @@
     & .number-input {
       height: 1.5rem;
       width: 100%;
+    }
+  }
+
+  &[data-kind="param:input"] {
+    min-width: 6rem;
+    width: 6rem;
+  }
+
+  &[data-kind="param:button"] {
+    min-width: 6rem;
+    width: 6rem;
+  }
+
+  &[data-kind="param:midinote"],
+  &[data-kind="param:midigate"] {
+    width: 7rem;
+
+    & .node__body {
+      display: none;
     }
   }
 }

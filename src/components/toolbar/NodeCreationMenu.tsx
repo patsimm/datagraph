@@ -57,6 +57,20 @@ const paramNodes = [
     config: { value: 0 },
     settings: { unit: "raw" as const },
   },
+  {
+    category: "controls",
+    label: "MIDI Note",
+    kind: "param:midinote" as const,
+    config: { value: 60 },
+    settings: { unit: "frequency:midiNote" as const },
+  },
+  {
+    category: "controls",
+    label: "MIDI Gate",
+    kind: "param:midigate" as const,
+    config: { value: 0 },
+    settings: { unit: "raw" as const },
+  },
 ];
 
 function useRepositionIntoViewport(ref: React.RefObject<HTMLElement | null>) {
