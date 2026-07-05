@@ -6,7 +6,7 @@ export const OUTPUT_SENTINEL = "__output__";
 
 export type SerializedNodeState = Pick<
   AnyNodeState,
-  "kind" | "canvasX" | "canvasY" | "config" | "settings"
+  "kind" | "canvasX" | "canvasY" | "config" | "settings" | "name"
 > & { defaultInputValues: number[]; originalNodeId: string };
 
 export type SerializedGraphState = {
@@ -17,6 +17,7 @@ export type SerializedGraphState = {
 
 export function mapNodeStateToSerializedNodeState(nodeState: AnyNodeState): SerializedNodeState {
   return {
+    name: nodeState.name,
     originalNodeId: nodeState.nodeId,
     kind: nodeState.kind,
     canvasX: nodeState.canvasX,

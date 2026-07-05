@@ -57,19 +57,9 @@
       accent-color: var(--input-accent-color);
     }
 
-    & input[type="number"] {
+    & .number-input {
+      height: 1.5rem;
       width: 100%;
-      text-align: right;
-      padding: 0 0.25rem;
-
-      /* Firefox */
-      appearance: textfield;
-
-      &::-webkit-outer-spin-button,
-      &::-webkit-inner-spin-button {
-        appearance: none;
-        margin: 0;
-      }
     }
   }
 }

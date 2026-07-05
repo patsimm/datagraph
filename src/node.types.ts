@@ -19,6 +19,7 @@ export type NodeInputPortState = Extract<NodePortState, { type: "in" }>;
 export type NodeOutputPortState = Extract<NodePortState, { type: "out" }>;
 
 export type NodeStateBase<T extends string, C = undefined, S = undefined> = {
+  name?: string;
   kind: T;
   nodeId: string;
   inputPorts: NodeInputPortState[];

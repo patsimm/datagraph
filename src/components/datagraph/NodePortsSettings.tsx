@@ -5,11 +5,11 @@ import { DataField } from "../DataField";
 import "./NodePortsSettings.css";
 import { NumberInput } from "../NumberInput";
 
-import { Fragment, useMemo, useState } from "react";
-import { IconArrowBackUp } from "@tabler/icons-react";
+import { useMemo, useState } from "react";
 import classNames from "classnames";
+import { PortType } from "@patsimm/datagraph-core";
 
-export type NodeInputViewProps = {
+export type NodeInputPortSettingsProps = {
   node: AnyNodeState;
   onDefaultValueChange: (port: number, value: number) => void;
   onDefaultValueReset: (port: number) => void;
@@ -23,91 +23,95 @@ function LiveValue({ portInfo }: { portInfo: PortInfo }) {
   return <>{value.toFixed(4)}</>;
 }
 
-export function NodePortsSettings({
+export function NodeInputPortsSettings({
   node,
   onDefaultValueChange,
   onDefaultValueReset,
-}: NodeInputViewProps) {
-  const inputPortInfos = useMemo(
+}: NodeInputPortSettingsProps) {
+  const portInfos = useMemo(
     () => [
       ...Array.from({ length: node.inputPorts.length }, (_, i) => ({
         nodeId: node.nodeId,
         port: i,
-        portType: "in" as const,
+        portType: "in" as PortType,
       })),
     ],
     [node.inputPorts.length, node.nodeId]
   );
 
-  const outputPortInfos = useMemo(
+  return (
+    <div
+      className={classNames("node-ports-settings", {
+        "node-ports-settings--empty": node.inputPorts.length === 0,
+      })}
+    >
+      {portInfos.map((port, i) => (
+        <div className="node-ports-settings__port" key={portKey(port)}>
+          <h3>{node.inputPorts[i].name}</h3>
+          <div className="node-ports-settings__datafields">
+            <DataField
+              label="Fallback"
+              value={
+                <NumberInput
+                  value={node.inputPorts[i].defaultValue}
+                  onChange={(value) => onDefaultValueChange(i, value)}
+                  onReset={() => onDefaultValueReset(i)}
+                  resetable
+                  dirty={node.inputPorts[i].isDefaultModified}
+                  disabled={node.inputPorts[i].connectedTo.length != 0}
+                />
+              }
+            />
+            <DataField
+              className="node-ports-settings__live-data"
+              label="Live"
+              value={<LiveValue portInfo={port} />}
+            />
+          </div>
+        </div>
+      ))}
+      {node.inputPorts.length === 0 && (
+        <div className="node-ports-settings__absent-text">No input ports</div>
+      )}
+    </div>
+  );
+}
+
+export type NodeOutputPortsSettingsProps = {
+  node: AnyNodeState;
+};
+
+export function NodeOutputPortsSettings({ node }: NodeOutputPortsSettingsProps) {
+  const portInfos = useMemo(
     () => [
       ...Array.from({ length: node.outputPorts.length }, (_, i) => ({
         nodeId: node.nodeId,
         port: i,
-        portType: "out" as const,
+        portType: "out" as PortType,
       })),
     ],
-    [node.nodeId, node.outputPorts.length]
+    [node.outputPorts.length, node.nodeId]
   );
 
   return (
-    <>
-      <div
-        className={classNames("node-ports-settings contextview__section", {
-          "node-ports-settings--empty": node.inputPorts.length === 0,
-        })}
-      >
-        <h2>Inputs</h2>
-        {inputPortInfos.map((port, i) => (
-          <Fragment key={portKey(port)}>
-            <h3>{node.inputPorts[i].name}</h3>
-            <DataField
-              label="default"
-              value={
-                <div
-                  className={classNames("node-ports-settings__default-field", {
-                    "node-ports-settings__default-field--unmodified":
-                      !node.inputPorts[i].isDefaultModified,
-                  })}
-                >
-                  <NumberInput
-                    value={node.inputPorts[i].defaultValue}
-                    onChange={(value) => onDefaultValueChange(i, value)}
-                  />
-                  <button
-                    className="node-ports-settings__reset-btn"
-                    onClick={() => onDefaultValueReset(i)}
-                    title="Reset to default"
-                    disabled={!node.inputPorts[i].isDefaultModified}
-                  >
-                    <IconArrowBackUp className="node-ports-settings__reset-btn-icon" />
-                  </button>
-                </div>
-              }
-            />
-            <DataField label="live" value={<LiveValue portInfo={port} />} />
-          </Fragment>
-        ))}
-        {node.inputPorts.length === 0 && (
-          <div className="node-ports-settings__absent-text">No input ports</div>
-        )}
-      </div>
-      <div
-        className={classNames("node-ports-settings contextview__section", {
-          "node-ports-settings--empty": node.outputPorts.length === 0,
-        })}
-      >
-        <h2>Outputs</h2>
-        {node.outputPorts.map((port, i) => (
-          <Fragment key={portKey({ nodeId: node.nodeId, port: i, portType: "out" })}>
-            <h3>{port.name}</h3>
-            <DataField label="live" value={<LiveValue portInfo={outputPortInfos[i]} />} />
-          </Fragment>
-        ))}
-        {node.outputPorts.length === 0 && (
-          <div className="node-ports-settings__absent-text">No output ports</div>
-        )}
-      </div>
-    </>
+    <div
+      className={classNames("node-ports-settings", {
+        "node-ports-settings--empty": node.outputPorts.length === 0,
+      })}
+    >
+      {portInfos.map((port, i) => (
+        <div className="node-ports-settings__port" key={portKey(port)}>
+          <h3>{node.outputPorts[i].name}</h3>
+          <DataField
+            className="node-ports-settings__live-data"
+            label="Live"
+            value={<LiveValue portInfo={port} />}
+          />
+        </div>
+      ))}
+      {node.outputPorts.length === 0 && (
+        <div className="node-ports-settings__absent-text">No output ports</div>
+      )}
+    </div>
   );
 }

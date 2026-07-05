@@ -5,8 +5,9 @@
   width: 100%;
   height: 100%;
   display: grid;
-  grid-template-columns: 1fr 300px;
-  grid-template-rows: auto 1fr;
+  grid-template:
+    "toolbar toolbar" auto
+    "canvas  sidebar" 1fr / 1fr 300px;
   overflow: hidden;
 
   @media (width < 800px) {
@@ -14,18 +15,21 @@
   }
 
   .toolbar {
-    grid-column: 1 / -2;
+    grid-area: toolbar;
   }
 
   .datagraph__canvas {
-    grid-column: 1 / 2;
-    grid-row: 2 / -1;
+    grid-area: canvas;
     overflow: hidden;
   }
 
-  .contextview {
-    grid-column: 2 / -1;
-    grid-row: 1 / -1;
+  .datagraph__sidebar {
+    grid-area: sidebar;
+    padding: var(--spacing-2);
+    padding-left: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
   }
 
   .node-selection {

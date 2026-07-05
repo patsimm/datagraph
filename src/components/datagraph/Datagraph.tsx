@@ -26,7 +26,7 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import { IconTrash } from "@tabler/icons-react";
 
 export function Datagraph() {
-  const ref = useRef<HTMLDivElement>(null);
+  const sidebarRef = useRef<HTMLDivElement>(null);
   const datagraph = useDatagraph();
   const { ready } = datagraph;
   const { removeNode, injectOutputNode } = useNodes();
@@ -71,8 +71,18 @@ export function Datagraph() {
     [handleNodeSelected]
   );
 
-  const handleKeyDown = useCallback(
-    (ev: React.KeyboardEvent) => {
+  useEffect(() => {
+    const handleKeyDown = (ev: KeyboardEvent) => {
+      const target = document.activeElement;
+      const isEditable =
+        target instanceof HTMLElement &&
+        (target.tagName === "INPUT" ||
+          target.tagName === "TEXTAREA" ||
+          target.tagName === "SELECT" ||
+          target.isContentEditable);
+      // Never hijack shortcuts while the user is typing in a field.
+      if (isEditable) return;
+
       if ((ev.metaKey || ev.ctrlKey) && ev.key === "c") {
         ev.preventDefault();
         copy();
@@ -84,14 +94,17 @@ export function Datagraph() {
         return;
       }
       if (ev.key === "Backspace" || ev.key === "Delete") {
+        // Delete is destructive: don't trigger it while working in the sidebar.
+        if (sidebarRef.current?.contains(target)) return;
         const deletableNodes = selectedNodes.filter((id) => id !== outputNode?.nodeId);
         if (deletableNodes.length === 0) return;
         setNodesToDelete(deletableNodes.length);
         setDeleteConfirmModalOpen(true);
       }
-    },
-    [copy, paste, outputNode?.nodeId, selectedNodes]
-  );
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [copy, paste, outputNode?.nodeId, selectedNodes]);
 
   const handleDeleteSelectedNodes = useCallback(() => {
     const nodesToDelete = selectedNodes.filter((id) => id !== outputNode?.nodeId);
@@ -110,18 +123,17 @@ export function Datagraph() {
   return (
     <PanZoomCanvasProvider canvasHandle={canvasHandle}>
       <GhostEdgeProvider>
-        <div ref={ref} onKeyDown={handleKeyDown} className="datagraph" tabIndex={-1}>
+        <div className="datagraph">
           {outputNode && <Toolbar outputNode={outputNode} />}
-          <ContextView />
+          <div ref={sidebarRef} className="datagraph__sidebar">
+            <ContextView />
+          </div>
           <div className="datagraph__canvas" onContextMenu={handleContextMenu}>
             <NodeSelection ref={nodeSelectionHandleRef} />
             <PanZoomCanvas
               ref={canvasHandle}
               onPointerDown={handlePointerDown}
-              onClick={() => {
-                handleNodeSelected(null);
-                ref.current?.focus();
-              }}
+              onClick={() => handleNodeSelected(null)}
             >
               <Nodes onNodeClick={handleNodeClick} />
               <Edges onEdgeClick={handleEdgeClick} />

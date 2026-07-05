@@ -1,8 +1,8 @@
 .node-port {
   --node-port-border-radius: var(--node-borer-radius);
-  --node-port-color-connected: color-mix(in srgb, var(--color-surface) 80%, var(--color-gray-dark));
-  --node-port-color-input: color-mix(in srgb, var(--color-surface) 30%, var(--color-gray-light));
-  --node-port-color-output: color-mix(in srgb, var(--color-surface) 30%, var(--color-gray-dark));
+  --node-port-color-connected: var(--color-gray-dark);
+  --node-port-color-input: var(--color-primary-light);
+  --node-port-color-output: var(--color-primary-dark);
 
   position: relative;
   pointer-events: auto;

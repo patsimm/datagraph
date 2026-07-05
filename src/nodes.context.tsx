@@ -1,5 +1,11 @@
 import { useDatagraph } from "./datagraph.context";
 import {
+  NodeInfo,
+  PASSTHROUGH_TYPENAME,
+  NodeRemovedEvent,
+  WasmNodeInfo,
+} from "./audio-worklet/datagraph-audio-worklet-commands";
+import {
   AnyParamNodeState,
   isNodeStateOfKind,
   isParamKind,
@@ -9,12 +15,10 @@ import {
   type NodeKind,
   type NodeState,
 } from "./node.types";
-import {
-  NodeInfo,
-  PASSTHROUGH_TYPENAME,
-  NodeRemovedEvent,
-  WasmNodeInfo,
-} from "./audio-worklet/datagraph-audio-worklet-commands";
+import { convertToCv } from "./unit-conversion";
+import { isPointInRect, PanZoomCanvasPosition, PanZoomCanvasRect } from "./components/canvas/utils";
+
+import { useState, useCallback, useEffect, createContext, useContext } from "react";
 
 function toNodeInfo(wasmInfo: WasmNodeInfo): NodeInfo {
   return {
@@ -25,10 +29,6 @@ function toNodeInfo(wasmInfo: WasmNodeInfo): NodeInfo {
     defaultInputValues: [...wasmInfo.defaultInputValues] as number[],
   };
 }
-import { convertToCv } from "./unit-conversion";
-import { isPointInRect, PanZoomCanvasPosition, PanZoomCanvasRect } from "./components/canvas/utils";
-
-import { useState, useCallback, useEffect, createContext, useContext } from "react";
 
 export type {
   AnyNodeState,
@@ -37,6 +37,7 @@ export type {
 } from "./node.types";
 
 type PendingCreation = {
+  name: string;
   kind: NodeKind;
   position: PanZoomCanvasPosition;
   config: unknown;
@@ -44,7 +45,7 @@ type PendingCreation = {
 };
 
 function buildNodeState(info: NodeInfo, pending: PendingCreation): AnyNodeState {
-  const { kind, position, config, settings } = pending;
+  const { kind, position, config, settings, name } = pending;
   if (isParamKind(kind)) {
     const typedConfig = config as { value: number };
     return {
@@ -56,6 +57,7 @@ function buildNodeState(info: NodeInfo, pending: PendingCreation): AnyNodeState 
       ...position,
       config: { value: typedConfig.value },
       settings,
+      name,
     } as AnyNodeState;
   } else if (isVisualizerKind(kind)) {
     return {
@@ -69,6 +71,7 @@ function buildNodeState(info: NodeInfo, pending: PendingCreation): AnyNodeState 
       ...position,
       settings: undefined,
       config: undefined,
+      name,
     } as AnyNodeState;
   } else {
     return {
@@ -90,6 +93,7 @@ function buildNodeState(info: NodeInfo, pending: PendingCreation): AnyNodeState 
       config,
       settings: undefined,
       ...position,
+      name,
     } as AnyNodeState;
   }
 }
@@ -161,6 +165,7 @@ function useAllNodes() {
 
   const addNode = useCallback(
     <T extends NodeKind>(
+      name: string,
       kind: T,
       position: PanZoomCanvasPosition,
       config: NodeState<T>["config"],
@@ -187,7 +192,7 @@ function useAllNodes() {
 
       if (!wasmInfo) return Promise.resolve(null);
       const info = toNodeInfo(wasmInfo);
-      const pending: PendingCreation = { kind, position, config, settings };
+      const pending: PendingCreation = { name, kind, position, config, settings };
       setNodes((prev) => ({ ...prev, [info.nodeId]: buildNodeState(info, pending) }));
       return Promise.resolve(info);
     },
@@ -202,26 +207,24 @@ function useAllNodes() {
     [ready, removeNodeFromGraph]
   );
 
-  const injectOutputNode = useCallback(
-    (info: NodeInfo, position: PanZoomCanvasPosition) => {
-      setNodes((prev) => ({
-        ...prev,
-        [info.nodeId]: {
-          kind: "output",
-          nodeId: info.nodeId,
-          rustNodeType: info.nodeType,
-          inputPorts: [
-            { type: "in", name: "input", connectedTo: [], defaultValue: 0, isDefaultModified: false },
-          ],
-          outputPorts: [],
-          settings: undefined,
-          config: undefined,
-          ...position,
-        } as AnyNodeState,
-      }));
-    },
-    []
-  );
+  const injectOutputNode = useCallback((info: NodeInfo, position: PanZoomCanvasPosition) => {
+    setNodes((prev) => ({
+      ...prev,
+      [info.nodeId]: {
+        name: "Speaker",
+        kind: "output",
+        nodeId: info.nodeId,
+        rustNodeType: info.nodeType,
+        inputPorts: [
+          { type: "in", name: "input", connectedTo: [], defaultValue: 0, isDefaultModified: false },
+        ],
+        outputPorts: [],
+        settings: undefined,
+        config: undefined,
+        ...position,
+      } as AnyNodeState,
+    }));
+  }, []);
 
   const getNode = useCallback(
     (nodeId: string) => {
@@ -325,6 +328,7 @@ function useAllNodes() {
 const nodesContext = createContext<{
   nodes: { [nodeId: string]: AnyNodeState };
   addNode: <T extends NodeKind>(
+    name: string,
     kind: T,
     position: PanZoomCanvasPosition,
     config: NodeState<T>["config"],

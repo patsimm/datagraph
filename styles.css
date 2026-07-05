@@ -15,20 +15,43 @@
   /* --color-primary: #00a5e0;
   --color-accent: #f40076; */
 
-  --color-primary: #3454d1;
+  --color-primary: oklch(50.1% 0.196 267.592deg);
+  --color-primary-light: oklch(70.1% 0.196 267.592deg);
+  --color-primary-dark: oklch(30.1% 0.196 267.592deg);
+  --color-25: oklch(23% 0.07 267.592deg);
+  --color-50: oklch(37% 0.07 267.592deg);
+  --color-100: oklch(46.5% 0.066 267.592deg);
+  --color-200: oklch(57.2% 0.058 267.592deg);
+  --color-300: oklch(61.9% 0.051 267.592deg);
+  --color-400: oklch(66.6% 0.044 267.592deg);
+  --color-500: oklch(71.4% 0.037 267.592deg);
+  --color-600: oklch(76.1% 0.03 267.592deg);
+  --color-700: oklch(80.8% 0.024 267.592deg);
+  --color-800: oklch(85.5% 0.018 267.592deg);
+  --color-900: oklch(90.3% 0.012 267.592deg);
+  --color-950: oklch(95% 0.006 267.592deg);
   --color-accent: #e56399;
   --color-red: #ff0026;
-  --color-gray-light: #f5f5f5;
-  --color-gray-dark: #1d1d2d;
+  --color-gray-light: var(--color-950);
+  --color-gray-dark: var(--color-25);
   --color-text-light: #fff;
   --color-text-dark: #000;
-  --color-background: color-mix(in srgb, var(--color-gray-light) 90%, var(--color-gray-dark));
+  --color-background: var(--color-950);
   --color-surface: var(--color-background);
   --color-text: var(--color-text-dark);
-  --color-text-disabled: color-mix(in srgb, var(--color-text) 50%, var(--color-surface));
   --shadow: drop-shadow(
-    0.25rem 0.25rem 0.5rem color-mix(in srgb, var(--color-gray-dark) 10%, transparent)
+    0.25rem 0.25rem 0 color-mix(in srgb, var(--color-gray-dark) 10%, transparent)
   );
+  --border: 1px solid var(--color-primary);
+  --border-radius: 0.125rem;
+  --spacing-base: 0.25rem;
+  --spacing-half: calc(var(--spacing-base) * 0.5);
+  --spacing-1: calc(var(--spacing-base) * 1);
+  --spacing-2: calc(var(--spacing-base) * 2);
+  --spacing-3: calc(var(--spacing-base) * 3);
+  --spacing-4: calc(var(--spacing-base) * 4);
+  --spacing-6: calc(var(--spacing-base) * 6);
+  --spacing-8: calc(var(--spacing-base) * 8);
 
   background: var(--color-background);
   color: var(--color-text);
@@ -53,35 +76,4 @@ body,
 body.dragging,
 body.dragging * {
   cursor: grabbing !important;
-}
-
-input,
-select,
-textarea,
-.datafield {
-  --input-color-background: color-mix(in srgb, var(--color-gray-dark) 70%, var(--color-surface));
-  --input-color-background-disabled: color-mix(
-    in srgb,
-    var(--color-gray-dark) 40%,
-    var(--color-surface)
-  );
-}
-
-input,
-select,
-textarea {
-  background: var(--input-color-background);
-  border: none;
-  color: var(--color-text);
-  caret-color: var(--color-text);
-  font-family: "DM mono", monospace;
-  font-size: inherit;
-  border-radius: 0.125rem;
-  height: 1.25rem;
-  padding: 0 0.25rem;
-
-  &:disabled {
-    background-color: var(--input-color-background-disabled);
-    color: var(--color-text-disabled);
-  }
 }

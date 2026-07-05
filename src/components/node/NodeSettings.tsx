@@ -47,12 +47,7 @@ export function NodeSettings<T extends NodeKind>(props: NodeSettingsProps<T>) {
     }
   })();
 
-  return (
-    <div className="nodesettings contextview__section">
-      <h2>Settings</h2>
-      {SettingsComponent}
-    </div>
-  );
+  return <div className="node-settings">{SettingsComponent}</div>;
 }
 
 function SliderParamNodeSettings(props: NodeSettingsComponentProps<"param:slider">) {

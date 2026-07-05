@@ -1,10 +1,13 @@
 .node-creation-menu {
   --color-background: var(--color-gray-light);
-  --node-creation-menu-padding: 0.5rem;
+  --node-creation-menu-spacing-md: 0.5rem;
+  --node-creation-menu-spacing-sm: 0.25rem;
+  --node-creation-menu-spacing-xs: 0.125rem;
   --color-hover: color-mix(in srgb, var(--color-primary) 15%, var(--color-surface));
 
   position: absolute;
   margin: 0;
+  margin-top: var(--node-creation-menu-spacing-sm);
   top: 100%;
   left: 0;
   background: var(--color-background);
@@ -13,13 +16,22 @@
   flex-direction: column;
   max-height: 500px;
   align-items: stretch;
-  padding: calc(var(--node-creation-menu-padding) / 2);
+  padding: var(--node-creation-menu-spacing-sm) 0;
+  border: var(--border);
+  border-radius: var(--border-radius);
   filter: var(--shadow);
 
   .node-creation-menu__label {
+    width: 100%;
     font-size: 1rem;
-    font-weight: 500;
     margin: 0;
+    display: inline-flex;
+    justify-content: space-between;
+    align-items: center;
+
+    svg {
+      margin-left: 1rem;
+    }
   }
 
   .node-creation-menu__items-wrapper {
@@ -27,26 +39,25 @@
     position: absolute;
     top: 0;
     left: 100%;
-    padding: 0 var(--node-creation-menu-padding);
-    background: transparent;
+    margin-left: calc(0px - var(--node-creation-menu-spacing-xs));
   }
 
   .node-creation-menu__items {
-    padding: calc(var(--node-creation-menu-padding) * 1.5);
+    padding: calc(var(--node-creation-menu-spacing-md) * 1.5);
     background: var(--color-background);
     display: flex;
     flex-direction: column;
-    gap: var(--node-creation-menu-padding);
+    gap: var(--node-creation-menu-spacing-md);
     align-items: flex-start;
+    border: var(--border);
+    border-radius: var(--border-radius);
+    filter: var(--shadow);
   }
 
   .node-creation-menu__section {
     position: relative;
-    display: flex;
-    flex-direction: column;
-    gap: 0.625rem;
-    flex: 1;
-    padding: var(--node-creation-menu-padding);
+    padding: var(--node-creation-menu-spacing-sm) var(--node-creation-menu-spacing-sm)
+      var(--node-creation-menu-spacing-sm) var(--node-creation-menu-spacing-md);
 
     &:hover {
       background: color-mix(in srgb, var(--color-primary) 15%, var(--color-background));

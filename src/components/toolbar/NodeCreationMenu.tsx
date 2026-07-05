@@ -6,6 +6,7 @@ import { usePanZoomCanvas } from "../canvas/PanZoomCanvas";
 import { waitForNode } from "../node/node-utils";
 import "./NodeCreationMenu.css";
 
+import { IconChevronRight } from "@tabler/icons-react";
 import classNames from "classnames";
 import { useCallback, useLayoutEffect, useMemo, useRef } from "react";
 
@@ -128,6 +129,7 @@ export function NodeCreationMenu({ onClose, className }: NodeCreationMenuProps) 
 
   const handleAddNodePointerDown = useCallback(
     async <T extends NodeKind>(
+      name: string,
       kind: T,
       config: NodeState<T>["config"],
       settings: NodeState<T>["settings"],
@@ -135,7 +137,7 @@ export function NodeCreationMenu({ onClose, className }: NodeCreationMenuProps) 
     ) => {
       ev.currentTarget.setPointerCapture(ev.pointerId);
       const position = panZoomCanvas.clientToCanvasPos(ev);
-      const info = await addNode(kind, position, config, settings);
+      const info = await addNode(name, kind, position, config, settings);
       if (!info) return;
 
       onClose?.();
@@ -198,6 +200,7 @@ type NodeCreationMenuSectionProps<T extends NodeKind> = {
     settings: NodeState<T>["settings"];
   }[];
   onAddNodePointerDown: (
+    name: string,
     kind: T,
     config: NodeState<T>["config"],
     settings: NodeState<T>["settings"],
@@ -226,6 +229,7 @@ function NodeCreationMenuSection<T extends NodeKind>({
     >
       <div role="presentation" className="node-creation-menu__label">
         {category.charAt(0).toUpperCase() + category.slice(1)}
+        <IconChevronRight size={16} />
       </div>
       <div className="node-creation-menu__items-wrapper" ref={ref}>
         <div className="node-creation-menu__items">
@@ -236,7 +240,7 @@ function NodeCreationMenuSection<T extends NodeKind>({
                 key={label}
                 role="menuitem"
                 className="node-creation-menu__add-node-button"
-                onPointerDown={(ev) => onAddNodePointerDown(kind, config, settings, ev)}
+                onPointerDown={(ev) => onAddNodePointerDown(label, kind, config, settings, ev)}
               >
                 {label}
               </button>

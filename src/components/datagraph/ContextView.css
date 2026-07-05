@@ -1,68 +1,44 @@
 .contextview {
-  --contextview-color-bg: var(--color-primary);
-  --contextview-padding: 0.75rem;
-  --color-text: var(--color-text-light);
-  --color-text-alternative: var(--color-text-dark);
-  --color-text-disabled: color-mix(in srgb, var(--color-text) 50%, var(--color-surface));
-  --color-surface: var(--contextview-color-bg);
+  --contextview-padding: var(--spacing-6);
 
   padding: var(--contextview-padding);
   width: 100%;
   height: 100%;
-  background-color: var(--color-surface);
-  color: var(--color-text);
+  background-color: var(--color-800);
+  color: var(--color-text-dark);
   display: flex;
   flex-direction: column;
-  gap: var(--contextview-padding);
+  gap: var(--spacing-6);
   cursor: auto;
   pointer-events: auto;
   user-select: auto;
-  overflow-y: auto;
+  overflow: hidden auto;
   touch-action: pinch-zoom;
+  border-radius: 8px;
 
-  & .contextview__header {
-    & .contextview__title {
-      margin: 0;
-      font-size: 1.25rem;
-      font-weight: bold;
-    }
-
-    & .contextview__classpath {
-      color: color-mix(in srgb, var(--color-text) 70%, var(--color-surface));
-    }
-
-    & .contextview__classname {
-      font-weight: bold;
-    }
-
-    & .contextview__nodeid {
-      color: color-mix(in srgb, var(--color-surface) 40%, var(--color-text-alternative));
-      font-family: "DM Mono", monospace;
-      font-size: 0.8rem;
-    }
+  & .contextview__title {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: bold;
   }
 
   & h2 {
-    text-transform: uppercase;
     font-weight: 600;
     font-size: 1rem;
-    margin-bottom: 0;
-    margin-top: var(--contextview-padding);
-  }
-
-  & h3 {
-    font-size: 0.8rem;
     margin: 0;
-    margin-bottom: -0.25rem;
-    text-transform: uppercase;
-    width: 100%;
-    text-align: right;
-    color: color-mix(in srgb, var(--color-text-alternative) 40%, var(--color-surface));
   }
 
   & .contextview__section {
     display: flex;
     flex-direction: column;
-    gap: calc(var(--contextview-padding) * 1 / 3);
+    gap: var(--spacing-4);
+  }
+
+  & .contextview__divider {
+    width: calc(100% + calc(var(--contextview-padding) * 2));
+    height: var(--spacing-1);
+    background-color: var(--color-900);
+    margin-left: calc(0px - var(--contextview-padding));
+    flex-shrink: 0;
   }
 }

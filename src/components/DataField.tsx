@@ -1,8 +1,15 @@
+import classNames from "classnames";
 import "./DataField.css";
 
-export function DataField({ label, value }: { label: string; value: React.ReactNode }) {
+export type DataFieldProps = {
+  label: string;
+  value: React.ReactNode;
+  className?: string;
+};
+
+export function DataField({ label, value, className }: DataFieldProps) {
   return (
-    <div className="datafield">
+    <div className={classNames("datafield", className)}>
       <div className="datafield__label">{label}</div>
       <div className="datafield__value">{value}</div>
     </div>

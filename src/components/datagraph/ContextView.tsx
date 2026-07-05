@@ -3,7 +3,7 @@ import { useSelection } from "../../selection.context";
 import { isParamNodeState, NodeKind, NodeState, ParamKind } from "../../node.types";
 import "./ContextView.css";
 import { NodeSettings } from "../node/NodeSettings";
-import { NodePortsSettings } from "./NodePortsSettings";
+import { NodeInputPortsSettings, NodeOutputPortsSettings } from "./NodePortsSettings";
 
 import { useCallback } from "react";
 
@@ -13,10 +13,6 @@ export function ContextView() {
 
   const nodes = getSelectedNodeStates();
   const node = nodes.length === 1 ? nodes[0] : null;
-
-  const rustNodeType = node?.rustNodeType;
-  const classname = rustNodeType?.split("::").slice(-1)[0];
-  const classpath = rustNodeType?.split("::").slice(0, -1).join("::") + "::" || "";
 
   const selectedNodeId = node?.nodeId || null;
 
@@ -49,25 +45,36 @@ export function ContextView() {
       )}
       {node && selectedNodeId && (
         <>
-          <div className="contextview__header">
-            <h1 className="contextview__title">{node.kind}</h1>
-            <span className="contextview__classpath">{classpath}</span>
-            <span className="contextview__classname">{classname}</span>
-            <div className="contextview__nodeid">#{selectedNodeId}</div>
-          </div>
-          <NodePortsSettings
-            onDefaultValueChange={(port, value) => setDefaultInputValue(node.nodeId, port, value)}
-            onDefaultValueReset={(port) => resetDefaultInputValue(node.nodeId, port)}
-            node={node}
-          />
+          <h1 className="contextview__title">{node.name}</h1>
           {isParamNodeState(node) && (
-            <NodeSettings
-              node={node}
-              onChange={(key, value) =>
-                handleNodeSettingChange<ParamKind>(selectedNodeId, key, value)
-              }
-            />
+            <>
+              <div className="contextview__divider" />
+              <div className="contextview__section">
+                <h2 className="contextview__section-title">Settings</h2>
+                <NodeSettings
+                  node={node}
+                  onChange={(key, value) =>
+                    handleNodeSettingChange<ParamKind>(selectedNodeId, key, value)
+                  }
+                />
+              </div>
+            </>
           )}
+
+          <div className="contextview__divider" />
+          <div className="contextview__section">
+            <h2 className="contextview__section-title">Input Ports</h2>
+            <NodeInputPortsSettings
+              onDefaultValueChange={(port, value) => setDefaultInputValue(node.nodeId, port, value)}
+              onDefaultValueReset={(port) => resetDefaultInputValue(node.nodeId, port)}
+              node={node}
+            />
+          </div>
+          <div className="contextview__divider" />
+          <div className="contextview__section">
+            <h2 className="contextview__section-title">Output Ports</h2>
+            <NodeOutputPortsSettings node={node} />
+          </div>
         </>
       )}
     </aside>

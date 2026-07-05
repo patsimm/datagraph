@@ -19,6 +19,7 @@ export function useRestoreNodes() {
       for (const nodeState of nodes) {
         if (idMap.has(nodeState.originalNodeId)) continue;
         const newInfo = await addNode(
+          nodeState.name ?? nodeState.kind,
           nodeState.kind,
           { canvasX: nodeState.canvasX, canvasY: nodeState.canvasY },
           nodeState.config,

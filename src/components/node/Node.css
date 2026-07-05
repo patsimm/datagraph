@@ -1,19 +1,13 @@
 .node {
-  --node-color-bg: var(--color-primary);
-  --node-padding: 0.325rem;
-  --node-border-radius: 0.075rem;
-  --color-surface: var(--node-color-bg);
-  --color-text: var(--color-text-light);
-  --color-disabled: color-mix(in srgb, var(--color-text) 50%, var(--color-surface));
   --node-input-ports: 0;
   --node-output-ports: 0;
-  --node-port-size: 10px;
-  --node-port-hover-target-extend: 0.5rem;
+  --node-port-size: var(--spacing-3);
+  --node-port-hover-target-extend: var(--spacing-2);
 
   position: absolute;
-  background: var(--color-surface);
-  color: var(--color-text);
-  border-radius: var(--node-border-radius);
+  background: var(--color-primary);
+  color: var(--color-text-light);
+  border-radius: var(--border-radius);
   font-size: 0.8rem;
   cursor: default;
   z-index: 2;
@@ -60,13 +54,13 @@
     & .node__content {
       display: flex;
       flex-direction: column;
-      padding: calc(var(--node-padding) + 0.125rem) var(--node-padding);
-      gap: var(--node-padding);
+      padding: var(--spacing-2) var(--spacing-3);
+      gap: var(--spacing-2);
 
       & .node__head {
         display: flex;
         flex-direction: row;
-        gap: var(--node-padding);
+        gap: var(--spacing-2);
         padding: 0;
 
         & .node__label {
@@ -81,7 +75,6 @@
 
       & .node__body {
         display: flex;
-        flex: 1;
 
         & input {
           pointer-events: auto;
@@ -92,11 +85,11 @@
 
   &.node--selected {
     box-sizing: content-box;
-    border: 3px solid color-mix(in srgb, var(--color-accent) 70%, var(--color-gray-light));
+    border: 3px solid var(--color-accent);
   }
 
   &.node--in-selection-range {
     box-sizing: content-box;
-    border: 3px solid color-mix(in srgb, var(--color-accent) 70%, var(--color-gray-dark));
+    border: 3px solid var(--color-accent);
   }
 }
