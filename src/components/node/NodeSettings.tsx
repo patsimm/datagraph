@@ -44,6 +44,13 @@ export function NodeSettings<T extends NodeKind>(props: NodeSettingsProps<T>) {
             onChange={props.onChange as NodeSettingsComponentProps<"param:input">["onChange"]}
           />
         );
+      case "param:midicc":
+        return (
+          <MIDIControlChangeParamNodeSettings
+            settings={props.node.settings as NodeSettingsComponentProps<"param:midicc">["settings"]}
+            onChange={props.onChange as NodeSettingsComponentProps<"param:midicc">["onChange"]}
+          />
+        );
     }
   })();
 
@@ -144,6 +151,21 @@ function InputParamNodeSettings(props: NodeSettingsComponentProps<"param:input">
             </option>
           ))}
         </select>
+      }
+    />
+  );
+}
+
+function MIDIControlChangeParamNodeSettings(props: NodeSettingsComponentProps<"param:midicc">) {
+  return (
+    <DataField
+      label="CC Number"
+      value={
+        <NumberInput
+          step={1}
+          value={props.settings.ccNumber}
+          onChange={(value) => props.onChange("ccNumber", value)}
+        />
       }
     />
   );

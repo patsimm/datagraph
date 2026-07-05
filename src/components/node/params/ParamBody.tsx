@@ -4,6 +4,7 @@ import { ButtonParamBody } from "./ButtonParamBody";
 import { InputParamBody } from "./InputParamBody";
 import { MIDINoteParamBody } from "./MIDINoteParamBody";
 import { MIDIGateParamBody } from "./MIDIGateParamBody";
+import { MIDIControlChangeParamBody } from "./MIDIControlChangeParamBody";
 
 export function ParamBody({
   onChange,
@@ -29,6 +30,8 @@ export function ParamBody({
         return <MIDINoteParamBody {...getProps(node)} />;
       case "param:midigate":
         return <MIDIGateParamBody {...getProps(node)} />;
+      case "param:midicc":
+        return <MIDIControlChangeParamBody {...getProps(node)} />;
     }
   })();
 

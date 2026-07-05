@@ -62,14 +62,21 @@ const paramNodes = [
     label: "MIDI Note",
     kind: "param:midinote" as const,
     config: { value: 60 },
-    settings: { unit: "frequency:midiNote" as const },
+    settings: { unit: "frequency:midiNote" as const, channel: 1 },
   },
   {
     category: "controls",
     label: "MIDI Gate",
     kind: "param:midigate" as const,
     config: { value: 0 },
-    settings: { unit: "raw" as const },
+    settings: { unit: "raw" as const, channel: 1 },
+  },
+  {
+    category: "controls",
+    label: "MIDI CC",
+    kind: "param:midicc" as const,
+    config: { value: 0 },
+    settings: { unit: "raw" as const, channel: 1, ccNumber: 1 },
   },
 ];
 

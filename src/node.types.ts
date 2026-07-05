@@ -35,41 +35,37 @@ export type AnyAudioNodeState = {
   [S in AnyNodeSpec as S["kind"]]: NodeStateBase<S["kind"], EmptyToUndefined<Omit<S, "kind">>>;
 }[AnyNodeSpec["kind"]];
 
-export type ParamNodeBase<T extends string, S> = NodeStateBase<
-  T,
-  {
-    value: number;
-  },
-  S
->;
+export type ParamNodeBase<T extends string, S> = NodeStateBase<T, { value: number }, S>;
 
 export type SliderParamNodeState = ParamNodeBase<
   "param:slider",
-  {
-    unit: Unit;
-    min: number;
-    max: number;
-    step: number;
-  }
+  { unit: Unit; min: number; max: number; step: number }
 >;
 export type ButtonParamNodeState = ParamNodeBase<
   "param:button",
-  {
-    unit: Unit;
-    onValue: number;
-    offValue: number;
-  }
+  { unit: Unit; onValue: number; offValue: number }
 >;
 export type InputParamNodeState = ParamNodeBase<"param:input", { unit: Unit }>;
-export type MIDINoteParamNodeState = ParamNodeBase<"param:midinote", { unit: Unit }>;
-export type MIDIGateParamNodeState = ParamNodeBase<"param:midigate", { unit: Unit }>;
+export type MIDINoteParamNodeState = ParamNodeBase<
+  "param:midinote",
+  { unit: Unit; channel: number }
+>;
+export type MIDIGateParamNodeState = ParamNodeBase<
+  "param:midigate",
+  { unit: Unit; channel: number }
+>;
+export type MIDIControlChangeParamNodeState = ParamNodeBase<
+  "param:midicc",
+  { unit: Unit; channel: number; ccNumber: number }
+>;
 
 export type AnyParamNodeState =
   | SliderParamNodeState
   | ButtonParamNodeState
   | InputParamNodeState
   | MIDINoteParamNodeState
-  | MIDIGateParamNodeState;
+  | MIDIGateParamNodeState
+  | MIDIControlChangeParamNodeState;
 export type ParamNodeState<T extends AnyParamNodeState["kind"]> = Extract<
   AnyParamNodeState,
   { kind: T }

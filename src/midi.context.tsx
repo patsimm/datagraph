@@ -1,13 +1,24 @@
 import { createContext, useCallback, useContext, useRef } from "react";
 
-export type MIDIChannelMessage = {
-  message: "noteon" | "noteoff";
+export type MIDINoteMessage = {
+  type: "noteon" | "noteoff";
   channel: number;
   note: number;
 };
 
+export type MIDIControlChangeMessage = {
+  type: "controlchange";
+  channel: number;
+  ccNumber: number;
+  value: number;
+};
+
+export type MIDIChannelMessage = MIDINoteMessage | MIDIControlChangeMessage;
+
 const context = createContext<{
-  registerMIDIMessageCallback: (cb: (channelMessage: MIDIChannelMessage) => void) => Promise<() => void>;
+  registerMIDIMessageCallback: (
+    cb: (channelMessage: MIDIChannelMessage) => void
+  ) => Promise<() => void>;
 }>({
   registerMIDIMessageCallback: () => {
     throw new Error("MIDI context not initialized");
@@ -59,20 +70,28 @@ const parseMidiMessage = (message: Uint8Array): MIDIChannelMessage | null => {
 
   const command = statusByte >> 4;
   const channel = (statusByte & 0x0f) + 1;
-  console.log(`MIDI command: ${command}, channel: ${channel}`);
+  console.log(`MIDI command: ${command}, channel: ${channel}`, message);
 
-  let commandName: "noteon" | "noteoff" | null = null;
   switch (command) {
     case 0x9: // Note On
-      commandName = "noteon";
-      break;
+      return {
+        type: "noteon",
+        channel,
+        note: message[1],
+      };
     case 0x8: // Note Off
-      commandName = "noteoff";
-      break;
+      return {
+        type: "noteoff",
+        channel,
+        note: message[1],
+      };
+    case 0xb: // Control Change
+      return {
+        type: "controlchange",
+        channel,
+        ccNumber: message[1],
+        value: message[2],
+      };
   }
-
-  if (!commandName) return null;
-  const note = message[1];
-  if (note === undefined) return null;
-  return { message: commandName, channel, note };
+  return null;
 };

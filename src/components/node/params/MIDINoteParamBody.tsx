@@ -8,7 +8,9 @@ export function MIDINoteParamBody({ value, onChange }: ParamBodyProps<"param:mid
   useEffect(() => {
     const unregisterPromise = registerMIDIMessageCallback((message) => {
       console.log("MIDI message received:", message);
-      onChange?.(message.note);
+      if (message.type === "noteon") {
+        onChange?.(message.note);
+      }
     });
     return () => {
       unregisterPromise.then((unregister) => unregister());
