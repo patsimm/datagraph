@@ -1,43 +1,12 @@
 @import url("https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300;1,400;1,500&family=Inclusive+Sans:ital,wght@0,300..700;1,300..700&display=swap");
+@import url("./base-colors.css");
 
 :root {
-  /* THEME */
-
-  /* --color-primary: #067bc2; 
-   --color-accent: #ff6392; */
-
-  /* --color-primary: #76bed0;
-  --color-accent: #ff3370; */
-
-  /* --color-primary: #5e2bff;
-  --color-accent: #f564a9; */
-
-  /* --color-primary: #00a5e0;
-  --color-accent: #f40076; */
-
-  --color-primary: oklch(50.1% 0.196 267.592deg);
-  --color-primary-light: oklch(70.1% 0.196 267.592deg);
-  --color-primary-dark: oklch(30.1% 0.196 267.592deg);
-  --color-25: oklch(23% 0.07 267.592deg);
-  --color-50: oklch(37% 0.07 267.592deg);
-  --color-100: oklch(46.5% 0.066 267.592deg);
-  --color-200: oklch(57.2% 0.058 267.592deg);
-  --color-300: oklch(61.9% 0.051 267.592deg);
-  --color-400: oklch(66.6% 0.044 267.592deg);
-  --color-500: oklch(71.4% 0.037 267.592deg);
-  --color-600: oklch(76.1% 0.03 267.592deg);
-  --color-700: oklch(80.8% 0.024 267.592deg);
-  --color-800: oklch(85.5% 0.018 267.592deg);
-  --color-900: oklch(90.3% 0.012 267.592deg);
-  --color-950: oklch(95% 0.006 267.592deg);
-  --color-accent: #e56399;
-  --color-red: #ff0026;
-  --color-gray-light: var(--color-950);
-  --color-gray-dark: var(--color-25);
   --color-text-light: #fff;
   --color-text-dark: #000;
-  --color-background: var(--color-950);
-  --color-surface: var(--color-background);
+  --color-canvas-background: var(--color-950);
+  --color-sidebar-background: var(--color-800);
+  --color-surface: var(--color-white);
   --color-text: var(--color-text-dark);
   --shadow: drop-shadow(
     0.25rem 0.25rem 0 color-mix(in srgb, var(--color-gray-dark) 10%, transparent)
@@ -53,7 +22,7 @@
   --spacing-6: calc(var(--spacing-base) * 6);
   --spacing-8: calc(var(--spacing-base) * 8);
 
-  background: var(--color-background);
+  background: var(--color-canvas-background);
   color: var(--color-text);
   font-family:
     "Inclusive Sans",

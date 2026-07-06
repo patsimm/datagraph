@@ -4,7 +4,6 @@
   --color-text: var(--color-text-light);
   --color-text-alternative: var(--color-text-dark);
   --color-text-disabled: color-mix(in srgb, var(--color-text) 50%, var(--color-surface));
-  --color-surface: var(--toolbar-color-bg);
 
   width: 100%;
   background-color: var(--toolbar-color-bg);
@@ -46,11 +45,11 @@
     }
 
     &:hover {
-      background: color-mix(in srgb, var(--toolbar-button-color-bg) 80%, var(--color-surface));
+      background: color-mix(in srgb, var(--toolbar-button-color-bg) 80%, var(--toolbar-color-bg));
     }
 
     &:active {
-      background: color-mix(in srgb, var(--toolbar-button-color-bg) 70%, var(--color-surface));
+      background: color-mix(in srgb, var(--toolbar-button-color-bg) 70%, var(--toolbar-color-bg));
     }
   }
 
@@ -59,7 +58,7 @@
 
     &.toolbar__menu-trigger--open {
       .toolbar__button {
-        --toolbar-button-color-bg: var(--color-gray-light);
+        --toolbar-button-color-bg: var(--color-950);
 
         color: var(--color-primary);
 
@@ -76,7 +75,7 @@
 
   .toolbar__divider {
     width: 3px;
-    background: color-mix(in srgb, var(--color-text) 10%, var(--color-surface));
+    background: color-mix(in srgb, var(--color-text) 10%, var(--toolbar-color-bg));
     margin: 0.25rem 0;
     border-radius: 1px;
   }

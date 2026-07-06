@@ -21,4 +21,10 @@
     font-family: "DM Mono", monospace;
     user-select: text;
   }
+
+  &.datafield--disabled {
+    & .datafield__label {
+      opacity: 0.3;
+    }
+  }
 }

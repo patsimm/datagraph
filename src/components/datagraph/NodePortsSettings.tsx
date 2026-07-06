@@ -51,6 +51,7 @@ export function NodeInputPortsSettings({
           <div className="node-ports-settings__datafields">
             <DataField
               label="Fallback"
+              disabled={node.inputPorts[i].connectedTo.length != 0}
               value={
                 <NumberInput
                   value={node.inputPorts[i].defaultValue}

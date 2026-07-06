@@ -6,7 +6,7 @@
   pointer-events: none;
 
   & .edge__line {
-    stroke: color-mix(in srgb, var(--color-primary) 60%, var(--color-gray-light));
+    stroke: color-mix(in srgb, var(--color-primary) 60%, var(--color-950));
     stroke-width: 5px;
     pointer-events: auto;
 
@@ -18,7 +18,7 @@
 
   &.edge--ghost {
     & .edge__line {
-      stroke: color-mix(in srgb, var(--color-gray-light) 60%, var(--color-gray-dark));
+      stroke: var(--color-200);
       stroke-width: 2px;
       stroke-dasharray: 5, 5;
     }

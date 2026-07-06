@@ -1,6 +1,6 @@
 .node-port {
   --node-port-border-radius: var(--node-borer-radius);
-  --node-port-color-connected: var(--color-gray-dark);
+  --node-port-color-connected: var(--color-25);
   --node-port-color-input: var(--color-primary-light);
   --node-port-color-output: var(--color-primary-dark);
 
@@ -91,7 +91,7 @@
     overflow: visible;
 
     &::after {
-      outline: 2px solid color-mix(in srgb, var(--color-surface) 80%, var(--color-gray-light));
+      outline: 2px solid var(--color-800);
     }
   }
 }

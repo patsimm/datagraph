@@ -47,12 +47,17 @@ export function NumberInput({
   };
 
   return (
-    <div className={classNames("number-input", { "number-input--disabled": disabled })}>
+    <div
+      className={classNames("number-input", {
+        "number-input--disabled": disabled,
+      })}
+    >
       <input
         className="number-input__input"
         type="number"
         onChange={handleChange}
-        value={displayValue}
+        value={dirty ? displayValue : ""}
+        placeholder={dirty ? "" : displayValue}
         disabled={disabled}
         onFocus={(e) => e.target.select()}
         ref={inputRef}
