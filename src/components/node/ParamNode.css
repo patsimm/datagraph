@@ -9,9 +9,10 @@
   & .node__body {
     display: flex;
     justify-content: center;
-    align-items: stretch;
-    height: 2rem;
-    padding: 0.25rem;
+    align-items: center;
+    gap: var(--spacing-2);
+    flex-direction: column;
+    padding: var(--spacing-2) 0;
 
     & input {
       --input-accent-color: var(--color-accent);
@@ -34,39 +35,16 @@
     }
 
     & input[type="button"] {
+      width: 4rem;
+      height: 2rem;
       background: var(--input-accent-color);
       border-radius: 4px;
       border: 1px solid color-mix(in srgb, var(--input-accent-color) 70%, var(--color-gray-light));
-      flex: 1;
-    }
-
-    & input[type="range"] {
-      background: var(--color-background);
-      accent-color: var(--input-accent-color);
     }
 
     & .number-input {
       height: 1.5rem;
       width: 100%;
-    }
-  }
-
-  &[data-kind="param:input"] {
-    min-width: 6rem;
-    width: 6rem;
-  }
-
-  &[data-kind="param:button"] {
-    min-width: 6rem;
-    width: 6rem;
-  }
-
-  &[data-kind="param:midinote"],
-  &[data-kind="param:midigate"] {
-    width: 7rem;
-
-    & .node__body {
-      display: none;
     }
   }
 }

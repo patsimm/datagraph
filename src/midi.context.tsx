@@ -70,7 +70,6 @@ const parseMidiMessage = (message: Uint8Array): MIDIChannelMessage | null => {
 
   const command = statusByte >> 4;
   const channel = (statusByte & 0x0f) + 1;
-  console.log(`MIDI command: ${command}, channel: ${channel}`, message);
 
   switch (command) {
     case 0x9: // Note On

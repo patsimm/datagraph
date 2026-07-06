@@ -37,18 +37,29 @@ export function NodeSettings<T extends NodeKind>(props: NodeSettingsProps<T>) {
             onChange={props.onChange as NodeSettingsComponentProps<"param:button">["onChange"]}
           />
         );
-      case "param:input":
-        return (
-          <InputParamNodeSettings
-            settings={props.node.settings as NodeSettingsComponentProps<"param:input">["settings"]}
-            onChange={props.onChange as NodeSettingsComponentProps<"param:input">["onChange"]}
-          />
-        );
       case "param:midicc":
         return (
           <MIDIControlChangeParamNodeSettings
             settings={props.node.settings as NodeSettingsComponentProps<"param:midicc">["settings"]}
             onChange={props.onChange as NodeSettingsComponentProps<"param:midicc">["onChange"]}
+          />
+        );
+      case "param:midinote":
+        return (
+          <MIDINoteParamNodeSettings
+            settings={
+              props.node.settings as NodeSettingsComponentProps<"param:midinote">["settings"]
+            }
+            onChange={props.onChange as NodeSettingsComponentProps<"param:midinote">["onChange"]}
+          />
+        );
+      case "param:midigate":
+        return (
+          <MIDIGateParamNodeSettings
+            settings={
+              props.node.settings as NodeSettingsComponentProps<"param:midigate">["settings"]
+            }
+            onChange={props.onChange as NodeSettingsComponentProps<"param:midigate">["onChange"]}
           />
         );
     }
@@ -134,39 +145,63 @@ function ButtonParamNodeSettings(props: NodeSettingsComponentProps<"param:button
   );
 }
 
-function InputParamNodeSettings(props: NodeSettingsComponentProps<"param:input">) {
+function MIDIControlChangeParamNodeSettings(props: NodeSettingsComponentProps<"param:midicc">) {
   return (
-    <DataField
-      label="unit"
-      value={
-        <select
-          name="unit"
-          id="pet-select"
-          value={props.settings.unit}
-          onChange={(ev) => props.onChange("unit", ev.target.value as Unit)}
-        >
-          {allUnits.map((unit) => (
-            <option key={unit} value={unit}>
-              {unit}
-            </option>
-          ))}
-        </select>
-      }
-    />
+    <>
+      <DataField
+        label="Channel"
+        value={
+          <NumberInput
+            step={1}
+            value={props.settings.channel}
+            onChange={(value) => props.onChange("channel", value)}
+          />
+        }
+      />
+      <DataField
+        label="CC Number"
+        value={
+          <NumberInput
+            step={1}
+            value={props.settings.ccNumber}
+            onChange={(value) => props.onChange("ccNumber", value)}
+          />
+        }
+      />
+    </>
   );
 }
 
-function MIDIControlChangeParamNodeSettings(props: NodeSettingsComponentProps<"param:midicc">) {
+function MIDINoteParamNodeSettings(props: NodeSettingsComponentProps<"param:midinote">) {
   return (
-    <DataField
-      label="CC Number"
-      value={
-        <NumberInput
-          step={1}
-          value={props.settings.ccNumber}
-          onChange={(value) => props.onChange("ccNumber", value)}
-        />
-      }
-    />
+    <>
+      <DataField
+        label="Channel"
+        value={
+          <NumberInput
+            step={1}
+            value={props.settings.channel}
+            onChange={(value) => props.onChange("channel", value)}
+          />
+        }
+      />
+    </>
+  );
+}
+
+function MIDIGateParamNodeSettings(props: NodeSettingsComponentProps<"param:midigate">) {
+  return (
+    <>
+      <DataField
+        label="Channel"
+        value={
+          <NumberInput
+            step={1}
+            value={props.settings.channel}
+            onChange={(value) => props.onChange("channel", value)}
+          />
+        }
+      />
+    </>
   );
 }

@@ -54,7 +54,16 @@ export function NodeInputPortsSettings({
               disabled={node.inputPorts[i].connectedTo.length != 0}
               value={
                 <NumberInput
-                  value={node.inputPorts[i].defaultValue}
+                  value={
+                    node.inputPorts[i].isDefaultModified
+                      ? node.inputPorts[i].defaultValue
+                      : undefined
+                  }
+                  placeholder={
+                    !node.inputPorts[i].isDefaultModified
+                      ? node.inputPorts[i].defaultValue.toString()
+                      : undefined
+                  }
                   onChange={(value) => onDefaultValueChange(i, value)}
                   onReset={() => onDefaultValueReset(i)}
                   resetable

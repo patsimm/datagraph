@@ -1,3 +1,4 @@
+import { Slider } from "../../Slider";
 import type { ParamBodyProps } from "./param-body.types";
 
 import { useState } from "react";
@@ -8,31 +9,29 @@ export function SliderParamBody({
   onChange,
   ...rest
 }: ParamBodyProps<"param:slider">) {
-  const [displayValue, setDisplayValue] = useState<string>(value.toString());
+  const [displayValue, setDisplayValue] = useState<number>(value);
   const [prevValue, setPrevValue] = useState(value);
 
   if (value !== prevValue) {
     setPrevValue(value);
-    setDisplayValue(value.toString());
+    setDisplayValue(value);
   }
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setDisplayValue(e.target.value);
-    const parsedValue = parseFloat(e.target.value);
-    if (Number.isNaN(parsedValue) || !Number.isFinite(parsedValue)) return;
-    onChange?.(parsedValue);
+  const handleChange = (newValue: number) => {
+    setDisplayValue(newValue);
+    onChange?.(newValue);
   };
 
   return (
-    <input
-      className="node__input-slider"
-      type="range"
-      min={settings.min}
-      max={settings.max}
-      step={settings.step}
-      value={displayValue}
-      onChange={handleChange}
-      {...rest}
-    />
+    <div className="node__body">
+      <Slider
+        min={settings.min}
+        max={settings.max}
+        step={settings.step}
+        value={displayValue}
+        onChange={handleChange}
+        {...rest}
+      />
+    </div>
   );
 }

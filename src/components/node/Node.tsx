@@ -174,7 +174,7 @@ export function Node({
           <div className="node__head">
             <div className="node__label">{label || kind}</div>
           </div>
-          {children && <div className="node__body">{children}</div>}
+          {children}
         </div>
       </div>
     </div>

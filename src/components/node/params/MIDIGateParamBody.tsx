@@ -3,11 +3,11 @@ import type { ParamBodyProps } from "./param-body.types";
 
 import { useEffect } from "react";
 
-export function MIDIGateParamBody({ value, onChange }: ParamBodyProps<"param:midigate">) {
+export function MIDIGateParamBody({ onChange, settings }: ParamBodyProps<"param:midigate">) {
   const { registerMIDIMessageCallback } = useMidi();
   useEffect(() => {
     const unregisterPromise = registerMIDIMessageCallback((message) => {
-      console.log("MIDI message received:", message);
+      if (!(settings.channel == 0 || message.channel == settings.channel)) return;
       if (message.type === "noteon") {
         onChange?.(1);
       }
@@ -20,5 +20,5 @@ export function MIDIGateParamBody({ value, onChange }: ParamBodyProps<"param:mid
     };
   }, [onChange, registerMIDIMessageCallback]);
 
-  return <>{value}</>;
+  return <></>;
 }

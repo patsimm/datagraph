@@ -1,6 +1,6 @@
 .button {
-  --background-color: color-mix(in srgb, var(--color-gray-light) 90%, var(--color-gray-dark));
-  --border-color: color-mix(in srgb, var(--color-gray-light) 50%, var(--color-gray-dark));
+  --background-color: color-mix(in srgb, var(--color-950) 90%, var(--color-25));
+  --border-color: color-mix(in srgb, var(--color-950) 50%, var(--color-25));
 
   background: var(--background-color);
   color: var(--color-text);
@@ -13,13 +13,13 @@
   gap: 0.25rem;
 
   &:hover {
-    background: color-mix(in srgb, var(--background-color) 85%, var(--color-gray-dark));
-    border-color: color-mix(in srgb, var(--border-color) 85%, var(--color-gray-dark));
+    background: color-mix(in srgb, var(--background-color) 85%, var(--color-25));
+    border-color: color-mix(in srgb, var(--border-color) 85%, var(--color-25));
   }
 
   &.button--color-red {
-    --background-color: color-mix(in srgb, var(--color-red) 90%, var(--color-gray-dark));
-    --border-color: color-mix(in srgb, var(--color-red) 50%, var(--color-gray-dark));
+    --background-color: color-mix(in srgb, var(--color-red) 90%, var(--color-25));
+    --border-color: color-mix(in srgb, var(--color-red) 50%, var(--color-25));
     --color-text: var(--color-text-light);
   }
 }

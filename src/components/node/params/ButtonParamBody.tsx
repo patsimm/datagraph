@@ -20,15 +20,17 @@ export function ButtonParamBody({
   };
 
   return (
-    <input
-      className={classNames("node__input-button", {
-        "node__input--active": value === settings.onValue,
-      })}
-      type="button"
-      onPointerDown={handlePointerDown}
-      onPointerUp={handlePointerUp}
-      onPointerLeave={() => onChange?.(settings.offValue)}
-      aria-pressed={value === settings.onValue}
-    />
+    <div className="node__body">
+      <input
+        className={classNames("node__input-button", {
+          "node__input--active": value === settings.onValue,
+        })}
+        type="button"
+        onPointerDown={handlePointerDown}
+        onPointerUp={handlePointerUp}
+        onPointerLeave={() => onChange?.(settings.offValue)}
+        aria-pressed={value === settings.onValue}
+      />
+    </div>
   );
 }

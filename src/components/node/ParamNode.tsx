@@ -8,17 +8,8 @@ export type ParamNodeProps = AnyParamNodeState & NodeInteractionProps;
 
 export function ParamNode({ nodeId, config, ...nodeProps }: ParamNodeProps) {
   const { setParamValue } = useNodes();
-  const value = config?.value;
   return (
-    <Node
-      nodeId={nodeId}
-      label={
-        <>
-          {nodeProps.kind.split(":")[1]} <div className="node__value">: {value}</div>
-        </>
-      }
-      {...nodeProps}
-    >
+    <Node nodeId={nodeId} label={nodeProps.kind.split(":")[1]} {...nodeProps}>
       <ParamBody nodeId={nodeId} onChange={setParamValue} config={config} {...nodeProps} />
     </Node>
   );

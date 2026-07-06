@@ -45,7 +45,6 @@ export type ButtonParamNodeState = ParamNodeBase<
   "param:button",
   { unit: Unit; onValue: number; offValue: number }
 >;
-export type InputParamNodeState = ParamNodeBase<"param:input", { unit: Unit }>;
 export type MIDINoteParamNodeState = ParamNodeBase<
   "param:midinote",
   { unit: Unit; channel: number }
@@ -62,7 +61,6 @@ export type MIDIControlChangeParamNodeState = ParamNodeBase<
 export type AnyParamNodeState =
   | SliderParamNodeState
   | ButtonParamNodeState
-  | InputParamNodeState
   | MIDINoteParamNodeState
   | MIDIGateParamNodeState
   | MIDIControlChangeParamNodeState;

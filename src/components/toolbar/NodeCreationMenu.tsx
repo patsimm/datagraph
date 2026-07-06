@@ -52,31 +52,24 @@ const paramNodes = [
   },
   {
     category: "controls",
-    label: "Input",
-    kind: "param:input" as const,
-    config: { value: 0 },
-    settings: { unit: "raw" as const },
-  },
-  {
-    category: "controls",
     label: "MIDI Note",
     kind: "param:midinote" as const,
     config: { value: 60 },
-    settings: { unit: "frequency:midiNote" as const, channel: 1 },
+    settings: { unit: "frequency:midiNote" as const, channel: 0 },
   },
   {
     category: "controls",
     label: "MIDI Gate",
     kind: "param:midigate" as const,
     config: { value: 0 },
-    settings: { unit: "raw" as const, channel: 1 },
+    settings: { unit: "raw" as const, channel: 0 },
   },
   {
     category: "controls",
     label: "MIDI CC",
     kind: "param:midicc" as const,
     config: { value: 0 },
-    settings: { unit: "raw" as const, channel: 1, ccNumber: 1 },
+    settings: { unit: "raw" as const, channel: 0, ccNumber: 1 },
   },
 ];
 

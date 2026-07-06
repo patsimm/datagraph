@@ -7,6 +7,7 @@ import {
 } from "../../node.types";
 import { AnyNodeState } from "../../nodes.context";
 import { ActivatableInputPortNode } from "./datagraph/ActivatableInputPortNode";
+import { CrossfadeNode } from "./datagraph/CrossfadeNode";
 import { Node } from "./Node";
 import { ParamNode } from "./ParamNode";
 import { VisualizerNode } from "./VisualizerNode";
@@ -51,6 +52,9 @@ export const NodeRenderer = React.memo(function NodeRenderer({
     }
     if (node.config?.typename === "datagraph::nodes::select::Select") {
       return <ActivatableInputPortNode label="Select" {...node} {...interactionProps} />;
+    }
+    if (node.config?.typename === "datagraph::nodes::crossfade::Crossfade") {
+      return <CrossfadeNode label="Crossfade" {...node} {...interactionProps} />;
     }
   }
 
