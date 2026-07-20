@@ -7,6 +7,7 @@ import { NodeCreationMenu } from "./NodeCreationMenu";
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
+  IconBrandGithub,
   IconDeviceFloppy,
   IconFileUpload,
   IconPlayerPause,
@@ -91,6 +92,16 @@ export function Toolbar({ outputNode }: ToolbarProps) {
         <button className="toolbar__button" onClick={shareGraph}>
           <IconShare stroke={1.25} className="toolbar__button-icon" />
         </button>
+        <div className="toolbar__divider" />
+        <a
+          className="toolbar__button"
+          href="https://github.com/patsimm/datagraph"
+          target="_blank"
+          rel="noreferrer"
+          aria-label="View source on GitHub"
+        >
+          <IconBrandGithub stroke={1.25} className="toolbar__button-icon" />
+        </a>
       </div>
     </div>
   );

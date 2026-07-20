@@ -34,6 +34,7 @@
     background: var(--toolbar-button-color-bg);
     border: none;
     color: inherit;
+    text-decoration: none;
 
     &.toolbar__button--play {
       --toolbar-button-color-bg: var(--color-accent);
