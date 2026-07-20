@@ -1,4 +1,5 @@
 import { useMidi } from "../../../midi.context";
+import { remap } from "../../../utils";
 import { Slider } from "../../Slider";
 import type { ParamBodyProps } from "./param-body.types";
 
@@ -15,17 +16,32 @@ export function MIDIControlChangeParamBody({
     const unregisterPromise = registerMIDIMessageCallback((message) => {
       if (!(settings.channel == 0 || message.channel == settings.channel)) return;
       if (message.type === "controlchange" && message.ccNumber === settings.ccNumber) {
-        onChange?.(message.value);
+        const remappedValue = remap(message.value, 0, 127, settings.minValue, settings.maxValue);
+        onChange?.(remappedValue);
       }
     });
     return () => {
       unregisterPromise.then((unregister) => unregister());
     };
-  }, [onChange, registerMIDIMessageCallback, settings.ccNumber, settings.channel]);
+  }, [
+    onChange,
+    registerMIDIMessageCallback,
+    settings.ccNumber,
+    settings.channel,
+    settings.maxValue,
+    settings.minValue,
+  ]);
 
   return (
     <div className="node__body">
-      <Slider value={value} min={0} max={127} step={1} onChange={onChange} {...rest}></Slider>
+      <Slider
+        value={value}
+        min={settings.minValue}
+        max={settings.maxValue}
+        step={(settings.maxValue - settings.minValue) / 127}
+        onChange={onChange}
+        {...rest}
+      ></Slider>
     </div>
   );
 }

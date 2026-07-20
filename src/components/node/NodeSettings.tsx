@@ -168,6 +168,26 @@ function MIDIControlChangeParamNodeSettings(props: NodeSettingsComponentProps<"p
           />
         }
       />
+      <DataField
+        label="Min Value"
+        value={
+          <NumberInput
+            step={1}
+            value={props.settings.minValue}
+            onChange={(value) => props.onChange("minValue", value)}
+          />
+        }
+      />
+      <DataField
+        label="Max Value"
+        value={
+          <NumberInput
+            step={1}
+            value={props.settings.maxValue}
+            onChange={(value) => props.onChange("maxValue", value)}
+          />
+        }
+      />
     </>
   );
 }

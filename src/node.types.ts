@@ -35,27 +35,26 @@ export type AnyAudioNodeState = {
   [S in AnyNodeSpec as S["kind"]]: NodeStateBase<S["kind"], EmptyToUndefined<Omit<S, "kind">>>;
 }[AnyNodeSpec["kind"]];
 
-export type ParamNodeBase<T extends string, S> = NodeStateBase<T, { value: number }, S>;
+export type ParamNodeBase<T extends string, S> = NodeStateBase<`param:${T}`, { value: number }, S>;
 
-export type SliderParamNodeState = ParamNodeBase<
-  "param:slider",
-  { unit: Unit; min: number; max: number; step: number }
->;
-export type ButtonParamNodeState = ParamNodeBase<
-  "param:button",
-  { unit: Unit; onValue: number; offValue: number }
->;
-export type MIDINoteParamNodeState = ParamNodeBase<
-  "param:midinote",
-  { unit: Unit; channel: number }
->;
-export type MIDIGateParamNodeState = ParamNodeBase<
-  "param:midigate",
-  { unit: Unit; channel: number }
->;
+export const defaultSliderSettings = { unit: "raw" as Unit, min: 0, max: 1, step: 0.01 };
+export type SliderParamNodeState = ParamNodeBase<"slider", typeof defaultSliderSettings>;
+export const defaultButtonSettings = { unit: "raw" as Unit, onValue: 1, offValue: 0 };
+export type ButtonParamNodeState = ParamNodeBase<"button", typeof defaultButtonSettings>;
+export const defaultMIDINoteSettings = { unit: "frequency:midiNote" as Unit, channel: 0 };
+export type MIDINoteParamNodeState = ParamNodeBase<"midinote", typeof defaultMIDINoteSettings>;
+export const defaultMIDIGateSettings = { unit: "raw" as Unit, channel: 0 };
+export type MIDIGateParamNodeState = ParamNodeBase<"midigate", typeof defaultMIDIGateSettings>;
+export const defaultMIDIControlChangeSettings = {
+  unit: "raw" as Unit,
+  channel: 0,
+  ccNumber: 1,
+  minValue: 0,
+  maxValue: 127,
+};
 export type MIDIControlChangeParamNodeState = ParamNodeBase<
-  "param:midicc",
-  { unit: Unit; channel: number; ccNumber: number }
+  "midicc",
+  typeof defaultMIDIControlChangeSettings
 >;
 
 export type AnyParamNodeState =
@@ -64,6 +63,17 @@ export type AnyParamNodeState =
   | MIDINoteParamNodeState
   | MIDIGateParamNodeState
   | MIDIControlChangeParamNodeState;
+export const defaultNodeSettings: Record<AnyNodeState["kind"], AnyNodeState["settings"]> = {
+  "param:slider": defaultSliderSettings,
+  "param:button": defaultButtonSettings,
+  "param:midinote": defaultMIDINoteSettings,
+  "param:midigate": defaultMIDIGateSettings,
+  "param:midicc": defaultMIDIControlChangeSettings,
+  datagraph: undefined,
+  "visualizer:oscilloscope": undefined,
+  "visualizer:inspect": undefined,
+  output: undefined,
+};
 export type ParamNodeState<T extends AnyParamNodeState["kind"]> = Extract<
   AnyParamNodeState,
   { kind: T }

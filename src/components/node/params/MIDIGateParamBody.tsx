@@ -18,7 +18,7 @@ export function MIDIGateParamBody({ onChange, settings }: ParamBodyProps<"param:
     return () => {
       unregisterPromise.then((unregister) => unregister());
     };
-  }, [onChange, registerMIDIMessageCallback]);
+  }, [onChange, registerMIDIMessageCallback, settings.channel]);
 
   return <></>;
 }

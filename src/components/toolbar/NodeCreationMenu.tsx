@@ -24,14 +24,12 @@ const visualizerNodes = [
     label: "Oscilloscope",
     kind: "visualizer:oscilloscope" as const,
     config: undefined,
-    settings: undefined,
   },
   {
     category: "visualizers",
     label: "Inspect",
     kind: "visualizer:inspect" as const,
     config: undefined,
-    settings: undefined,
   },
 ];
 
@@ -41,35 +39,30 @@ const paramNodes = [
     label: "Slider",
     kind: "param:slider" as const,
     config: { value: 0 },
-    settings: { unit: "raw" as const, min: 0, max: 1, step: 0.01 },
   },
   {
     category: "controls",
     label: "Button",
     kind: "param:button" as const,
     config: { value: 0 },
-    settings: { unit: "raw" as const, onValue: 1, offValue: 0 },
   },
   {
     category: "controls",
     label: "MIDI Note",
     kind: "param:midinote" as const,
     config: { value: 60 },
-    settings: { unit: "frequency:midiNote" as const, channel: 0 },
   },
   {
     category: "controls",
     label: "MIDI Gate",
     kind: "param:midigate" as const,
     config: { value: 0 },
-    settings: { unit: "raw" as const, channel: 0 },
   },
   {
     category: "controls",
     label: "MIDI CC",
     kind: "param:midicc" as const,
     config: { value: 0 },
-    settings: { unit: "raw" as const, channel: 0, ccNumber: 1 },
   },
 ];
 
@@ -146,12 +139,11 @@ export function NodeCreationMenu({ onClose, className }: NodeCreationMenuProps) 
       name: string,
       kind: T,
       config: NodeState<T>["config"],
-      settings: NodeState<T>["settings"],
       ev: React.PointerEvent
     ) => {
       ev.currentTarget.setPointerCapture(ev.pointerId);
       const position = panZoomCanvas.clientToCanvasPos(ev);
-      const info = await addNode(name, kind, position, config, settings);
+      const info = await addNode(name, kind, position, config);
       if (!info) return;
 
       onClose?.();
@@ -172,7 +164,6 @@ export function NodeCreationMenu({ onClose, className }: NodeCreationMenuProps) 
               label: typename.split("::").at(-1) ?? typename,
               kind: "datagraph" as const,
               config: { typename },
-              settings: undefined,
             })),
             ...paramNodes,
             ...visualizerNodes,
@@ -211,13 +202,11 @@ type NodeCreationMenuSectionProps<T extends NodeKind> = {
     label: string;
     kind: T;
     config: NodeState<T>["config"];
-    settings: NodeState<T>["settings"];
   }[];
   onAddNodePointerDown: (
     name: string,
     kind: T,
     config: NodeState<T>["config"],
-    settings: NodeState<T>["settings"],
     ev: React.PointerEvent
   ) => void;
 };
@@ -249,12 +238,12 @@ function NodeCreationMenuSection<T extends NodeKind>({
         <div className="node-creation-menu__items">
           {types
             .toSorted((a, b) => a.label.localeCompare(b.label))
-            .map(({ label, kind, config, settings }) => (
+            .map(({ label, kind, config }) => (
               <button
                 key={label}
                 role="menuitem"
                 className="node-creation-menu__add-node-button"
-                onPointerDown={(ev) => onAddNodePointerDown(label, kind, config, settings, ev)}
+                onPointerDown={(ev) => onAddNodePointerDown(label, kind, config, ev)}
               >
                 {label}
               </button>

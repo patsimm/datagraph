@@ -56,5 +56,9 @@ export function OscilloscopeBody({ nodeId }: { nodeId: string }) {
 
   usePortData(port, handleChange);
 
-  return <canvas className="node__canvas" ref={canvasRef} />;
+  return (
+    <div className="node__body">
+      <canvas className="node__canvas" ref={canvasRef} />
+    </div>
+  );
 }

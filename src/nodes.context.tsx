@@ -7,6 +7,7 @@ import {
 } from "./audio-worklet/datagraph-audio-worklet-commands";
 import {
   AnyParamNodeState,
+  defaultNodeSettings,
   isNodeStateOfKind,
   isParamKind,
   isParamNodeState,
@@ -169,16 +170,19 @@ function useAllNodes() {
       kind: T,
       position: PanZoomCanvasPosition,
       config: NodeState<T>["config"],
-      settings: NodeState<T>["settings"]
+      settings?: Partial<NodeState<T>["settings"]>
     ): Promise<NodeInfo | null> => {
       if (!ready) return Promise.resolve(null);
 
       let wasmInfo: WasmNodeInfo | undefined;
+      const initializedSettings = {
+        ...defaultNodeSettings[kind],
+        ...settings,
+      };
       if (isParamKind(kind)) {
         const typedConfig = config as NodeState<"param:slider" | "param:button">["config"];
-        const typedSettings = settings as AnyParamNodeState["settings"];
-        const cvValue = typedSettings?.unit
-          ? convertToCv(typedConfig.value, typedSettings.unit)
+        const cvValue = initializedSettings?.unit
+          ? convertToCv(typedConfig.value, initializedSettings.unit)
           : typedConfig.value;
         wasmInfo = addParamToGraph(cvValue);
       } else if (isVisualizerKind(kind)) {
@@ -192,7 +196,13 @@ function useAllNodes() {
 
       if (!wasmInfo) return Promise.resolve(null);
       const info = toNodeInfo(wasmInfo);
-      const pending: PendingCreation = { name, kind, position, config, settings };
+      const pending: PendingCreation = {
+        name,
+        kind,
+        position,
+        config,
+        settings: initializedSettings,
+      };
       setNodes((prev) => ({ ...prev, [info.nodeId]: buildNodeState(info, pending) }));
       return Promise.resolve(info);
     },
@@ -332,7 +342,7 @@ const nodesContext = createContext<{
     kind: T,
     position: PanZoomCanvasPosition,
     config: NodeState<T>["config"],
-    settings: NodeState<T>["settings"]
+    settings?: Partial<NodeState<T>["settings"]>
   ) => Promise<NodeInfo | null>;
   removeNode: (nodeId: string) => void;
   injectOutputNode: (info: NodeInfo, position: PanZoomCanvasPosition) => void;
